@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import MainApi from "../api/MainApi";
+import MainApi from "@/api/MainApi";
 
 export const useCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -27,8 +27,6 @@ export const useCategories = () => {
       setCategories(categoriesData);
     } catch (err) {
       console.error("Categories fetch error:", err);
-      const errorData = MainApi.handleError(err);
-      setError(errorData);
       setCategories([]); // Set empty array on error
     } finally {
       setLoading(false);

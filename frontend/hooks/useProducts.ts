@@ -13,7 +13,6 @@ export const useProducts = () => {
 
       console.log("Fetching products...");
       const response = await MainApi.get("/api/v1/products");
-      console.log("Products response:", response.data.products);
 
       // Validate response data
       if (!response.data.products) {

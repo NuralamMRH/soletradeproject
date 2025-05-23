@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#f5f5f5"/>
+  <text x="100" y="50" font-family="Arial" font-size="20" text-anchor="middle" dominant-baseline="middle" fill="#333">Stussy</text>
+  <circle cx="100" cy="110" r="40" fill="#333"/>
+  <text x="100" y="110" font-family="Arial" font-size="24" text-anchor="middle" dominant-baseline="middle" fill="#fff">8</text>
+</svg>
