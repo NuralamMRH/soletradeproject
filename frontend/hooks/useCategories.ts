@@ -13,7 +13,7 @@ export const useCategories = () => {
 
       console.log("Fetching categories...");
       const response = await MainApi.get("/api/v1/categories");
-      console.log("Categories response:", response.data.categories);
+      // console.log("Categories response:", response.data.categories);
 
       // Validate response data
       if (!response.data.categories) {

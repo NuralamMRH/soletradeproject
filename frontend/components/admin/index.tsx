@@ -28,58 +28,6 @@ type HistoryItem = {
   icon: React.ComponentProps<typeof Ionicons>["name"];
 };
 
-const purchaseHistory: HistoryItem[] = [
-  { key: "bids", icon: "hammer-outline" },
-  { key: "order", icon: "document-text-outline" },
-  { key: "verification", icon: "shield-checkmark-outline" },
-  { key: "delivery", icon: "car-outline" },
-  { key: "completed", icon: "checkmark-done-circle-outline" },
-  { key: "cancelled", icon: "close-circle-outline" },
-];
-const salesHistory: HistoryItem[] = [
-  { key: "asks", icon: "storefront-outline" },
-  { key: "order", icon: "document-text-outline" },
-  { key: "shipment", icon: "cube-outline" },
-  { key: "verification", icon: "shield-checkmark-outline" },
-  { key: "completed", icon: "checkmark-done-circle-outline" },
-  { key: "cancelled", icon: "close-circle-outline" },
-];
-
-const NOTIFICATIONS = [
-  {
-    key: "promos",
-    label: {
-      en: "Exclusive Promos and Releases",
-      th: "โปรโมชันและการเปิดตัวพิเศษ",
-    },
-  },
-  {
-    key: "orders",
-    label: { en: "Purchase and Sales Order", th: "คำสั่งซื้อและขาย" },
-  },
-  {
-    key: "pricing",
-    label: {
-      en: "Pricing and Availability Updates",
-      th: "อัปเดตราคาและความพร้อมจำหน่าย",
-    },
-  },
-  { key: "email", label: { en: "Email Subscription", th: "การสมัครรับอีเมล" } },
-];
-const SUPPORT_LINKS = [
-  { label: { en: "Contact Us", th: "ติดต่อเรา" }, route: "/contact" },
-  { label: { en: "Terms of Use", th: "ข้อกำหนดการใช้" }, route: "/terms" },
-  { label: { en: "FAQs", th: "คำถามที่พบบ่อย" }, route: "/faqs" },
-  {
-    label: { en: "Privacy and Security", th: "ความเป็นส่วนตัวและความปลอดภัย" },
-    route: "/privacy",
-  },
-  {
-    label: { en: "Product Authentication", th: "การตรวจสอบสินค้า" },
-    route: "/auth",
-  },
-  { label: { en: "Announcement", th: "ประกาศ" }, route: "/announcement" },
-];
 const initialNotificationSettings = {
   promos: false,
   orders: true,
@@ -94,6 +42,7 @@ export default function AdminScreen() {
     initialNotificationSettings
   );
   const router = useRouter();
+
   const handleToggle = (key: keyof typeof initialNotificationSettings) => {
     setNotificationSettings((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -101,10 +50,6 @@ export default function AdminScreen() {
   if (!isAuthenticated) {
     return <Redirect href="/auth/login" />;
   }
-
-  const avatar =
-    process.env.EXPO_NATIVE_API + user.image_full_url ||
-    require("../../assets/images/avatar.png");
 
   // Header component with logo and icons
   const renderHeader = () => {
@@ -120,32 +65,19 @@ export default function AdminScreen() {
       >
         <View style={{ paddingBottom: 5 }}>
           <View style={styles.headerContent}>
-            <View style={styles.headerLeft}>
-              <TouchableOpacity style={{ paddingLeft: 10 }}>
-                <Ionicons name="bookmark-outline" size={25} color={"black"} />
-              </TouchableOpacity>
-            </View>
+            <View style={styles.headerLeft}></View>
 
-            <View style={styles.headerCenter}>
-              <Text>Admin Dashboard</Text>
+            <View style={[styles.headerCenter, { flex: 3 }]}>
+              <Text style={styles.sectionTitle}>Admin Dashboard</Text>
             </View>
 
             <View style={styles.headerRight}>
-              <TouchableOpacity style={{ padding: 5 }}>
-                <Ionicons name="search-outline" size={25} color={"black"} />
-              </TouchableOpacity>
               <TouchableOpacity style={{ padding: 5 }}>
                 <Ionicons
                   name="notifications-outline"
                   size={25}
                   color={"black"}
                 />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.cartButton}>
-                <Ionicons name="cart-outline" size={24} color="#333" />
-                <View style={styles.cartBadge}>
-                  <Text style={styles.cartBadgeText}>2</Text>
-                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -161,8 +93,120 @@ export default function AdminScreen() {
         style={styles.container}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
+        {/* Content Management Section */}
+        <View style={[styles.subContainer]}>
+          <TouchableOpacity
+            style={styles.buttonRow}
+            onPress={() => router.push("/products-manager")}
+          >
+            <Ionicons
+              name="cube-outline"
+              size={24}
+              color="#333"
+              style={styles.menuIcon}
+            />
+            <Text style={styles.walletLabel}>Products</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color="#999"
+              style={{ marginLeft: "auto" }}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.buttonRow}
+            onPress={() => router.push("/orders")}
+          >
+            <Ionicons
+              name="cart-outline"
+              size={24}
+              color="#333"
+              style={styles.menuIcon}
+            />
+            <Text style={styles.menuText}>Orders</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color="#999"
+              style={{ marginLeft: "auto" }}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.buttonRow}
+            onPress={() => router.push("/manage-pages")}
+          >
+            <Ionicons
+              name="document-text-outline"
+              size={24}
+              color="#333"
+              style={styles.menuIcon}
+            />
+            <Text style={styles.menuText}>Manage Pages</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color="#999"
+              style={{ marginLeft: "auto" }}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.buttonRow}
+            onPress={() => router.push("/vouchers")}
+          >
+            <Ionicons
+              name="pricetag-outline"
+              size={24}
+              color="#333"
+              style={styles.menuIcon}
+            />
+            <Text style={styles.menuText}>Vouchers and Discounts</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color="#999"
+              style={{ marginLeft: "auto" }}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.buttonRow}
+            onPress={() => router.push("/users")}
+          >
+            <Ionicons
+              name="people-outline"
+              size={24}
+              color="#333"
+              style={styles.menuIcon}
+            />
+            <Text style={styles.menuText}>Users data</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color="#999"
+              style={{ marginLeft: "auto" }}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.buttonRow}
+            onPress={() => router.push("/statistics")}
+          >
+            <Ionicons
+              name="stats-chart-outline"
+              size={24}
+              color="#333"
+              style={styles.menuIcon}
+            />
+            <Text style={styles.menuText}>Statistics</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={24}
+              color="#999"
+              style={{ marginLeft: "auto" }}
+            />
+          </TouchableOpacity>
+        </View>
+
         {/* Language Switcher */}
-        <View style={[styles.languageRow, styles.subContainer]}>
+        <View style={[styles.buttonRow, styles.subContainer]}>
           <Ionicons
             name="globe-outline"
             size={24}
@@ -205,23 +249,6 @@ export default function AdminScreen() {
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* Wallet Tab */}
-        <TouchableOpacity style={[styles.buttonRow, styles.subContainer]}>
-          <Ionicons
-            name="card-outline"
-            size={28}
-            color="#111"
-            style={{ marginRight: 10 }}
-          />
-          <Text style={styles.walletLabel}>{t.wallet}</Text>
-          <Ionicons
-            name="chevron-forward"
-            size={24}
-            color="#111"
-            style={{ marginLeft: "auto" }}
-          />
-        </TouchableOpacity>
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={logout}>
@@ -286,6 +313,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 10,
     marginBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
   },
   sectionTitle: {
     fontSize: 18,
@@ -356,8 +385,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 14,
     paddingHorizontal: 12,
-    marginTop: 18,
-    marginBottom: 10,
+    paddingTop: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
   },
   walletLabel: {
     fontSize: 16,
@@ -592,13 +623,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginBottom: 10,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginLeft: 15,
-    marginVertical: 10,
-  },
   viewMoreText: {
     fontSize: 14,
     color: "#666",
@@ -754,5 +778,27 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 10,
     justifyContent: "center",
+  },
+  section: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    backgroundColor: "#f8f8f8",
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  menuIcon: {
+    marginRight: 12,
+  },
+  menuText: {
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "bold",
   },
 });

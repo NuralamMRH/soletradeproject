@@ -8,6 +8,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import Colors from "@/constants/Colors";
+import Constants from "expo-constants";
 
 const menuItems = [
   { label: "Category", icon: "list-outline", route: "/all-categories-manage" },
@@ -35,31 +37,117 @@ export default function ProductsManager() {
     router.navigate(route as any);
   };
 
-  return (
-    <ScrollView style={styles.container}>
-      <View style={styles.section}>
-        {menuItems.map((item) => (
-          <TouchableOpacity
-            key={item.label}
-            style={styles.menuItem}
-            onPress={() => handleNavigation(item.route)}
-          >
-            <Ionicons
-              name={item.icon as any}
-              size={24}
-              color="#333"
-              style={styles.menuIcon}
-            />
-            <Text style={styles.menuText}>{item.label}</Text>
-            <Ionicons name="chevron-forward" size={24} color="#999" />
-          </TouchableOpacity>
-        ))}
+  const renderHeader = () => {
+    return (
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: Constants.statusBarHeight,
+            backgroundColor: Colors.brandGray,
+          },
+        ]}
+      >
+        <View style={{ paddingBottom: 5 }}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity
+                style={{ padding: 5 }}
+                onPress={() => router.back()}
+              >
+                <Ionicons name="arrow-back" size={25} color={"black"} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.headerCenter, { flex: 3 }]}>
+              <Text style={styles.sectionTitle}>Products Manager</Text>
+            </View>
+
+            <View style={styles.headerRight}>
+              <TouchableOpacity style={{ padding: 5 }}>
+                <Ionicons
+                  name="notifications-outline"
+                  size={25}
+                  color={"black"}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </View>
-    </ScrollView>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      {renderHeader()}
+      <ScrollView>
+        <View style={styles.section}>
+          {menuItems.map((item) => (
+            <TouchableOpacity
+              key={item.label}
+              style={styles.menuItem}
+              onPress={() => handleNavigation(item.route)}
+            >
+              <Ionicons
+                name={item.icon as any}
+                size={24}
+                color="#333"
+                style={styles.menuIcon}
+              />
+              <Text style={styles.menuText}>{item.label}</Text>
+              <Ionicons name="chevron-forward" size={24} color="#999" />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  //Header section style
+  header: {
+    padding: 10,
+    backgroundColor: Colors.brandGray,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  headerLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+  },
+  headerCenter: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerRight: {
+    flex: 1,
+    flexDirection: "row",
+    paddingRight: 10,
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  logo: {
+    maxWidth: 150,
+    height: 40,
+    resizeMode: "cover",
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111",
+  },
+  //Header section style close
+
   container: {
     flex: 1,
     backgroundColor: "#fff",
@@ -68,14 +156,8 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: "#f8f8f8",
     paddingVertical: 8,
-    paddingHorizontal: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    // paddingHorizontal: 4,
   },
   menuItem: {
     flexDirection: "row",

@@ -1,4 +1,19 @@
 import React, { useState } from "react";
+import { Link, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
+import Colors from "@/constants/Colors";
+import { useSections } from "@/hooks/useSections";
+import { useLanguage } from "@/context/LanguageContext";
+import { useAppContent } from "@/context/AppContentContext";
+import { useGetHomeFeedButtons } from "@/hooks/react-query/homeFeedButtonApi";
+import { COLORS, SIZES } from "@/constants";
+import { baseUrl } from "@/api/MainApi";
+import { useAuth } from "../../hooks/useAuth";
+import SwiperFlatList from "react-native-swiper-flatlist";
+import { useProducts } from "@/hooks/useProducts";
+import { useBrands } from "@/hooks/useBrands";
+import { useCategories } from "@/hooks/useCategories";
 import {
   View,
   Text,
@@ -78,22 +93,6 @@ type AppContent = {
   homeSlider?: Array<{ file_fill_url: string }>;
 };
 
-import { Link, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import Constants from "expo-constants";
-import Colors from "@/constants/Colors";
-import { useSections } from "@/hooks/useSections";
-import { useLanguage } from "@/context/LanguageContext";
-import { useAppContent } from "@/context/AppContentContext";
-import { useGetHomeFeedButtons } from "@/hooks/react-query/homeFeedButtonApi";
-import { COLORS, SIZES } from "@/constants";
-import { baseUrl } from "@/api/MainApi";
-import { useAuth } from "../../hooks/useAuth";
-import SwiperFlatList from "react-native-swiper-flatlist";
-import { useProducts } from "@/hooks/useProducts";
-import { useBrands } from "@/hooks/useBrands";
-import { useCategories } from "@/hooks/useCategories";
-
 const { width } = Dimensions.get("window");
 
 export default function HomeScreen() {
@@ -105,8 +104,12 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const products = useProducts();
-  const brands = useBrands();
-  const categories = useCategories();
+  const { brands, loading: brandsLoading, error: brandsError } = useBrands();
+  const {
+    categories,
+    loading: categoriesLoading,
+    error: categoriesError,
+  } = useCategories();
 
   // console.log("products", products);
   // console.log("brands", brands);
@@ -125,7 +128,7 @@ export default function HomeScreen() {
     fetchAppContent,
   } = useAppContent();
 
-  console.log("appContent", appContent);
+  // console.log("appContent", appContent);
 
   // Fetch dynamic sections
   const {
@@ -264,26 +267,24 @@ export default function HomeScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryScrollContainer}
         >
-          <TouchableOpacity
-            style={[styles.categoryCard, { marginLeft: 15 }]}
-            onPress={() => router.push("/category/sneakers")}
-          >
-            <Image
-              source={require("@/assets/images/sneaker-category.png")}
-              style={styles.categoryImage}
-            />
-            <Text style={styles.categoryName}>Sneakers</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.categoryCard}
-            onPress={() => router.push("/category/streetwear")}
-          >
-            <Image
-              source={require("@/assets/images/streetwear-category.png")}
-              style={styles.categoryImage}
-            />
-            <Text style={styles.categoryName}>Streetwear</Text>
-          </TouchableOpacity>
+          {categories.length > 0 &&
+            categories.map((item: any, index: number) => (
+              <TouchableOpacity
+                key={item._id}
+                style={[styles.categoryCard, { marginLeft: 15 }]}
+                onPress={() => router.push("/category/sneakers")}
+              >
+                <Image
+                  source={
+                    item.image_full_url
+                      ? { uri: `${baseUrl}${item.image_full_url}` }
+                      : require("@/assets/images/bg_8.png")
+                  }
+                  style={styles.categoryImage}
+                />
+                <Text style={styles.categoryName}>{item.name}</Text>
+              </TouchableOpacity>
+            ))}
         </ScrollView>
       </View>
     );
@@ -664,11 +665,13 @@ export default function HomeScreen() {
                     >
                       <Text style={styles.popularItemNumber}>{index + 1}</Text>
                       <Image
-                        source={{
-                          uri: item.image_full_url
-                            ? `${baseUrl}${item.image_full_url}`
-                            : `https://via.placeholder.com/80`,
-                        }}
+                        source={
+                          item.image_full_url
+                            ? {
+                                uri: `${baseUrl}${item.image_full_url}`,
+                              }
+                            : require("@/assets/images/bg_8.png")
+                        }
                         style={styles.popularItemImage}
                       />
                       <View style={styles.columnProductInfo}>
