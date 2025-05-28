@@ -15,7 +15,7 @@ export const COLORS = {
   brandPurple: "rgb(128, 0, 128)",
   brandBrown: "rgb(139, 69, 19)",
 
-  primary: "#335EF7",
+  primary: "#000000",
   secondary: "#FFD300",
   tertiary: "#6C4DDA",
   success: "#0ABE75",
