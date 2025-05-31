@@ -133,7 +133,7 @@ export default function AdminScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.buttonRow}
-            onPress={() => router.push("/manage-pages")}
+            onPress={() => router.push("/admin/manage-pages")}
           >
             <Ionicons
               name="document-text-outline"

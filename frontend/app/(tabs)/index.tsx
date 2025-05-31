@@ -103,7 +103,14 @@ export default function HomeScreen() {
   const [selectedTab, setSelectedTab] = useState("Sneakers");
   const router = useRouter();
 
-  const products = useProducts();
+  const [filter, setFilter] = useState({
+    product_type: "deal",
+  });
+
+  const { products, loading, error, refetch } = useProducts({
+    filter: JSON.stringify(filter),
+  });
+
   const { brands, loading: brandsLoading, error: brandsError } = useBrands();
   const {
     categories,

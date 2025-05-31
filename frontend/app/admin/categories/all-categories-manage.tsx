@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
@@ -8,24 +8,70 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCategories } from "@/hooks/useCategories";
 import { baseUrl } from "@/api/MainApi";
 import Colors from "@/constants/Colors";
 import Constants from "expo-constants";
+import { useFocusEffect } from "@react-navigation/native";
+import { useSubCategories } from "@/hooks/useSubCategories";
+import { useSubBrands } from "@/hooks/useSubBrands";
+
+type Params = {
+  isSubcategory?: boolean;
+};
 
 export default function AllCategoriesManagePage() {
   const router = useRouter();
-  const { categories = [], loading, error } = useCategories();
+  const paramsRaw = useLocalSearchParams();
+  const parentCategoryId =
+    typeof paramsRaw.parentCategoryId === "string"
+      ? paramsRaw.parentCategoryId
+      : null;
+  console.log("paramsRaw", paramsRaw);
+  const isSubcategory =
+    typeof paramsRaw.isSubcategory === "string"
+      ? paramsRaw.isSubcategory === "true"
+      : false;
 
+  const subCat = useSubCategories(parentCategoryId);
+  const cat = useCategories();
+
+      const subBrand = useSubBrands(parentBrandId);
+    const bra = useBrands();
+
+  const categories = isSubcategory ? subCat.subCategories : cat.categories;
+  const brands = isSubBrand ? subBrand.subBrands : bra.brands;
+  
+  const loading = isSubcategory ? subCat.loading : cat.loading ? cat.loading : isSubBrand ? subBrand.loading : bra.loading;
+  const error = isSubcategory ? subCat.error : cat.error ? cat.error : isSubBrand ? subBrand.error : bra.error;
+  const refetch = isSubcategory ? subCat.refetch : cat.refetch ? cat.refetch : isSubBrand ? subBrand.refetch : bra.refetch;
+
+
+
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+  );
+
+  // console.log("Categories", categories);
   const handleAddNewCategory = () => {
-    router.push("/add-new-category");
+    router.push({
+      pathname: "/admin/categories/add-new-category",
+      params: { isSubcategory: isSubcategory.toString() },
+    });
   };
 
   const handleEditCategory = (category: any) => {
     router.push({
-      pathname: "/add-new-category",
-      params: { id: category._id },
+      pathname: "/admin/categories/add-new-category",
+      params: {
+        category: JSON.stringify(category),
+        isSubcategory: isSubcategory.toString(),
+      },
     });
   };
 
@@ -75,7 +121,9 @@ export default function AllCategoriesManagePage() {
       {renderHeader()}
       <ScrollView>
         <View style={[styles.subContainer, { paddingTop: 20 }]}>
-          <Text style={styles.title}>Manage Category</Text>
+          <Text style={styles.title}>
+            {isSubcategory ? "Manage Sub Category" : "Manage Category"}
+          </Text>
           <View style={styles.categoriesGrid}>
             {categories.map((category: any) => (
               <TouchableOpacity
@@ -100,10 +148,12 @@ export default function AllCategoriesManagePage() {
               </TouchableOpacity>
             ))}
             <TouchableOpacity
-              style={styles.addNewCard}
+              style={styles.categoryCard}
               onPress={handleAddNewCategory}
             >
-              <Ionicons name="add" size={40} color="#333" />
+              <View style={styles.categoryImage}>
+                <Ionicons name="add" size={40} color="#333" />
+              </View>
               <Text style={styles.addNewText}>Add New</Text>
             </TouchableOpacity>
           </View>
@@ -176,7 +226,7 @@ const styles = StyleSheet.create({
   categoryCard: {
     width: "48%",
     backgroundColor: "#fff",
-    borderRadius: 8,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 16,
     alignItems: "center",
@@ -187,9 +237,15 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   categoryImage: {
-    width: 80,
-    height: 80,
+    width: 130,
+    height: 130,
     marginBottom: 10,
+    borderRadius: 10,
+    borderColor: "#8B0000",
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
   },
   categoryName: {
     fontSize: 16,

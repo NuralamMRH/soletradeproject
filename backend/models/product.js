@@ -27,7 +27,7 @@ const productSchema = mongoose.Schema(
       default: "",
     },
     images: [],
-    indicator: {
+    indicatorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Indicator", // status: 'Just Dropped',
       default: "",
@@ -36,17 +36,28 @@ const productSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    brand: {
+    brandId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Brand",
+    },
+    subBrandId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SubBrand",
+      required: false,
     },
     model: {
       type: String,
       default: "",
     },
-    category: {
+    categoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
+    },
+
+    subCategoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SubCategory",
+      required: false,
     },
 
     attributeId: {
@@ -64,10 +75,7 @@ const productSchema = mongoose.Schema(
       type: String,
       default: "",
     },
-    indicator: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Indicator", // status: 'Just Dropped',
-    },
+
     colorway: {
       type: String,
       default: "",
@@ -92,7 +100,7 @@ const productSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    isCalenderActive: {
+    addToCalendar: {
       type: Boolean,
       default: false,
     },
@@ -122,11 +130,11 @@ const productSchema = mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-    lunchDate: {
+    releaseDate: {
       type: Date,
       default: Date.now,
     },
-    duration: {
+    indicatorDuration: {
       type: Number,
       default: 0,
     },
@@ -177,6 +185,44 @@ productSchema.virtual("variationsData", {
       },
     ],
   },
+});
+
+productSchema.virtual("indicator", {
+  ref: "Indicator",
+  localField: "indicatorId",
+  foreignField: "_id",
+  justOne: true,
+});
+productSchema.virtual("brand", {
+  ref: "Brand",
+  localField: "brandId",
+  foreignField: "_id",
+  justOne: true,
+});
+productSchema.virtual("subBrand", {
+  ref: "SubBrand",
+  localField: "subBrandId",
+  foreignField: "_id",
+  justOne: true,
+});
+productSchema.virtual("category", {
+  ref: "Category",
+  localField: "categoryId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+productSchema.virtual("subCategory", {
+  ref: "SubCategory",
+  localField: "subCategoryId",
+  foreignField: "_id",
+  justOne: true,
+});
+productSchema.virtual("attribute", {
+  ref: "Attribute",
+  localField: "attributeId",
+  foreignField: "_id",
+  justOne: true,
 });
 
 // Add any existing indexes

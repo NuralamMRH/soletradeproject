@@ -31,6 +31,8 @@ exports.getAppContent = catchAsyncErrors(async (req, res, next) => {
 
 exports.createUpdateAppContent = catchAsyncErrors(async (req, res, next) => {
   try {
+    console.log("req.body", req.body);
+    console.log("req.files", req.files);
     let app_content = await AppContent.findOne();
     let updatedFiles;
     if (app_content) {
@@ -45,6 +47,17 @@ exports.createUpdateAppContent = catchAsyncErrors(async (req, res, next) => {
           res,
           next,
           ["appLogo"],
+          "app-settings",
+          app_content
+        );
+      }
+
+      if (req.files && req.files.launchScreenFile) {
+        updatedFiles = await fileUpdatePromises(
+          req,
+          res,
+          next,
+          ["launchScreenFile"],
           "app-settings",
           app_content
         );
@@ -132,7 +145,9 @@ exports.deleteAppContent = catchAsyncErrors(async (req, res, next) => {
 
 exports.deleteAppContentFile = catchAsyncErrors(async (req, res, next) => {
   try {
-    const { field, fileUrl } = req.body;
+    const { field, fileUrl } = req.body.data || {};
+
+    console.log("req.body", req.body);
 
     const appContent = await AppContent.findOne();
 
@@ -151,7 +166,11 @@ exports.deleteAppContentFile = catchAsyncErrors(async (req, res, next) => {
 
     if (field === "homeSlider") {
       const filteredSlider = appContent.homeSlider.filter(
-        (slider) => slider.file_full_url !== fileUrl && slider.file !== fileUrl
+        (slider) =>
+          !(
+            slider.file === fileUrl ||
+            (slider.file_full_url && slider.file_full_url.endsWith(fileUrl))
+          )
       );
       updateData = {
         homeSlider: filteredSlider,
@@ -166,6 +185,7 @@ exports.deleteAppContentFile = catchAsyncErrors(async (req, res, next) => {
         soleCheckSlider: filteredSlider,
       };
     }
+    console.log("fileUrl", fileUrl);
 
     await deleteFileByUrl(fileUrl);
 

@@ -26,8 +26,6 @@ export default function TabLayout() {
           "alreadyLaunched"
         );
         if (alreadyLaunched !== "true") {
-          router.push("/(onboard)");
-        } else {
           await SecureStore.setItemAsync("alreadyLaunched", "true");
         }
         // else: do nothing, stay on main app

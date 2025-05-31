@@ -18,6 +18,7 @@ router.route("/").get(getAllProducts);
 router.route("/search").get(getAllProducts);
 router.route("/:id").get(getProductById);
 
+// route for create product with multiple images : api/v1/products
 router
   .route("/")
   .post(
@@ -25,6 +26,8 @@ router
     isAuthenticatedUser,
     createProduct
   );
+
+// route for update product with multiple images : api/v1/products/:id
 
 router
   .route("/:id")

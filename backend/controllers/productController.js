@@ -30,7 +30,7 @@ exports.getAllProducts = catchAsyncErrors(async (req, res, next) => {
         .populate("category")
         .populate("brand")
         .populate("indicator")
-        .populate("attributeId")
+        .populate("attribute")
         .populate({
           path: "variations",
           populate: {
@@ -39,9 +39,13 @@ exports.getAllProducts = catchAsyncErrors(async (req, res, next) => {
         });
     }
 
+    // console.log("Query", req.query);
     // Apply APIFeatures for search, filter, and pagination
     const apiFeatures = new APIFeatures(query, req.query);
+
+    // console.log("API Features", apiFeatures);
     await apiFeatures.search();
+    // console.log("After Search", apiFeatures);
     await apiFeatures.filter();
 
     // For count only, we don't need to return all the data
@@ -56,6 +60,8 @@ exports.getAllProducts = catchAsyncErrors(async (req, res, next) => {
     }
 
     const result = await apiFeatures.execute();
+
+    // console.log("Result", result);
 
     res.status(200).json({
       success: true,
@@ -97,14 +103,9 @@ exports.getProductById = catchAsyncErrors(async (req, res, next) => {
 
 exports.createProduct = catchAsyncErrors(async (req, res, next) => {
   try {
-    const category = await Category.findById(req.body.category);
-    if (!category) {
-      return next(new ErrorHandler("Invalid category", 400));
-    }
+    // console.log("Images: ", req.files.images);
 
-    console.log("Product Data: ", req.body);
-
-    const fileFieldsToUpload = ["image", "images"];
+    const fileFieldsToUpload = ["images"];
     const uploadedFile = await filesUpdatePromises(
       req,
       res,
@@ -113,7 +114,7 @@ exports.createProduct = catchAsyncErrors(async (req, res, next) => {
       "product"
     );
 
-    console.log("Uploaded File: ", uploadedFile);
+    // console.log("Uploaded File: ", uploadedFile);
 
     // Create product with parsed variations
     const productData = {
@@ -128,6 +129,7 @@ exports.createProduct = catchAsyncErrors(async (req, res, next) => {
     }
 
     const newProduct = new Product(productData);
+    console.log("newProduct Product: ", newProduct);
     const savedProduct = await newProduct.save();
 
     if (!savedProduct) {
@@ -139,15 +141,18 @@ exports.createProduct = catchAsyncErrors(async (req, res, next) => {
       data: savedProduct,
     });
   } catch (error) {
+    console.error("Error saving product:", error);
     return next(new ErrorHandler(error.message, 500));
   }
 });
 
 exports.updateProduct = catchAsyncErrors(async (req, res, next) => {
   try {
+    console.log("req.body", req.body);
     const { id } = req.params;
     const updateData = { ...req.body };
 
+    console.log("Update Data: ", updateData);
     // Find the existing product first
     const existingProduct = await Product.findById(id);
     if (!existingProduct) {
@@ -156,6 +161,8 @@ exports.updateProduct = catchAsyncErrors(async (req, res, next) => {
         message: "Product not found",
       });
     }
+
+    console.log("Images: ", req.files.images);
 
     // Validate category if provided
     if (updateData.category) {
@@ -170,7 +177,7 @@ exports.updateProduct = catchAsyncErrors(async (req, res, next) => {
 
     let uploadedFile;
     // Handle file uploads
-    if (req.files) {
+    if (req.files.images) {
       const multiFields = ["images"];
       uploadedFile = await filesUpdatePromises(
         req,
@@ -185,18 +192,18 @@ exports.updateProduct = catchAsyncErrors(async (req, res, next) => {
     // Generate full URLs for images
 
     // Handle variations - ensure they are valid ObjectIds
-    if (updateData.variations) {
-      // Filter out any empty or invalid values
-      updateData.variations = updateData.variations.filter(
-        (variation) =>
-          variation && typeof variation === "string" && variation.length > 0
-      );
+    // if (updateData.variations) {
+    //   // Filter out any empty or invalid values
+    //   updateData.variations = updateData.variations.filter(
+    //     (variation) =>
+    //       variation && typeof variation === "string" && variation.length > 0
+    //   );
 
-      // If no valid variations, remove the field
-      if (updateData.variations.length === 0) {
-        delete updateData.variations;
-      }
-    }
+    //   // If no valid variations, remove the field
+    //   if (updateData.variations.length === 0) {
+    //     delete updateData.variations;
+    //   }
+    // }
 
     // Prepare update data
     const updateFields = {

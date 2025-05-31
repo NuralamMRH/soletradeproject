@@ -27,6 +27,7 @@ export const Colors = {
 
 export default {
   brandColor: "#8b0612",
+  brandDarkColor: "#66040d",
   brandGray: "#d8d8d8",
   backgroundGray: "rgb(245,245,245)",
   brandGreen: "rgb(11, 122, 59)",

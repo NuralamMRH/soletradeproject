@@ -34,21 +34,26 @@ exports.getAttributeOptionById = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.createAttributeOption = catchAsyncErrors(async (req, res, next) => {
-  const attributeOption = new AttributeOption({
-    optionName: req.body.optionName,
-    attributeId: req.body.attributeId,
-  });
+  try {
+    console.log("Attribute Option", req.body);
+    const attributeOption = new AttributeOption({
+      optionName: req.body.optionName,
+      attributeId: req.body.attributeId,
+    });
 
-  const savedAttributeOption = await attributeOption.save();
+    const savedAttributeOption = await attributeOption.save();
 
-  if (!savedAttributeOption) {
-    return next(new ErrorHandler("Error creating attribute option", 400));
+    if (!savedAttributeOption) {
+      return next(new ErrorHandler("Error creating attribute option", 400));
+    }
+
+    res.status(201).json({
+      success: true,
+      attributeOption: savedAttributeOption,
+    });
+  } catch (error) {
+    return next(new ErrorHandler(error.message, 400));
   }
-
-  res.status(201).json({
-    success: true,
-    attributeOption: savedAttributeOption,
-  });
 });
 
 exports.updateAttributeOption = catchAsyncErrors(async (req, res, next) => {

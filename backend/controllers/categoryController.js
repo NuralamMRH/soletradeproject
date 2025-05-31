@@ -38,6 +38,7 @@ exports.getCategoryById = catchAsyncErrors(async (req, res, next) => {
 
 exports.createCategory = catchAsyncErrors(async (req, res, next) => {
   const imageFields = ["image"];
+  console.log("Image uploaded", req.files);
 
   const uploadedFile = await filesUpdatePromises(
     req,

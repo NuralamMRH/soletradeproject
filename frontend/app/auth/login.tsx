@@ -25,10 +25,8 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     try {
       const res = await login(email, password);
-      if (res.user.role === 'admin') {
-             router.push("/(tabs)/admin-dashboard");
-      }else if (res.user) {
-        router.push("/(tabs)/profile");
+      if (res.user) {
+        router.push("/(tabs)/dashboard");
       } else {
         Alert.alert("Error", "Invalid credentials");
       }

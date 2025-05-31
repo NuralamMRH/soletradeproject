@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import MainApi from "@/api/MainApi";
 
-export const useProducts = () => {
+export const useProducts = ({ filter }: { filter: any | null }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const safeFilter = filter && typeof filter === "object" ? filter : {};
+
+  console.log("safeFilter", safeFilter);
 
   const fetchProducts = async () => {
     try {
@@ -12,7 +16,12 @@ export const useProducts = () => {
       setError(null);
 
       console.log("Fetching products...");
-      const response = await MainApi.get("/api/v1/products");
+      const response = await MainApi.get("/api/v1/products", {
+        params: safeFilter,
+      });
+      // const response = await MainApi.get("/api/v1/products");
+
+      // console.log("Response", response.data);
 
       // Validate response data
       if (!response.data.products) {
@@ -34,7 +43,7 @@ export const useProducts = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [JSON.stringify(safeFilter)]);
 
   return { products, loading, error, refetch: fetchProducts };
 };

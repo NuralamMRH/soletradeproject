@@ -11,7 +11,7 @@ exports.getIndicators = catchAsyncErrors(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     results: indicators.length,
-    data: indicators,
+    indicators,
   });
 });
 
@@ -29,7 +29,7 @@ exports.getIndicator = catchAsyncErrors(async (req, res, next) => {
 
   res.status(200).json({
     status: "success",
-    data: indicator,
+    indicator,
   });
 });
 
@@ -48,7 +48,7 @@ exports.createIndicator = catchAsyncErrors(async (req, res, next) => {
   const indicator = await Indicator.create({ ...req.body, ...uploadedFile });
   res.status(201).json({
     status: "success",
-    data: indicator,
+    indicator,
   });
 });
 
@@ -88,7 +88,7 @@ exports.updateIndicator = catchAsyncErrors(async (req, res, next) => {
 
   res.status(200).json({
     status: "success",
-    data: indicator,
+    indicator,
   });
 });
 

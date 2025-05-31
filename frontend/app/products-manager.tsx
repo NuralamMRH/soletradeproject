@@ -12,21 +12,45 @@ import Colors from "@/constants/Colors";
 import Constants from "expo-constants";
 
 const menuItems = [
-  { label: "Category", icon: "list-outline", route: "/all-categories-manage" },
-  { label: "Products", icon: "cube-outline", route: "/products-list" },
+  {
+    label: "Category",
+    icon: "list-outline",
+    route: "/admin/categories/all-categories-manage",
+  },
+  {
+    label: "Products",
+    icon: "cube-outline",
+    route: "/admin/products/all-product-manage",
+  },
   {
     label: "Add New Product",
     icon: "add-circle-outline",
-    route: "/admin-add-new-product",
+    route: "/admin/products/add-new-product?isEssential=false",
   },
-  { label: "Sub-Category", icon: "git-branch-outline", route: "/sub-category" },
-  { label: "Brand", icon: "bookmark-outline", route: "/all-brands-manage" },
-  { label: "Sub-Brand", icon: "bookmarks-outline", route: "/sub-brand" },
-  { label: "Sole Essentials", icon: "star-outline", route: "/sole-essentials" },
+  {
+    label: "Sub Category",
+    icon: "git-branch-outline",
+    route: "/admin/categories/all-categories-manage?isSubcategory=true",
+  },
+  {
+    label: "Brand",
+    icon: "bookmark-outline",
+    route: "/admin/brands/all-brands-manage",
+  },
+  {
+    label: "Sub-Brand",
+    icon: "bookmarks-outline",
+    route: "/admin/brands/all-brands-manage?isSubBrand=true",
+  },
+  {
+    label: "Sole Essentials",
+    icon: "star-outline",
+    route: "/admin/products/all-product-manage?isEssential=true",
+  },
   {
     label: "Sizing Attributes",
     icon: "resize-outline",
-    route: "/sizing-attributes",
+    route: "/admin/attributes/all-attribute-manage",
   },
 ];
 

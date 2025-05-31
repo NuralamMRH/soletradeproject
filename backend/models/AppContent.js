@@ -17,29 +17,32 @@ const appContentSchema = mongoose.Schema(
       enum: ["image", "video"],
       default: "image",
     },
-    app_launch_screen_images: [],
-
-    app_launch_screen_video: {
+    launchScreenFile: {
       type: String,
       default: "",
     },
-    app_launch_screen_video_full_url: {
+    launchScreenFile_full_url: {
       type: String,
       default: "",
     },
-    app_launch_screen_title: {
+    animationType: {
+      type: String,
+      enum: ["image", "video"],
+      default: "image",
+    },
+    launch_screen_title: {
       type: String,
       default: "",
     },
-    app_launch_screen_description: {
+    launch_screen_description: {
       type: String,
       default: "",
     },
-    app_launch_screen_button_text: {
+    launch_screen_button_text: {
       type: String,
       default: "",
     },
-    app_launch_screen_button_link: {
+    launch_screen_button_link: {
       type: String,
       default: "",
     },

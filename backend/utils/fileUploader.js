@@ -499,7 +499,16 @@ exports.deleteFileByUrl = async (fileUrl) => {
     const filePath = urlToFilePath(fileUrl);
 
     // Delete the file
-    await fs.promises.unlink(filePath);
+    try {
+      await fs.promises.unlink(filePath);
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        // File does not exist, skip
+        return true;
+      }
+      // Other errors, rethrow
+      throw error;
+    }
     return true;
   } catch (error) {
     console.error("Error deleting file:", error);

@@ -6,22 +6,22 @@ export const useBrands = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchBrands = async () => {
-      try {
-        setLoading(true);
-        const response = await MainApi.get("/api/v1/brands");
-        setBrands(response.data?.brands);
-      } catch (err: any) {
-        setError(err.message);
-        console.error("Brands API call error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchBrands = async () => {
+    try {
+      setLoading(true);
+      const response = await MainApi.get("/api/v1/brands");
+      setBrands(response.data?.brands);
+    } catch (err: any) {
+      setError(err.message);
+      console.error("Brands API call error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchBrands();
   }, []);
 
-  return { brands, loading, error };
+  return { brands, loading, error, refetch: fetchBrands };
 };
