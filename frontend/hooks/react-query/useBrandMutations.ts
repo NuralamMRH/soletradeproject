@@ -52,7 +52,6 @@ export const useCreateBrand = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: any) => {
-      console.log("Data", data);
       const formData = buildFormData(data);
       const res = await MainApi.post("/api/v1/brands", formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -70,6 +69,7 @@ export const useUpdateBrand = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: any) => {
+      console.log("Data image", data.image);
       const formData = buildFormData(data);
       const res = await MainApi.put(`/api/v1/brands/${id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },

@@ -13,16 +13,16 @@ exports.getAllHomeFeedSections = catchAsyncErrors(async (req, res, next) => {
       .populate({
         path: "column_products",
         populate: { path: "products", populate: { path: "variations" } },
-      });
+      })
 
-    //  .populate({
-    //     path: "column_brands",
-    //     populate: { path: "brands" },
-    //   })
-    //   .populate({
-    //     path: "column_categories",
-    //     populate: { path: "categories" },
-    //   })
+      .populate({
+        path: "column_brands",
+        populate: { path: "brands" },
+      })
+      .populate({
+        path: "column_categories",
+        populate: { path: "categories" },
+      });
 
     const apiFeatures = new APIFeatures(query, req.query);
     await apiFeatures.search();

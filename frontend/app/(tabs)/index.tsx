@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -95,6 +95,40 @@ type AppContent = {
 
 const { width } = Dimensions.get("window");
 
+// 1. Define your sort types
+const sortTypes = [
+  { key: "numViews", label: "Most Popular" },
+  { key: "newest", label: "Newest" },
+  { key: "price-asc", label: "Lowest Price" },
+  { key: "price-desc", label: "Highest Price" },
+  { key: "rating", label: "Top Rated" },
+];
+
+function getSortedProducts(products, sortKey) {
+  const sorted = [...products];
+  switch (sortKey) {
+    case "newest":
+      sorted.sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated));
+      break;
+    case "popular":
+    case "numViews":
+      sorted.sort((a, b) => (b.numViews || 0) - (a.numViews || 0));
+      break;
+    case "price-asc":
+      sorted.sort((a, b) => (a.retailPrice || 0) - (b.retailPrice || 0));
+      break;
+    case "price-desc":
+      sorted.sort((a, b) => (b.retailPrice || 0) - (a.retailPrice || 0));
+      break;
+    case "rating":
+      sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      break;
+    default:
+      break;
+  }
+  return sorted;
+}
+
 export default function HomeScreen() {
   const { isAuthenticated, user } = useAuth();
   const { language, t } = useLanguage();
@@ -150,6 +184,11 @@ export default function HomeScreen() {
       setRefreshing(false)
     );
   }, [fetchAppContent, refetchSections]);
+
+  const [sortOffset, setSortOffset] = useState(0);
+
+  // On reload, increment sortOffset
+  const handleReload = () => setSortOffset((prev) => prev + 1);
 
   // Header component with logo and icons
   const renderHeader = () => {
@@ -313,20 +352,21 @@ export default function HomeScreen() {
           contentContainerStyle={styles.productScrollContainer}
         >
           {/* Example product cards */}
-          <ProductCard
-            index={1}
-            brand="Asics"
-            name="Asics Gel-Kayano 14 Cream Black"
-            price="5,890 Baht"
-            image={require("@/assets/images/asics.png")}
-          />
-          <ProductCard
-            index={2}
-            brand="Stussy"
-            name="Stussy 8-Ball LCB T-Shirt"
-            price="3,400 Baht"
-            image={require("@/assets/images/stussy.png")}
-          />
+          {products.slice(0, 5).map((product: any, index: number) => (
+            <View key={product._id}>
+              <ProductCard
+                index={index + 1}
+                brand={product.brand?.name || ""}
+                name={product.name}
+                price={product.retailPrice ? `${product.retailPrice} Baht` : ""}
+                image={
+                  product.image_full_url
+                    ? { uri: `${baseUrl}${product.image_full_url}` }
+                    : require("@/assets/images/bg_8.png")
+                }
+              />
+            </View>
+          ))}
         </ScrollView>
       </View>
     );
@@ -348,18 +388,21 @@ export default function HomeScreen() {
           contentContainerStyle={styles.productScrollContainer}
         >
           {/* Example product cards */}
-          <ProductCard
-            brand="Jordan"
-            name="Jordan 1 Retro Low OG Travis Scott Canary"
-            price=""
-            image={require("@/assets/images/jordan1.png")}
-          />
-          <ProductCard
-            brand="Jordan"
-            name="Jordan 1 Retro Low OG Travis Scott Canary"
-            price=""
-            image={require("@/assets/images/jordan2.png")}
-          />
+          {products.slice(0, 5).map((product: any, index: number) => (
+            <View key={product._id}>
+              <ProductCard
+                index={index + 1}
+                brand={product.brand?.name || ""}
+                name={product.name}
+                price={product.retailPrice ? `${product.retailPrice} Baht` : ""}
+                image={
+                  product.image_full_url
+                    ? { uri: `${baseUrl}${product.image_full_url}` }
+                    : require("@/assets/images/bg_8.png")
+                }
+              />
+            </View>
+          ))}
         </ScrollView>
       </View>
     );
@@ -455,35 +498,21 @@ export default function HomeScreen() {
     return (
       <View style={styles.topBrandsContainer}>
         <Text style={styles.sectionTitle}>Top Brands</Text>
-        <View style={styles.brandRowContainer}>
-          <TouchableOpacity style={styles.brandButton}>
-            <Text style={styles.brandButtonText}>ASICS</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.brandButton}>
-            <Text style={styles.brandButtonText}>New Balance</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.brandRowContainer}>
-          <TouchableOpacity style={styles.brandButton}>
-            <Text style={styles.brandButtonText}>Nike</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.brandButton}>
-            <Text style={styles.brandButtonText}>Pop Mart</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.brandButton}>
-            <Text style={styles.brandButtonText}>Essential</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.brandRowContainer}>
-          <TouchableOpacity style={styles.brandButton}>
-            <Text style={styles.brandButtonText}>Stussy</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.brandButton}>
-            <Text style={styles.brandButtonText}>Jordan</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.brandButton}>
-            <Text style={styles.brandButtonText}>Supreme</Text>
-          </TouchableOpacity>
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 10,
+            paddingHorizontal: 10,
+          }}
+        >
+          {brands.map((brand: any) => {
+            return (
+              <TouchableOpacity key={brand._id} style={styles.brandButton}>
+                <Text style={styles.brandButtonText}>{brand?.name}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
     );
@@ -567,7 +596,7 @@ export default function HomeScreen() {
       let items = [];
       switch (section.variable_source) {
         case "products":
-          items = products.products || [];
+          items = products || [];
           // Apply autoCriteria filters
           if (section.autoCriteria) {
             items = items.filter((item) => {
@@ -612,10 +641,10 @@ export default function HomeScreen() {
           }
           break;
         case "categories":
-          items = categories.categories || [];
+          items = categories || [];
           break;
         case "brands":
-          items = brands.brands || [];
+          items = brands || [];
           break;
       }
       // Limit items based on number_of_items
@@ -632,13 +661,70 @@ export default function HomeScreen() {
       name,
       description,
       display_style,
+      display_type,
       column_count,
       column_names,
       column_products,
       items_per_column,
+      mode,
+      autoCriteria,
+      isActive,
+      column_categories,
+      column_brands,
     } = section;
 
     const items = processItems(section);
+
+    console.log("name: ", name);
+    // console.log("display_type: ", display_type);
+
+    function buildColumns(
+      products,
+      column_count,
+      items_per_column,
+      column_names
+    ) {
+      let remaining = [...products];
+      const columns = [];
+      for (let i = 0; i < column_count; i++) {
+        const sortType = sortTypes[(i + sortOffset) % sortTypes.length].key;
+        const sorted = getSortedProducts(remaining, sortType);
+        const colProducts = sorted.slice(0, items_per_column);
+        // Remove these products from the pool
+        remaining = remaining.filter((p) => !colProducts.includes(p));
+        columns.push({
+          name: column_names?.[`C${i + 1}`] || `Column ${i + 1}`,
+          products: colProducts,
+          sortType,
+        });
+        if (remaining.length === 0) break;
+      }
+      // If there are still products left, start over with the next sort type
+      let colIndex = 0;
+      while (remaining.length > 0 && columns.length < column_count) {
+        const sortType =
+          sortTypes[(colIndex + sortOffset) % sortTypes.length].key;
+        const sorted = getSortedProducts(remaining, sortType);
+        const colProducts = sorted.slice(0, items_per_column);
+        remaining = remaining.filter((p) => !colProducts.includes(p));
+        columns.push({
+          name:
+            column_names?.[`C${columns.length + 1}`] ||
+            `Column ${columns.length + 1}`,
+          products: colProducts,
+          sortType,
+        });
+        colIndex++;
+      }
+      return columns;
+    }
+
+    const columns = buildColumns(
+      products,
+      column_count,
+      items_per_column,
+      column_names
+    );
 
     return (
       <View style={styles.productSectionContainer}>
@@ -650,27 +736,133 @@ export default function HomeScreen() {
         </View>
 
         {/* Display Style 3: Column-based layout */}
-        {display_style === 3 && (
-          <View style={styles.columnContainer}>
-            {Array.from({ length: column_count || 2 }).map((_, colIndex) => {
-              const colKey = `C${colIndex + 1}`;
-              const colItems = items.slice(
-                colIndex * items_per_column,
-                (colIndex + 1) * items_per_column
-              );
 
-              return (
-                <View key={colKey} style={styles.column}>
-                  <Text style={styles.columnTitle}>
-                    {column_names?.[colKey] || `Column ${colIndex + 1}`}
-                  </Text>
-                  {colItems.map((item, index) => (
+        {isActive &&
+          display_style === 3 &&
+          (display_type === "product" || display_type === "new-items") && (
+            <View style={{ position: "relative" }}>
+              <View
+                style={{
+                  width: SIZES.width - 32,
+                  height: 3,
+                  backgroundColor: COLORS.grayTie,
+                  position: "absolute",
+                  top: 25,
+                  left: 10,
+                  right: 10,
+                }}
+              />
+              <View
+                style={{
+                  width: SIZES.width / 3 - 32,
+                  height: 3,
+                  backgroundColor: COLORS.brandRed,
+                  position: "absolute",
+                  top: 25,
+                  left: 20,
+                }}
+              />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.columnContainer}
+              >
+                {mode === "manual"
+                  ? column_products.map((item: any, index: number) => {
+                      const colKey = `C${index + 1}`;
+                      return (
+                        <View key={item?.column} style={styles.column}>
+                          <View>
+                            <Text style={styles.columnTitle}>
+                              {column_names?.[colKey]}
+                            </Text>
+                          </View>
+                          {item?.column === colKey
+                            ? item?.products
+                                .slice(0, items_per_column)
+                                .map((product: any, pIndex: number) => {
+                                  return (
+                                    <TouchableOpacity
+                                      key={`${product._id || pIndex}`}
+                                      style={styles.popularItem}
+                                      onPress={() =>
+                                        router.push(`/product/${product._id}`)
+                                      }
+                                    >
+                                      <Text style={styles.popularItemNumber}>
+                                        {pIndex + 1}
+                                      </Text>
+                                      <Image
+                                        source={
+                                          product.image_full_url
+                                            ? {
+                                                uri: `${baseUrl}${product.image_full_url}`,
+                                              }
+                                            : require("@/assets/images/bg_8.png")
+                                        }
+                                        style={styles.popularItemImage}
+                                      />
+                                    </TouchableOpacity>
+                                  );
+                                })
+                            : null}
+                        </View>
+                      );
+                    })
+                  : columns.map((col, colIndex) => (
+                      <View key={col.name + colIndex} style={styles.column}>
+                        <Text style={styles.columnTitle}>{col.name}</Text>
+                        {col.products.length === 0 ? (
+                          <Text style={{ textAlign: "center", color: "#aaa" }}>
+                            No products
+                          </Text>
+                        ) : (
+                          col.products.map((product, pIndex) => (
+                            <TouchableOpacity
+                              key={product._id || pIndex}
+                              style={styles.popularItem}
+                              onPress={() =>
+                                router.push(`/product/${product._id}`)
+                              }
+                            >
+                              <Text style={styles.popularItemNumber}>
+                                {pIndex + 1}
+                              </Text>
+                              <Image
+                                source={
+                                  product.image_full_url
+                                    ? {
+                                        uri: `${baseUrl}${product.image_full_url}`,
+                                      }
+                                    : require("@/assets/images/bg_8.png")
+                                }
+                                style={styles.popularItemImage}
+                              />
+                            </TouchableOpacity>
+                          ))
+                        )}
+                      </View>
+                    ))}
+              </ScrollView>
+            </View>
+          )}
+
+        {/* Display Style 1: Products with details */}
+        {display_style === 1 &&
+          (display_type === "product" || display_type === "new-items") && (
+            <View>
+              {items
+                .slice(0, items_per_column || 5)
+                .map((item: any, index: number) => (
+                  <View key={item._id || index}>
                     <TouchableOpacity
-                      key={`col${colIndex + 1}-${item._id || index}`}
-                      style={styles.popularItem}
+                      key={item._id || index}
+                      style={[
+                        styles.popularItem,
+                        { paddingHorizontal: 20, gap: 20 },
+                      ]}
                       onPress={() => router.push(`/product/${item._id}`)}
                     >
-                      <Text style={styles.popularItemNumber}>{index + 1}</Text>
                       <Image
                         source={
                           item.image_full_url
@@ -681,71 +873,88 @@ export default function HomeScreen() {
                         }
                         style={styles.popularItemImage}
                       />
-                      <View style={styles.columnProductInfo}>
-                        <Text style={styles.productBrand}>
-                          {item.brand?.name || item.name}
-                        </Text>
-                        <Text style={styles.productName} numberOfLines={2}>
+                      <View>
+                        <Text style={{ fontSize: 16, fontWeight: "bold" }}>
                           {item.name}
                         </Text>
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            color: COLORS.gray,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            maxWidth: "80%",
+                            height: 20,
+                          }}
+                        >
+                          {item.description || "No description"}
+                        </Text>
+                        <Text style={{ fontSize: 14, color: COLORS.gray }}>
+                          {item.retailPrice ? `${item.retailPrice} Baht` : ""}
+                        </Text>
+                        <Text style={{ fontSize: 14, color: COLORS.gray }}>
+                          Lowest Ask
+                        </Text>
                       </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={24}
+                        color="#999"
+                        style={{ marginLeft: "auto" }}
+                      />
                     </TouchableOpacity>
-                  ))}
-                </View>
-              );
-            })}
-          </View>
-        )}
-
-        {/* Display Style 1: Products with details */}
-        {display_style === 1 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.productScrollContainer}
-          >
-            {items.map((item, index) => (
-              <ProductCard
-                key={item._id || index}
-                index={index + 1}
-                brand={item.brand?.name || ""}
-                name={item.name}
-                price={item.retailPrice ? `${item.retailPrice} Baht` : ""}
-                image={{
-                  uri: item.image_full_url
-                    ? `${baseUrl}${item.image_full_url}`
-                    : `https://via.placeholder.com/170x120`,
-                }}
-              />
-            ))}
-          </ScrollView>
-        )}
+                    <Image
+                      source={require("@/assets/images/icons/divider.png")}
+                      style={{
+                        flex: 1,
+                        width: SIZES.width,
+                        height: 40,
+                        objectFit: "contain",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    />
+                  </View>
+                ))}
+            </View>
+          )}
 
         {/* Display Style 2: Image-only grid */}
-        {display_style === 2 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.productScrollContainer}
-          >
-            {items.map((item, index) => (
-              <TouchableOpacity
-                key={item._id || index}
-                style={styles.imageOnlyCard}
-                onPress={() => router.push(`/product/${item._id}`)}
-              >
-                <Image
-                  source={{
-                    uri: item.image_full_url
-                      ? `${baseUrl}${item.image_full_url}`
-                      : `https://via.placeholder.com/170x120`,
+        {display_style === 2 &&
+          (display_type === "product" || display_type === "new-items") && (
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "wrap",
+                gap: 10,
+                paddingHorizontal: 10,
+              }}
+            >
+              {items.slice(0, items_per_column || 5).map((item, index) => (
+                <TouchableOpacity
+                  key={item._id || index}
+                  style={{
+                    width: SIZES.width / 3 - 20,
+                    height: SIZES.width / 3 - 20,
+                    borderRadius: 10,
+                    overflow: "hidden",
+                    borderWidth: 1,
+                    borderColor: COLORS.grayTie,
                   }}
-                  style={styles.imageOnlyStyle}
-                />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
+                  onPress={() => router.push(`/product/${item._id}`)}
+                >
+                  <Image
+                    source={{
+                      uri: item.image_full_url
+                        ? `${baseUrl}${item.image_full_url}`
+                        : `https://via.placeholder.com/170x120`,
+                    }}
+                    style={styles.imageOnlyStyle}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
       </View>
     );
   };
@@ -789,14 +998,14 @@ export default function HomeScreen() {
         return renderButtonSection();
       case "CATEGORY":
         return renderCategorySection();
-      case "DYNAMIC_SECTION":
-        return renderDynamicSection(item.data);
       case "HOT_ITEMS":
         return renderHotItemsSection();
       case "RECOMMENDED":
         return renderRecommendedSection();
       case "MOST_POPULAR":
         return renderMostPopularSection();
+      case "DYNAMIC_SECTION":
+        return renderDynamicSection(item.data);
       case "TOP_BRANDS":
         return renderTopBrandsSection();
       default:
@@ -1112,16 +1321,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 15,
+    // gap: 5,
   },
   popularItemNumber: {
     fontSize: 18,
     fontWeight: "bold",
-    marginRight: 15,
+    marginRight: 5,
     width: 20,
   },
   popularItemImage: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     resizeMode: "contain",
   },
   topBrandsContainer: {
@@ -1153,7 +1363,9 @@ const styles = StyleSheet.create({
   },
   column: {
     flex: 1,
-    marginHorizontal: 5,
+    marginRight: 20,
+    maxWidth: SIZES.width / 2 - 20,
+    overflow: "hidden",
   },
   columnTitle: {
     fontSize: 16,

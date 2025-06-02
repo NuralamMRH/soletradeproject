@@ -40,14 +40,15 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#007AFF",
-        tabBarInactiveTintColor: "#666",
+        tabBarActiveTintColor: "#ffffff",
+        tabBarInactiveTintColor: "#eeeeee",
         headerShown: false,
         tabBarStyle: {
-          borderTopWidth: 1,
-          borderTopColor: "#eee",
+          borderTopWidth: 0,
+          borderTopColor: "#000000",
           paddingTop: 5,
           paddingBottom: 5,
+          backgroundColor: "#000000",
         },
       }}
     >
@@ -61,20 +62,24 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="trends"
         options={{
-          title: "Explore",
+          title: "Fashion",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search-outline" size={size} color={color} />
+            <Ionicons name="shirt-outline" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="cart"
+        name="sole-check"
         options={{
-          title: "Cart",
+          title: "Sole Check",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cart-outline" size={size} color={color} />
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />

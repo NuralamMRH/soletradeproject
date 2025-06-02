@@ -1,13 +1,18 @@
 const mongoose = require("mongoose");
 
 const soleCheckItemSchema = mongoose.Schema({
-  soleCheckBrand: {
+  brandId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "SoleCheckBrand",
+    ref: "Brand",
   },
-  soleCheckModel: {
+  subBrandId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "SoleCheckModel",
+    ref: "SubBrand",
+    required: false,
+  },
+  categoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Category",
   },
   appearanceImage: {
     type: String,
@@ -82,6 +87,27 @@ soleCheckItemSchema.virtual("id").get(function () {
 
 soleCheckItemSchema.set("toJSON", {
   virtuals: true,
+});
+
+soleCheckItemSchema.virtual("brand", {
+  ref: "Brand",
+  localField: "brandId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+soleCheckItemSchema.virtual("subBrand", {
+  ref: "SubBrand",
+  localField: "subBrandId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+soleCheckItemSchema.virtual("category", {
+  ref: "Category",
+  localField: "categoryId",
+  foreignField: "_id",
+  justOne: true,
 });
 
 exports.SoleCheckItem = mongoose.model("SoleCheckItem", soleCheckItemSchema);

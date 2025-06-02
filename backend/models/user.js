@@ -90,6 +90,58 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  buyer: {
+    currentSpent: {
+      type: Number,
+      default: 0,
+    },
+    targetSpent: {
+      type: Number,
+      default: 0,
+    },
+    currentOrders: {
+      type: Number,
+      default: 0,
+    },
+    daysLeft: {
+      type: Number,
+      default: 0,
+    },
+    period: {
+      type: String,
+      default: "",
+    },
+    nextTier: {
+      type: Number,
+      default: 0,
+    },
+  },
+  seller: {
+    currentSpent: {
+      targetSpent: {
+        type: Number,
+        default: 0,
+      },
+      currentOrders: {
+        type: Number,
+        default: 0,
+      },
+      type: Number,
+      default: 0,
+    },
+    daysLeft: {
+      type: Number,
+      default: 0,
+    },
+    period: {
+      type: String,
+      default: "",
+    },
+    nextTier: {
+      type: Number,
+      default: 0,
+    },
+  },
   isNotificationEnabled: {
     type: Boolean,
     default: true,

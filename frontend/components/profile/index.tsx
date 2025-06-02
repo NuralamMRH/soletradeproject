@@ -185,10 +185,16 @@ export default function ProfileScreen() {
           >
             <Text style={styles.editProfileText}>{t.editProfile}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn}>
+          <TouchableOpacity
+            onPress={() => router.push("/user/tiers-and-benefits")}
+            style={styles.iconBtn}
+          >
             <Ionicons name="ticket-outline" size={22} color="#fff" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn}>
+          <TouchableOpacity
+            onPress={() => router.push("/user/voucher-and-deals")}
+            style={styles.iconBtn}
+          >
             <Ionicons name="layers-outline" size={22} color="#fff" />
           </TouchableOpacity>
         </View>

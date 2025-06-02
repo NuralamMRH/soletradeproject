@@ -38,6 +38,8 @@ import {
   useUpdateIndicator,
 } from "@/hooks/react-query/useIndicatorMutations";
 import { baseUrl } from "@/api/MainApi";
+import { useTiers } from "@/hooks/react-query/useTierMutation";
+import { COLORS } from "@/constants/theme";
 // import your styles and any custom components as needed
 
 const defaultProductData = {
@@ -124,17 +126,22 @@ export default function AdminAddNewProduct() {
     : defaultProductData;
 
   const [productData, setProductData] = useState(initialProductData);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showDateSheet, setShowDateSheet] = useState(false);
+  const [dateType, setDateType] = useState<
+    "releaseDate" | "feeStartDate" | "feeEndDate" | null
+  >(null);
+  const [tempDate, setTempDate] = useState<Date>(new Date());
   const [bottomSheetType, setBottomSheetType] = useState<null | string>(null);
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const dateSheetRef = useRef<any>(null);
 
   useEffect(() => {
     if (params.product) {
       const product = JSON.parse(params.product as string);
-      setProductData((prev) => ({
+      setProductData((prev: any) => ({
         ...prev,
         product_type: productType,
-        images: product.images.map((image) => {
+        images: product.images.map((image: any) => {
           const uri = image.file_full_url.startsWith("http")
             ? image.file_full_url
             : `${baseUrl}${image.file_full_url}`;
@@ -153,7 +160,7 @@ export default function AdminAddNewProduct() {
         // Normalize variations to array of IDs
         variations: Array.isArray(product.variations)
           ? product.variations.map(
-              (variation) =>
+              (variation: any) =>
                 typeof variation === "string" ? variation : variation._id // <-- get the ID
             )
           : [],
@@ -189,11 +196,33 @@ export default function AdminAddNewProduct() {
   const { indicators } = useIndicators();
   const createIndicator = useCreateIndicator();
 
+  const {
+    data: buyerTiers,
+    isLoading: buyerTiersLoading,
+    error: buyerTiersError,
+  } = useTiers("buyer");
+  const {
+    data: sellerTiers,
+    isLoading: sellerTiersLoading,
+    error: sellerTiersError,
+  } = useTiers("seller");
+
   // console.log("indicators", indicators);
 
   const [indicatorName, setIndicatorName] = useState<string | null>(null);
   const [indicatorImage, setIndicatorImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<any>(null);
+
+  const [selectedTiers, setSelectedTiers] = useState<string[]>([]);
+
+  const toggleTier = (id: string) => {
+    setProductData((prev: any) => ({
+      ...prev,
+      tierIds: prev.tierIds.includes(id)
+        ? prev.tierIds.filter((i: any) => i !== id)
+        : [...prev.tierIds, id],
+    }));
+  };
 
   useEffect(() => {
     if (productData.attributeId) {
@@ -222,7 +251,7 @@ export default function AdminAddNewProduct() {
       else if (ext === "webp") type = "image/webp";
       // fallback to jpeg
 
-      setProductData((prev) => ({
+      setProductData((prev: any) => ({
         ...prev,
         images: [...prev.images, { uri, name, type }],
       }));
@@ -230,7 +259,7 @@ export default function AdminAddNewProduct() {
   };
 
   const removeImage = (index: number) => {
-    setProductData((prev) => {
+    setProductData((prev: any) => {
       const newImages = [...prev.images];
       newImages.splice(index, 1);
       return { ...prev, images: newImages };
@@ -238,13 +267,6 @@ export default function AdminAddNewProduct() {
   };
 
   // --- Date Picker ---
-  const handleDateChange = (event, selectedDate) => {
-    setShowDatePicker(Platform.OS === "ios");
-    if (selectedDate) {
-      setProductData((prev) => ({ ...prev, releaseDate: selectedDate }));
-    }
-  };
-
   const handleAddIndicatorImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -403,7 +425,10 @@ export default function AdminAddNewProduct() {
               placeholder="Product Name"
               value={productData.name}
               onChangeText={(text) =>
-                setProductData((prev) => ({ ...prev, name: text }))
+                setProductData((prev: any) => ({
+                  ...prev,
+                  name: text,
+                }))
               }
             />
           </View>
@@ -428,7 +453,7 @@ export default function AdminAddNewProduct() {
             >
               <Text style={{ color: productData.brandId ? "black" : "gray" }}>
                 {productData.brandId
-                  ? brands.find((b) => b._id === productData.brandId)?.name
+                  ? brands.find((b: any) => b._id === productData.brandId)?.name
                   : "Select Brand"}
               </Text>
             </TouchableOpacity>
@@ -455,8 +480,9 @@ export default function AdminAddNewProduct() {
                 style={{ color: productData.subBrandId ? "black" : "gray" }}
               >
                 {productData.subBrandId
-                  ? subBrands.find((sb) => sb._id === productData.subBrandId)
-                      ?.name
+                  ? subBrands.find(
+                      (sb: any) => sb._id === productData.subBrandId
+                    )?.name
                   : "Select Sub Brand"}
               </Text>
             </TouchableOpacity>
@@ -484,8 +510,9 @@ export default function AdminAddNewProduct() {
                 style={{ color: productData.categoryId ? "black" : "gray" }}
               >
                 {productData.categoryId
-                  ? categories.find((c) => c._id === productData.categoryId)
-                      ?.name
+                  ? categories.find(
+                      (c: any) => c._id === productData.categoryId
+                    )?.name
                   : "Select Category"}
               </Text>
             </TouchableOpacity>
@@ -513,7 +540,7 @@ export default function AdminAddNewProduct() {
               >
                 {productData.subCategoryId
                   ? subCategories.find(
-                      (sc) => sc._id === productData.subCategoryId
+                      (sc: any) => sc._id === productData.subCategoryId
                     )?.name
                   : "Select SubCategory"}
               </Text>
@@ -541,7 +568,7 @@ export default function AdminAddNewProduct() {
               placeholder="SKU"
               value={productData.sku}
               onChangeText={(text) =>
-                setProductData((prev) => ({
+                setProductData((prev: any) => ({
                   ...prev,
                   sku: text.toUpperCase(),
                 }))
@@ -581,8 +608,9 @@ export default function AdminAddNewProduct() {
                   <Text>
                     {productData.variations
                       .map(
-                        (v) =>
-                          attributeOptions.find((o) => o._id === v)?.optionName
+                        (v: any) =>
+                          attributeOptions.find((o: any) => o._id === v)
+                            ?.optionName
                       )
                       .join(", ")}
                   </Text>
@@ -611,26 +639,22 @@ export default function AdminAddNewProduct() {
               style={{
                 paddingBottom: 10,
               }}
-              onPress={() => setShowDatePicker(true)}
+              onPress={() => {
+                setDateType("releaseDate");
+                setTempDate(
+                  productData.releaseDate
+                    ? new Date(productData.releaseDate)
+                    : new Date()
+                );
+                setShowDateSheet(true);
+                setTimeout(() => dateSheetRef.current?.expand(), 10);
+              }}
             >
-              {showDatePicker ? (
-                <DateTimePicker
-                  value={
-                    productData.releaseDate
-                      ? new Date(productData.releaseDate)
-                      : new Date()
-                  }
-                  mode="date"
-                  display="default"
-                  onChange={handleDateChange}
-                />
-              ) : (
-                <Text>
-                  {productData.releaseDate
-                    ? new Date(productData.releaseDate).toLocaleDateString()
-                    : "Select Release Date"}
-                </Text>
-              )}
+              <Text>
+                {productData.releaseDate
+                  ? new Date(productData.releaseDate).toLocaleDateString()
+                  : "Select Release Date"}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -681,7 +705,7 @@ export default function AdminAddNewProduct() {
               }
               onChangeText={(text) => {
                 const numeric = text.replace(/[^0-9]/g, "");
-                setProductData((prev) => ({
+                setProductData((prev: any) => ({
                   ...prev,
                   retailPrice: numeric ? Number(numeric) : "",
                 }));
@@ -711,10 +735,110 @@ export default function AdminAddNewProduct() {
               placeholder="Colorway"
               value={productData.colorway}
               onChangeText={(text) =>
-                setProductData((prev) => ({ ...prev, colorway: text }))
+                setProductData((prev: any) => ({
+                  ...prev,
+                  colorway: text,
+                }))
               }
             />
           </View>
+          <View style={{ borderBottomWidth: 1, marginBottom: 16 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "bold",
+                color: "black",
+                paddingBottom: 10,
+              }}
+            >
+              Seller Fee
+            </Text>
+            <TextInput
+              style={{
+                fontSize: 16,
+                fontWeight: "bold",
+                color: "black",
+                paddingBottom: 10,
+              }}
+              placeholder="Seller Fee"
+              value={productData.sellerFee}
+              onChangeText={(text) =>
+                setProductData((prev: any) => ({
+                  ...prev,
+                  sellerFee: text,
+                }))
+              }
+            />
+          </View>
+
+          <View style={{ borderBottomWidth: 1, marginBottom: 16 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "bold",
+                color: "black",
+                paddingBottom: 10,
+              }}
+            >
+              Start date
+            </Text>
+            <TouchableOpacity
+              style={{
+                paddingBottom: 10,
+              }}
+              onPress={() => {
+                setDateType("feeStartDate");
+                setTempDate(
+                  productData.feeStartDate
+                    ? new Date(productData.feeStartDate)
+                    : new Date()
+                );
+                setShowDateSheet(true);
+                setTimeout(() => dateSheetRef.current?.expand(), 10);
+              }}
+            >
+              <Text>
+                {productData.feeStartDate
+                  ? new Date(productData.feeStartDate).toLocaleDateString()
+                  : "Select Start Date"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ borderBottomWidth: 1, marginBottom: 16 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "bold",
+                color: "black",
+                paddingBottom: 10,
+              }}
+            >
+              End date
+            </Text>
+            <TouchableOpacity
+              style={{
+                paddingBottom: 10,
+              }}
+              onPress={() => {
+                setDateType("feeEndDate");
+                setTempDate(
+                  productData.feeEndDate
+                    ? new Date(productData.feeEndDate)
+                    : new Date()
+                );
+                setShowDateSheet(true);
+                setTimeout(() => dateSheetRef.current?.expand(), 10);
+              }}
+            >
+              <Text>
+                {productData.feeEndDate
+                  ? new Date(productData.feeEndDate).toLocaleDateString()
+                  : "Select End Date"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Add to Calendar */}
 
           {productType !== "essential" && (
@@ -728,7 +852,10 @@ export default function AdminAddNewProduct() {
               <Switch
                 value={productData.addToCalendar}
                 onValueChange={(value) =>
-                  setProductData((prev) => ({ ...prev, addToCalendar: value }))
+                  setProductData((prev: any) => ({
+                    ...prev,
+                    addToCalendar: value,
+                  }))
                 }
               />
               <Text style={{ marginLeft: 8 }}>Add to Sneaker Calendar</Text>
@@ -740,7 +867,7 @@ export default function AdminAddNewProduct() {
               Product Images
             </Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
-              {productData.images.map((img, idx) => (
+              {productData.images.map((img: any, idx: number) => (
                 <View key={idx} style={{ marginRight: 8, marginBottom: 8 }}>
                   <Image
                     source={{ uri: img.uri }}
@@ -803,7 +930,7 @@ export default function AdminAddNewProduct() {
                   >
                     {productData.indicatorId
                       ? indicators.find(
-                          (i) => i._id === productData.indicatorId
+                          (i: any) => i._id === productData.indicatorId
                         )?.name
                       : "Indicator"}
                   </Text>
@@ -823,7 +950,7 @@ export default function AdminAddNewProduct() {
                         : "#fff",
                     }}
                     onPress={() =>
-                      setProductData((prev) => ({
+                      setProductData((prev: any) => ({
                         ...prev,
                         isIndicatorActive: true,
                       }))
@@ -851,7 +978,7 @@ export default function AdminAddNewProduct() {
                         : "#000000",
                     }}
                     onPress={() =>
-                      setProductData((prev) => ({
+                      setProductData((prev: any) => ({
                         ...prev,
                         isIndicatorActive: false,
                       }))
@@ -899,13 +1026,120 @@ export default function AdminAddNewProduct() {
                 >
                   {productData.indicatorDuration
                     ? durationOptions.find(
-                        (d) => d.value === productData.indicatorDuration
+                        (d: any) => d.value === productData.indicatorDuration
                       )?.name
                     : "Select Duration"}
                 </Text>
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Tier */}
+          <View style={{ marginBottom: 16, paddingBottom: 10 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "bold",
+                color: "black",
+                marginBottom: 10,
+              }}
+            >
+              Apply to Tier
+            </Text>
+
+            {buyerTiersLoading ? (
+              <ActivityIndicator size="large" color={COLORS.primary} />
+            ) : (
+              <>
+                {buyerTiers &&
+                  buyerTiers.length > 0 &&
+                  buyerTiers.map((item: any) => (
+                    <View
+                      key={item._id}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                        marginBottom: 10,
+                      }}
+                    >
+                      <TouchableOpacity
+                        onPress={() => toggleTier(item._id)}
+                        style={{
+                          padding: 10,
+                          borderWidth: 1,
+                          borderColor: productData.tierIds.includes(item._id)
+                            ? "#4CAF50"
+                            : "black",
+                          borderRadius: 8,
+                          backgroundColor: productData.tierIds.includes(
+                            item._id
+                          )
+                            ? "#E8F5E9"
+                            : "white",
+                        }}
+                      >
+                        {productData.tierIds.includes(item._id) ? (
+                          <Ionicons name="checkbox" size={20} color="#4CAF50" />
+                        ) : (
+                          <Ionicons
+                            name="square-outline"
+                            size={20}
+                            color="black"
+                          />
+                        )}
+                      </TouchableOpacity>
+                      <Text style={{ color: "black", fontSize: 16 }}>
+                        {item.name}
+                      </Text>
+                    </View>
+                  ))}
+                {sellerTiers &&
+                  sellerTiers.length > 0 &&
+                  sellerTiers.map((item: any) => (
+                    <View
+                      key={item._id}
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 10,
+                        marginBottom: 10,
+                      }}
+                    >
+                      <TouchableOpacity
+                        onPress={() => toggleTier(item._id)}
+                        style={{
+                          padding: 10,
+                          borderWidth: 1,
+                          borderColor: productData.tierIds.includes(item._id)
+                            ? "#4CAF50"
+                            : "black",
+                          borderRadius: 8,
+                          backgroundColor: productData.tierIds.includes(
+                            item._id
+                          )
+                            ? "#E8F5E9"
+                            : "white",
+                        }}
+                      >
+                        {productData.tierIds.includes(item._id) ? (
+                          <Ionicons name="checkbox" size={20} color="#4CAF50" />
+                        ) : (
+                          <Ionicons
+                            name="square-outline"
+                            size={20}
+                            color="black"
+                          />
+                        )}
+                      </TouchableOpacity>
+                      <Text style={{ color: "black", fontSize: 16 }}>
+                        {item.name}
+                      </Text>
+                    </View>
+                  ))}
+              </>
+            )}
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -961,7 +1195,7 @@ export default function AdminAddNewProduct() {
                   {bottomSheetType === "attributeOption"
                     ? `Save ${
                         attributes.find(
-                          (a) => a._id === productData.attributeId
+                          (a: any) => a._id === productData.attributeId
                         )?.name
                       }`
                     : bottomSheetType === "indicatorCreate"
@@ -1061,9 +1295,9 @@ export default function AdminAddNewProduct() {
                         name: indicatorName,
                         image: imageFile,
                       })
-                      .then((res) => {
+                      .then((res: any) => {
                         console.log("res", res);
-                        setProductData((prev) => ({
+                        setProductData((prev: any) => ({
                           ...prev,
                           indicatorId: res._id,
                           isIndicatorActive: true,
@@ -1101,8 +1335,8 @@ export default function AdminAddNewProduct() {
                     ? durationOptions
                     : []
                 }
-                keyExtractor={(item) => item._id}
-                renderItem={({ item }) => (
+                keyExtractor={(item: any) => item._id}
+                renderItem={({ item }: { item: any }) => (
                   <Pressable
                     style={{
                       padding: 16,
@@ -1110,33 +1344,33 @@ export default function AdminAddNewProduct() {
                     }}
                     onPress={() => {
                       if (bottomSheetType === "category") {
-                        setProductData((prev) => ({
+                        setProductData((prev: any) => ({
                           ...prev,
                           categoryId: item._id,
                           subCategoryId: "",
                         }));
                         bottomSheetRef.current?.close();
                       } else if (bottomSheetType === "subCategory") {
-                        setProductData((prev) => ({
+                        setProductData((prev: any) => ({
                           ...prev,
                           subCategoryId: item._id,
                         }));
                         bottomSheetRef.current?.close();
                       } else if (bottomSheetType === "brand") {
-                        setProductData((prev) => ({
+                        setProductData((prev: any) => ({
                           ...prev,
                           brandId: item._id,
                           subBrandId: "",
                         }));
                         bottomSheetRef.current?.close();
                       } else if (bottomSheetType === "subBrand") {
-                        setProductData((prev) => ({
+                        setProductData((prev: any) => ({
                           ...prev,
                           subBrandId: item._id,
                         }));
                         bottomSheetRef.current?.close();
                       } else if (bottomSheetType === "indicator") {
-                        setProductData((prev) => ({
+                        setProductData((prev: any) => ({
                           ...prev,
                           indicatorId: item._id,
                           isIndicatorActive: true,
@@ -1144,28 +1378,30 @@ export default function AdminAddNewProduct() {
                         }));
                         bottomSheetRef.current?.close();
                       } else if (bottomSheetType === "duration") {
-                        setProductData((prev) => ({
+                        setProductData((prev: any) => ({
                           ...prev,
                           indicatorDuration: item.value,
                           isIndicatorActive: true,
                         }));
                         bottomSheetRef.current?.close();
                       } else if (bottomSheetType === "attribute") {
-                        setProductData((prev) => ({
+                        setProductData((prev: any) => ({
                           ...prev,
                           attributeId: item._id,
                           variations: [],
                         }));
                         openAttributeOptionSheet();
                       } else if (bottomSheetType === "attributeOption") {
-                        setProductData((prev) => {
+                        setProductData((prev: any) => {
                           const alreadySelected = prev.variations?.includes(
                             item._id
                           );
                           return {
                             ...prev,
                             variations: alreadySelected
-                              ? prev.variations.filter((id) => id !== item._id)
+                              ? prev.variations.filter(
+                                  (id: any) => id !== item._id
+                                )
                               : [...(prev.variations || []), item._id],
                           };
                         });
@@ -1209,8 +1445,9 @@ export default function AdminAddNewProduct() {
                       )}
                       <Text style={{ color: "white" }}>
                         {bottomSheetType === "attributeOption"
-                          ? attributeOptions?.find((o) => o._id === item._id)
-                              ?.optionName
+                          ? attributeOptions?.find(
+                              (o: any) => o._id === item._id
+                            )?.optionName
                           : item.name}
                       </Text>
                     </View>
@@ -1239,6 +1476,78 @@ export default function AdminAddNewProduct() {
                 )}
               />
             )}
+          </View>
+        </BottomSheetView>
+      </BottomSheet>
+
+      {/* Date Picker Bottom Sheet */}
+      <BottomSheet
+        ref={dateSheetRef}
+        index={-1}
+        snapPoints={["35%"]}
+        enablePanDownToClose={true}
+        onClose={() => setShowDateSheet(false)}
+        handleIndicatorStyle={{ backgroundColor: "#000" }}
+        backgroundStyle={{ backgroundColor: "#fff" }}
+      >
+        <BottomSheetView style={{ flex: 1, padding: 16 }}>
+          <View
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
+          >
+            <TouchableOpacity
+              style={[{ marginRight: 8 }]}
+              onPress={() => dateSheetRef.current?.close()}
+            >
+              <Text style={{ color: COLORS.primary, fontSize: 16 }}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
+            <Text
+              style={{ fontSize: 16, fontWeight: "bold", marginBottom: 16 }}
+            >
+              {dateType === "releaseDate"
+                ? "Select Release Date"
+                : dateType === "feeStartDate"
+                ? "Select Start Date"
+                : "Select End Date"}
+            </Text>
+            <TouchableOpacity
+              style={{}}
+              onPress={() => {
+                if (dateType === "releaseDate") {
+                  setProductData((prev: any) => ({
+                    ...prev,
+                    releaseDate: tempDate,
+                  }));
+                } else if (dateType === "feeStartDate") {
+                  setProductData((prev: any) => ({
+                    ...prev,
+                    feeStartDate: tempDate,
+                  }));
+                } else if (dateType === "feeEndDate") {
+                  setProductData((prev: any) => ({
+                    ...prev,
+                    feeEndDate: tempDate,
+                  }));
+                }
+                dateSheetRef.current?.close();
+              }}
+            >
+              <Text style={{ color: COLORS.primary, fontSize: 16 }}>
+                Confirm
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{ alignItems: "center", justifyContent: "center" }}>
+            <DateTimePicker
+              value={tempDate}
+              mode="date"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              onChange={(_event, selectedDate) => {
+                if (selectedDate) setTempDate(selectedDate);
+              }}
+              style={{ width: 320, backgroundColor: "white" }}
+            />
           </View>
         </BottomSheetView>
       </BottomSheet>

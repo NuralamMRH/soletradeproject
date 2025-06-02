@@ -12,135 +12,87 @@ import {
   Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS, images, SIZES } from "@/constants";
+import { COLORS, SIZES } from "@/constants";
 import Constants from "expo-constants";
 import Colors from "@/constants/Colors";
 import * as ImagePicker from "expo-image-picker";
-import BottomSheet from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   useCreateHomeFeedButton,
+  useDeleteHomeFeedButton,
   useGetHomeFeedButtons,
   useUpdateHomeFeedButton,
 } from "@/hooks/react-query/homeFeedButtonApi";
 import Toast from "react-native-toast-message";
 
-const AddHomeFeedButton = ({ route }) => {
+const STATIC_APP_ROUTES: { name: string; route: string }[] = [
+  { name: "Home", route: "/" },
+  { name: "Explore", route: "/explore" },
+  { name: "Edit Profile", route: "/edit-profile" },
+  { name: "Shipping Address", route: "/shipping-address" },
+  { name: "Cart", route: "/cart" },
+  { name: "Dashboard", route: "/(tabs)/dashboard" },
+  { name: "All Products", route: "/admin/products/all-product-manage" },
+  { name: "Add Product", route: "/admin/products/add-new-product" },
+  // ...add more as needed
+];
+
+interface Params {
+  button?: any;
+}
+
+const AddHomeFeedButton: React.FC = () => {
   const router = useRouter();
   const paramsRaw = useLocalSearchParams();
-  const buttonId =
-    typeof paramsRaw.buttonId === "string" ? paramsRaw.buttonId : null;
-
   const params: Params = {
     button: paramsRaw.button
       ? JSON.parse(paramsRaw.button as string)
       : undefined,
   };
 
+  const button = params.button;
+
   const isEditing = !!params.button;
 
-  const { data: circleButtons = [] } = useGetHomeFeedButtons("circle");
-  const { data: squareButtons = [] } = useGetHomeFeedButtons("square");
+  const [buttonDesign, setButtonDesign] = useState<string>(
+    button?.design || "circle"
+  ); // 'circle' or 'square'
+  const [buttonName, setButtonName] = useState<string>(button?.name || "");
+  const [linkPage, setLinkPage] = useState<string>(button?.link || "");
+  const [buttonImage, setButtonImage] = useState<string | undefined>(
+    button?.image_full_url || undefined
+  );
+  const [availablePages, setAvailablePages] = useState<
+    { name: string; route: string }[]
+  >([]);
 
-  const [buttonDesign, setButtonDesign] = useState("circle"); // 'circle' or 'square'
-  const [buttonName, setButtonName] = useState("");
-  const [linkPage, setLinkPage] = useState("");
-  const [buttonImage, setButtonImage] = useState(null);
-  const [availablePages, setAvailablePages] = useState([]);
-
-  const bottomSheetRef = useRef(null);
+  const bottomSheetRef = useRef<any>(null);
   const snapPoints = useMemo(() => ["25%", "75%"], []);
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
   const createHomeFeedButton = useCreateHomeFeedButton();
   const updateHomeFeedButton = useUpdateHomeFeedButton();
+  const deleteHomeFeedButton = useDeleteHomeFeedButton();
 
   useEffect(() => {
     // If editing, populate fields with existing data
-    if (isEditing && route.params?.button) {
-      const { name, design, link, image_full_url } = route.params.button;
+    if (isEditing && params.button) {
+      const { name, design, link, image_full_url } = params.button;
       setButtonName(name || "");
       setButtonDesign(design || "circle");
       setLinkPage(link || "");
       // For existing images, store the full URL
       if (image_full_url) {
-        setButtonImage(API_URL + image_full_url);
+        setButtonImage(
+          image_full_url.startsWith("http")
+            ? image_full_url
+            : `${process.env.EXPO_PUBLIC_API_URL}${image_full_url}`
+        );
       }
     }
-
-    // Get all available pages from StackNavigator with readable names
-    const pages = [
-      { id: "Calendar", name: "Calendar", route: "Calendar" },
-      {
-        id: "SoleEssentialsProducts",
-        name: "Sole Essentials",
-        route: "SoleEssentialsProducts",
-      },
-      { id: "SoleServices", name: "Services", route: "SoleServices" },
-      { id: "PreOwned", name: "Pre-Owned", route: "PreOwned" },
-      { id: "SoleDraw", name: "Raffle", route: "SoleDraw" },
-      { id: "Portfolio", name: "Portfolio", route: "Portfolio" },
-      {
-        id: "VouchersAndDiscounts",
-        name: "Discounts",
-        route: "VouchersAndDiscounts",
-      },
-      { id: "Trending", name: "Trending", route: "Trending" },
-      { id: "HomePage", name: "Home Page", route: "HomePage" },
-      { id: "SoleCare", name: "Sole Care", route: "SoleCare" },
-      { id: "ViewAllProducts", name: "All Products", route: "ViewAllProducts" },
-      { id: "SearchPage", name: "Search", route: "SearchPage" },
-      { id: "ProductScreen", name: "Product Details", route: "ProductScreen" },
-      { id: "CheckoutScreen", name: "Checkout", route: "CheckoutScreen" },
-      { id: "SoleCheck", name: "Sole Check", route: "SoleCheck" },
-      { id: "SoleCheckMain", name: "Sole Check Main", route: "SoleCheckMain" },
-      { id: "SocialFeed", name: "Social Feed", route: "SocialFeed" },
-      { id: "ActiveBids", name: "Active Bids", route: "ActiveBids" },
-      { id: "ActiveAsks", name: "Active Asks", route: "ActiveAsks" },
-      { id: "Settings", name: "Settings", route: "Settings" },
-      { id: "WishList", name: "Wishlist", route: "WishList" },
-      { id: "MyMessages", name: "Messages", route: "MyMessages" },
-      { id: "ProfileInfo", name: "Profile Info", route: "ProfileInfo" },
-      { id: "UserPortfolio", name: "User Portfolio", route: "UserPortfolio" },
-      { id: "UserWishlist", name: "User Wishlist", route: "UserWishlist" },
-      { id: "Orders", name: "Orders", route: "Orders" },
-      { id: "Statistics", name: "Statistics", route: "Statistics" },
-      { id: "SalesOverview", name: "Sales Overview", route: "SalesOverview" },
-      {
-        id: "SoleEssentialProductDetails",
-        name: "Essential Product Details",
-        route: "SoleEssentialProductDetails",
-      },
-      { id: "EssentialCart", name: "Essential Cart", route: "EssentialCart" },
-      {
-        id: "EssentialCheckout",
-        name: "Essential Checkout",
-        route: "EssentialCheckout",
-      },
-      {
-        id: "EssentialOrderConfirmation",
-        name: "Order Confirmation",
-        route: "EssentialOrderConfirmation",
-      },
-      { id: "SelectBrand", name: "Select Brand", route: "SelectBrand" },
-      { id: "SelectModel", name: "Select Model", route: "SelectModel" },
-      { id: "SelectAddress", name: "Select Address", route: "SelectAddress" },
-      { id: "SelectService", name: "Select Service", route: "SelectService" },
-      {
-        id: "ServiceConfirmation",
-        name: "Service Confirmation",
-        route: "ServiceConfirmation",
-      },
-      {
-        id: "ServiceOrderConfirmation",
-        name: "Service Order Confirmation",
-        route: "ServiceOrderConfirmation",
-      },
-    ];
-    setAvailablePages(pages);
-
-    // Request camera permissions
+    setAvailablePages(STATIC_APP_ROUTES);
     (async () => {
       if (Platform.OS !== "web") {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -149,64 +101,51 @@ const AddHomeFeedButton = ({ route }) => {
         }
       }
     })();
-  }, [isEditing, route.params]);
+  }, [isEditing, params.button]);
 
   const handleSave = async () => {
     try {
-      // Validate inputs
       if (!buttonName.trim()) {
-        Toast.show({
-          message: "Error",
-          description: "Please enter a button name",
-          type: "danger",
-        });
+        Toast.show({ type: "error", text1: "Please enter a button name" });
         return;
       }
-
       if (!linkPage) {
-        showMessage({
-          message: "Error",
-          description: "Please select a page to link",
-          type: "danger",
-        });
+        Toast.show({ type: "error", text1: "Please select a page to link" });
         return;
       }
-
       const buttonData = {
         name: buttonName,
         design: buttonDesign,
         link: linkPage,
-        buttonImage,
+        buttonImage: buttonImage || undefined,
       };
-
-      if (isEditing) {
+      if (isEditing && params?.button) {
         await updateHomeFeedButton.mutateAsync({
-          id: route.params.button._id,
+          id: params.button._id,
           data: buttonData,
         });
-        Toast.show({
-          message: "Success",
-          description: "Button updated successfully",
-          type: "success",
-        });
+        Toast.show({ type: "success", text1: "Button updated successfully" });
         router.back();
       } else {
         await createHomeFeedButton.mutateAsync(buttonData);
-        Toast.show({
-          message: "Success",
-          description: "Button created successfully",
-          type: "success",
-        });
+        Toast.show({ type: "success", text1: "Button created successfully" });
         router.back();
       }
-    } catch (error) {
-      console.error("Error saving button:", error);
+    } catch (error: any) {
       Toast.show({
-        message: "Error",
-        description: error.response?.data?.message || "Failed to save button",
-        type: "danger",
+        type: "error",
+        text1:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to save button",
       });
     }
+  };
+
+  const handleDelete = async () => {
+    await deleteHomeFeedButton.mutateAsync(button._id);
+    Toast.show({ type: "success", text1: "Button deleted successfully" });
+    router.back();
   };
 
   const handleAddImage = async () => {
@@ -217,41 +156,19 @@ const AddHomeFeedButton = ({ route }) => {
         aspect: [1, 1],
         quality: 0.5,
       });
-
-      if (!result.canceled) {
-        // For new images, store the local URI
+      if (!result.canceled && result.assets && result.assets.length > 0) {
         setButtonImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.log("Error picking image:", error);
-      showMessage({
-        message: "Error",
-        description: "Failed to pick image",
-        type: "danger",
-      });
+      Toast.show({ type: "error", text1: "Failed to pick image" });
     }
   };
 
   const handleRemoveImage = () => {
-    setButtonImage(null);
+    setButtonImage(undefined);
   };
 
-  const handleCancel = () => {
-    navigation.goBack();
-  };
-
-  const handleDelete = () => {
-    if (isEditing) {
-      // Pass delete action back to parent
-      navigation.navigate("EditHomepage", {
-        deleteButton: route.params.button.id,
-      });
-    } else {
-      navigation.goBack();
-    }
-  };
-
-  const handleSelectPage = (page) => {
+  const handleSelectPage = (page: { name: string; route: string }) => {
     setLinkPage(page.route);
     if (!buttonName.trim()) {
       setButtonName(page.name);
@@ -266,23 +183,20 @@ const AddHomeFeedButton = ({ route }) => {
 
   // Helper function to get image source
   const getImageSource = () => {
-    if (!buttonImage) return null;
-    // If the image is a local URI (starts with file:// or content://)
+    if (!buttonImage) return undefined;
     if (
       buttonImage.startsWith("file://") ||
       buttonImage.startsWith("content://")
     ) {
       return { uri: buttonImage };
     }
-    // If the image is a full URL (starts with http:// or https://)
     if (
       buttonImage.startsWith("http://") ||
       buttonImage.startsWith("https://")
     ) {
       return { uri: buttonImage };
     }
-    // If the image is a relative path
-    return { uri: API_URL + buttonImage };
+    return { uri: `${process.env.EXPO_PUBLIC_API_URL}${buttonImage}` };
   };
 
   const renderHeader = () => {
@@ -312,12 +226,10 @@ const AddHomeFeedButton = ({ route }) => {
             </View>
 
             <View style={styles.headerRight}>
-              <TouchableOpacity style={{ padding: 5 }}>
-                <Ionicons
-                  name="notifications-outline"
-                  size={25}
-                  color={"black"}
-                />
+              <TouchableOpacity style={{ padding: 5 }} onPress={handleSave}>
+                <Text style={{ color: "black" }}>
+                  {isEditing ? "Update" : "Save"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -327,48 +239,78 @@ const AddHomeFeedButton = ({ route }) => {
   };
 
   return (
-    <View>
+    <View style={{ flex: 1 }}>
       {renderHeader()}
       <ScrollView style={styles.container}>
         <View style={styles.formContainer}>
-          <TextInput
-            label="Button Name"
-            value={buttonName}
-            onChangeText={setButtonName}
-            placeholder="Enter button name"
-            containerStyle={styles.inputContainer}
-          />
-
-          <TextInput
-            label="Button Design"
-            value={buttonDesign}
-            onChangeText={setButtonDesign}
-            placeholder="Enter button design"
-            containerStyle={styles.inputContainer}
-          />
-
-          <View style={styles.imageContainer}>
-            <Text style={styles.label}>Button Image</Text>
-            {buttonImage ? (
-              <View style={styles.imagePreviewContainer}>
-                <Image source={getImageSource()} style={styles.imagePreview} />
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={handleRemoveImage}
-                >
-                  <Text style={styles.removeButtonText}>Remove</Text>
-                </TouchableOpacity>
+          <Text style={styles.inputLabel}>Select Button Design</Text>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "flex-start",
+              marginBottom: 20,
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                marginVertical: 24,
+                alignItems: "center",
+                marginRight: 16,
+                borderWidth: 2,
+                borderColor:
+                  buttonDesign === "circle"
+                    ? COLORS.brandColor
+                    : COLORS.grayTie,
+                borderRadius: 10,
+                padding: 10,
+                backgroundColor: Colors.grayEEE,
+              }}
+              onPress={() => setButtonDesign("circle")}
+            >
+              <View style={[styles.button, styles.circleButton]}>
+                <Image
+                  source={{ uri: buttonImage }}
+                  style={styles.buttonImage}
+                />
               </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.uploadButton}
-                onPress={handleAddImage}
-              >
-                <Text>Upload Image</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+            </TouchableOpacity>
 
+            <TouchableOpacity
+              style={{
+                marginVertical: 24,
+                alignItems: "center",
+                marginRight: 16,
+                borderWidth: 2,
+                borderColor:
+                  buttonDesign === "square"
+                    ? COLORS.brandColor
+                    : COLORS.grayTie,
+                borderRadius: 10,
+                padding: 10,
+                backgroundColor: Colors.grayEEE,
+              }}
+              onPress={() => setButtonDesign("square")}
+            >
+              <View style={[styles.button, styles.squareButton]}>
+                <Image
+                  source={{ uri: buttonImage }}
+                  style={styles.buttonImage}
+                />
+              </View>
+            </TouchableOpacity>
+          </View>
+          {/* Button Name */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Button Name</Text>
+            <TextInput
+              value={buttonName}
+              onChangeText={setButtonName}
+              placeholder="Enter button name"
+              style={styles.textInput}
+            />
+          </View>
           {/* Link with Page */}
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Link with Page</Text>
@@ -385,10 +327,83 @@ const AddHomeFeedButton = ({ route }) => {
               <Ionicons name="chevron-down" size={20} color="#333" />
             </TouchableOpacity>
           </View>
+          <View style={styles.imageSection}>
+            <Text style={styles.inputLabel}>Upload Brand logo</Text>
+            {buttonImage ? (
+              <View style={styles.imageContainer}>
+                <TouchableOpacity
+                  onPress={handleAddImage}
+                  style={{ alignSelf: "center" }}
+                >
+                  <Image
+                    source={{ uri: buttonImage }}
+                    style={styles.imagePreview}
+                  />
+                  {/* Remove button at top right */}
+                  <TouchableOpacity
+                    onPress={handleRemoveImage}
+                    style={styles.removeButton}
+                  >
+                    <Ionicons name="close-circle" size={28} color="#D32F2F" />
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.imageContainer}>
+                <TouchableOpacity
+                  onPress={handleAddImage}
+                  style={{ alignSelf: "center" }}
+                >
+                  <View style={styles.imagePreview}>
+                    <Ionicons
+                      name="add"
+                      size={30}
+                      color="#8B0000"
+                      style={{ alignSelf: "center" }}
+                    />
+                  </View>
+                  {/* Remove button at top right */}
+                  <TouchableOpacity
+                    onPress={handleRemoveImage}
+                    style={styles.removeButton}
+                  >
+                    <Ionicons name="close-circle" size={28} color="#D32F2F" />
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
 
-          <TouchableOpacity style={styles.buttonContainer} onPress={handleSave}>
-            <Text style={styles.buttonText}>Save</Text>
-          </TouchableOpacity>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            {isEditing && (
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.buttonContainer,
+                    { backgroundColor: COLORS.dark3 },
+                  ]}
+                  onPress={() => router.back()}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.buttonContainer,
+                    { backgroundColor: COLORS.primary },
+                  ]}
+                  onPress={handleDelete}
+                >
+                  <Text style={styles.buttonText}>Delete</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
         </View>
       </ScrollView>
       <BottomSheet
@@ -402,34 +417,36 @@ const AddHomeFeedButton = ({ route }) => {
           if (index === -1) setIsBottomSheetOpen(false);
         }}
       >
-        <View style={styles.bottomSheetHeader}>
-          <Text style={styles.bottomSheetTitle}>Link with Page</Text>
-          <TouchableOpacity
-            style={styles.bottomSheetDoneButton}
-            onPress={() => bottomSheetRef.current?.close()}
-          >
-            <Text style={styles.bottomSheetDoneText}>Done</Text>
-          </TouchableOpacity>
-        </View>
-
-        <FlatList
-          data={availablePages}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
+        <BottomSheetView style={{ flex: 1 }}>
+          <View style={styles.bottomSheetHeader}>
+            <Text style={styles.bottomSheetTitle}>Link with Page</Text>
             <TouchableOpacity
-              style={styles.pageItem}
-              onPress={() => handleSelectPage(item)}
+              style={styles.bottomSheetDoneButton}
+              onPress={() => bottomSheetRef.current?.close()}
             >
-              <View style={styles.radioButton}>
-                {linkPage === item.route && (
-                  <View style={styles.radioButtonSelected} />
-                )}
-              </View>
-              <Text style={styles.pageItemText}>{item.name}</Text>
+              <Text style={styles.bottomSheetDoneText}>Done</Text>
             </TouchableOpacity>
-          )}
-          style={styles.pageList}
-        />
+          </View>
+
+          <FlatList
+            data={availablePages}
+            keyExtractor={(item) => item.route}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.pageItem}
+                onPress={() => handleSelectPage(item)}
+              >
+                <View style={styles.radioButton}>
+                  {linkPage === item.route && (
+                    <View style={styles.radioButtonSelected} />
+                  )}
+                </View>
+                <Text style={styles.pageItemText}>{item.name}</Text>
+              </TouchableOpacity>
+            )}
+            style={styles.pageList}
+          />
+        </BottomSheetView>
       </BottomSheet>
     </View>
   );
@@ -490,6 +507,11 @@ const styles = StyleSheet.create({
   inputContainer: {
     marginBottom: 16,
   },
+  imageSection: {
+    marginBottom: 30,
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+  },
   imageContainer: {
     marginBottom: 24,
   },
@@ -502,10 +524,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   imagePreview: {
-    width: 200,
-    height: 200,
+    width: SIZES.width / 3 - 32,
+    height: SIZES.width / 3 - 32,
     borderRadius: 8,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.grayTie,
+    alignItems: "center",
+    justifyContent: "center",
   },
   uploadButton: {
     padding: 16,
@@ -515,9 +541,7 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     alignItems: "center",
   },
-  removeButton: {
-    padding: 8,
-  },
+
   removeButtonText: {
     color: "red",
   },
@@ -525,8 +549,10 @@ const styles = StyleSheet.create({
     marginTop: 24,
     backgroundColor: COLORS.primary,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 0,
+    width: SIZES.width / 2 - 32,
     alignItems: "center",
+    justifyContent: "center",
   },
   buttonText: {
     color: "#fff",
@@ -539,6 +565,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 5,
+  },
+  removeButton: {
+    position: "absolute",
+    top: -10,
+    right: -10,
+    backgroundColor: "white",
+    borderRadius: 14,
+    zIndex: 2,
+  },
+  button: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#f2f2f2",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
   },
   circleButton: {
     borderRadius: 50,
@@ -559,6 +602,104 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     resizeMode: "contain",
+  },
+  bottomSheetHeader: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  bottomSheetTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#ffffff",
+    marginBottom: 16,
+  },
+  bottomSheetDoneButton: {
+    padding: 16,
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  bottomSheetDoneText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  pageItem: {
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: "#ffffff",
+    borderRadius: 10,
+    marginRight: 8,
+  },
+  radioButtonSelected: {
+    backgroundColor: COLORS.grayTie,
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: "#ffffff",
+    borderRadius: 10,
+    marginRight: 8,
+  },
+  pageItemText: {
+    fontSize: 16,
+    color: "#ffffff",
+  },
+  pageList: {
+    flex: 1,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+    backgroundColor: "#fff",
+  },
+  inputLabel: {
+    fontSize: 15,
+    color: "#333",
+    marginBottom: 10,
+  },
+  linkSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: "#f9f9f9",
+    justifyContent: "space-between",
+  },
+  linkText: {
+    color: "#333",
+    fontSize: 16,
+  },
+  linkPlaceholder: {
+    color: "#aaa",
+    fontSize: 16,
+  },
+  bottomSheetIndicator: {
+    backgroundColor: "#ccc",
+    height: 4,
+    borderRadius: 2,
+    width: 40,
+    alignSelf: "center",
+    marginVertical: 8,
+  },
+  bottomSheetBackground: {
+    backgroundColor: "#000000",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
 });
 

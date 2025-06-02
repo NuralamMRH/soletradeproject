@@ -141,10 +141,6 @@ export default function AddNewBrandPage() {
     })();
   }, [isEditing, params.brand]);
 
-  useEffect(() => {
-    console.log("Brand Image", brandImage);
-  }, [brandImage]);
-
   const handleSave = async () => {
     if (!brandName.trim()) {
       Alert.alert("Error", "Please enter a brand name");

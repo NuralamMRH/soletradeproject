@@ -75,6 +75,7 @@ const posterRoutes = require("./routes/posterRoutes");
 const tierBenefitRoutes = require("./routes/tierBenefitRoutes");
 const soleCheckSettingsRoutes = require("./routes/soleCheckSettings");
 const voucherRoutes = require("./routes/voucherRoutes");
+const voucherSectionRoutes = require("./routes/voucherSection");
 
 const api = process.env.API_URL;
 
@@ -121,6 +122,7 @@ app.use("/api/v1/tier-benefits", tierBenefitRoutes);
 
 app.use("/api/v1/sole-check", soleCheckSettingsRoutes);
 app.use("/api/v1/vouchers", voucherRoutes);
+app.use("/api/v1/voucher-sections", voucherSectionRoutes);
 
 // Middleware to handle errors
 app.use(errorMiddleware);

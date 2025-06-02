@@ -115,7 +115,7 @@ export default function AdminScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.buttonRow}
-            onPress={() => router.push("/orders")}
+            onPress={() => router.push("/admin/orders-data")}
           >
             <Ionicons
               name="cart-outline"
@@ -151,7 +151,9 @@ export default function AdminScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.buttonRow}
-            onPress={() => router.push("/vouchers")}
+            onPress={() =>
+              router.push({ pathname: "/admin/vouchers-and-discounts" })
+            }
           >
             <Ionicons
               name="pricetag-outline"
@@ -169,7 +171,7 @@ export default function AdminScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.buttonRow}
-            onPress={() => router.push("/users")}
+            onPress={() => router.push("/admin/user-data")}
           >
             <Ionicons
               name="people-outline"
@@ -187,7 +189,7 @@ export default function AdminScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.buttonRow}
-            onPress={() => router.push("/statistics")}
+            onPress={() => router.push("/admin/statistics")}
           >
             <Ionicons
               name="stats-chart-outline"

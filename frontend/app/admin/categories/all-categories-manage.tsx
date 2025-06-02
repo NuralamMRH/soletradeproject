@@ -37,18 +37,12 @@ export default function AllCategoriesManagePage() {
   const subCat = useSubCategories(parentCategoryId);
   const cat = useCategories();
 
-      const subBrand = useSubBrands(parentBrandId);
-    const bra = useBrands();
-
   const categories = isSubcategory ? subCat.subCategories : cat.categories;
-  const brands = isSubBrand ? subBrand.subBrands : bra.brands;
-  
-  const loading = isSubcategory ? subCat.loading : cat.loading ? cat.loading : isSubBrand ? subBrand.loading : bra.loading;
-  const error = isSubcategory ? subCat.error : cat.error ? cat.error : isSubBrand ? subBrand.error : bra.error;
-  const refetch = isSubcategory ? subCat.refetch : cat.refetch ? cat.refetch : isSubBrand ? subBrand.refetch : bra.refetch;
 
+  const loading = isSubcategory ? subCat.loading : cat.loading;
+  const error = isSubcategory ? subCat.error : cat.error;
 
-
+  const refetch = isSubcategory ? subCat.refetch : cat.refetch;
 
   useFocusEffect(
     useCallback(() => {

@@ -13,7 +13,7 @@ router
   .route("/")
   .get(getAppContent)
   .post(
-    // isAuthenticatedUser,
+    isAuthenticatedUser,
     upload.fields([
       { name: "appLogo", maxCount: 1 },
       { name: "launchScreenFile", maxCount: 1 },

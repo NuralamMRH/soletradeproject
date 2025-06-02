@@ -23,6 +23,7 @@ import {
 import { useGetHomeFeedButtons } from "@/hooks/react-query/useHomeFeedButtonMutations";
 import Toast from "react-native-toast-message";
 import { baseUrl } from "@/api/MainApi";
+import { useGetHomeFeedSections } from "@/hooks/react-query/useHomeFeedSectionMutations";
 
 const EditHomePage: React.FC = () => {
   const router = useRouter();
@@ -42,6 +43,7 @@ const EditHomePage: React.FC = () => {
   // Get circle and square buttons
   const { data: circleButtons = [] } = useGetHomeFeedButtons("circle");
   const { data: squareButtons = [] } = useGetHomeFeedButtons("square");
+  const { data: homeFeedSections = [], isLoading } = useGetHomeFeedSections();
   // Ref for horizontal scroll
   const sliderScrollRef = useRef<ScrollView>(null);
 
@@ -334,7 +336,7 @@ const EditHomePage: React.FC = () => {
                 onPress={() =>
                   router.push({
                     pathname: "/admin/pages/add-home-feed-button",
-                    params: { buttonId: item.id },
+                    params: { button: JSON.stringify(item) },
                   })
                 }
               >
@@ -367,7 +369,7 @@ const EditHomePage: React.FC = () => {
                 onPress={() =>
                   router.push({
                     pathname: "/admin/pages/add-home-feed-button",
-                    params: { buttonId: item.id },
+                    params: { button: JSON.stringify(item) },
                   })
                 }
               >
@@ -402,7 +404,7 @@ const EditHomePage: React.FC = () => {
                 alignItems: "center",
                 gap: 10,
               }}
-              onPress={() => router.push("/admin/pages/add-home-feed-section")}
+              onPress={() => router.push("/admin/pages/home-feed-sections")}
             >
               <Text>Add New Section</Text>
               <Ionicons name="add" size={24} color="#333" />
@@ -416,27 +418,40 @@ const EditHomePage: React.FC = () => {
               gap: 10,
             }}
           >
-            {circleButtons.map((item: any, index: number) => (
-              <TouchableOpacity
-                key={item.id || index}
-                style={{
-                  padding: 10,
-                  borderWidth: 2,
-                  borderColor: Colors.brandDarkColor,
-                  borderRadius: 8,
-                  marginRight: 10,
-                  width: SIZES.width / 3 - 32,
-                }}
-                onPress={() =>
-                  router.push({
-                    pathname: "/admin/pages/add-home-feed-button",
-                    params: { buttonId: item.id },
-                  })
-                }
-              >
-                <Text style={styles.buttonText}>{item.name}</Text>
-              </TouchableOpacity>
-            ))}
+            {!isLoading &&
+              homeFeedSections?.homeFeedSections
+                ?.slice(0, 5)
+                .map((item: any, index: number) => (
+                  <TouchableOpacity
+                    key={item.id || index}
+                    style={{
+                      padding: 10,
+                      borderWidth: 2,
+                      borderColor: Colors.brandDarkColor,
+                      borderRadius: 8,
+                      marginRight: 10,
+                      width: SIZES.width / 3 - 32,
+                      height: SIZES.width / 6 - 32,
+                    }}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/admin/pages/add-new-home-feed-section",
+                        params: { section: JSON.stringify(item) },
+                      })
+                    }
+                  >
+                    <Text
+                      style={[
+                        styles.buttonText,
+                        {
+                          textOverflow: "ellipsis",
+                        },
+                      ]}
+                    >
+                      {item.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
             <TouchableOpacity
               style={{
                 padding: 10,
@@ -452,7 +467,7 @@ const EditHomePage: React.FC = () => {
               }}
               onPress={() =>
                 router.push({
-                  pathname: "/admin/pages/add-home-feed-section",
+                  pathname: "/admin/pages/add-new-home-feed-section",
                 })
               }
             >

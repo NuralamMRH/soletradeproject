@@ -3,6 +3,10 @@ const { Schema } = mongoose;
 
 const VoucherSchema = new Schema(
   {
+    voucherType: {
+      type: String,
+      enum: ["Weekly", "One-Time"],
+    },
     code: { type: String, required: true, unique: true },
     discountType: {
       type: String,
@@ -15,24 +19,29 @@ const VoucherSchema = new Schema(
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     appliesToEntireApp: { type: Boolean, default: false },
-    categories: [{ type: Schema.Types.ObjectId, ref: "category" }],
-    subCategories: [{ type: Schema.Types.ObjectId, ref: "sub_category" }],
-    brands: [{ type: Schema.Types.ObjectId, ref: "brand" }],
-    subBrands: [{ type: Schema.Types.ObjectId, ref: "sub_brand" }],
-    attributes: [{ type: Schema.Types.ObjectId, ref: "attribute" }],
+    categories: [{ type: Schema.Types.ObjectId, ref: "Category" }],
+    subCategories: [{ type: Schema.Types.ObjectId, ref: "SubCategory" }],
+    brands: [{ type: Schema.Types.ObjectId, ref: "Brand" }],
+    subBrands: [{ type: Schema.Types.ObjectId, ref: "SubBrand" }],
+    attributes: [{ type: Schema.Types.ObjectId, ref: "Attribute" }],
     tiers: [{ type: Schema.Types.ObjectId, ref: "Tier" }],
-    totalIssued: { type: Number, required: true },
+    totalIssued: { type: Number, default: 0 },
     limitPerCustomer: { type: Number, default: 1 },
     shipmentMethods: [{ type: String }],
     paymentMethods: [{ type: String }],
     orderTypes: [{ type: String }],
     terms: [{ type: String }],
-    poster: { type: Schema.Types.ObjectId, ref: "Poster" },
+    posterId: { type: Schema.Types.ObjectId, ref: "Poster" },
     status: { type: String, enum: ["Ongoing", "Expired"], default: "Ongoing" },
     isWeeklyVoucher: { type: Boolean, default: false },
+    brand: { type: String, required: false },
+    image: { type: String, required: false },
+    image_full_url: { type: String, required: false },
   },
   { timestamps: true }
 );
+VoucherSchema.set("toObject", { virtuals: true });
+VoucherSchema.set("toJSON", { virtuals: true });
 
 VoucherSchema.pre("save", function (next) {
   if (
@@ -43,6 +52,13 @@ VoucherSchema.pre("save", function (next) {
     this.status = "Expired";
   }
   next();
+});
+
+VoucherSchema.virtual("poster", {
+  ref: "Poster",
+  localField: "posterId",
+  foreignField: "_id",
+  justOne: true,
 });
 
 // Also handle updates (for findOneAndUpdate, findByIdAndUpdate, etc.)

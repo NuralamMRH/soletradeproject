@@ -96,7 +96,7 @@ export default function OTPVerificationScreen() {
       });
       if (res.success) {
         Alert.alert("Success", "OTP verified!");
-        router.push("/(tabs)/profile");
+        router.push("/(tabs)/dashboard");
       }
     } catch (err: any) {
       Alert.alert("Error", err.message || "OTP verification failed");

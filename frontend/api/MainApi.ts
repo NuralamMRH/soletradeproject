@@ -1,7 +1,13 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
-export const baseUrl = "http://localhost:8000";
+export const baseUrl =
+  process.env.NODE_ENV !== "development"
+    ? process.env.EXPO_PUBLIC_API_URL
+    : Platform.OS === "web" || Platform.OS === "ios"
+    ? "http://localhost:8000"
+    : "http://192.168.227.22:8000";
 
 const MainApi = axios.create({
   baseURL: baseUrl,
