@@ -1002,8 +1002,8 @@ export default function HomeScreen() {
         return renderHotItemsSection();
       case "RECOMMENDED":
         return renderRecommendedSection();
-      case "MOST_POPULAR":
-        return renderMostPopularSection();
+      // case "MOST_POPULAR":
+      //   return renderMostPopularSection();
       case "DYNAMIC_SECTION":
         return renderDynamicSection(item.data);
       case "TOP_BRANDS":

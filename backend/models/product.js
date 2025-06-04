@@ -104,6 +104,10 @@ const productSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    calenderDateTime: {
+      type: Date,
+      default: null,
+    },
     sellerFee: {
       type: Number,
       default: 0,

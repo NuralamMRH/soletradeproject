@@ -13,85 +13,15 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/constants";
 import { useRouter } from "expo-router";
+import { useCategories } from "@/hooks/useCategories";
+import { useBrands } from "@/hooks/useBrands";
+import { useSubBrands } from "@/hooks/useSubBrands";
+import { baseUrl } from "@/api/MainApi";
+import PhotoCaptureModal from "./PhotoCaptureModal";
 
 const { width } = Dimensions.get("window");
 
 const steps = ["Category", "Brand", "Model", "Details", "Submit"];
-
-const categories = [
-  {
-    id: 1,
-    name: "Sneakers",
-    image:
-      "https://static.nike.com/a/images/t_PDP_864_v1/f_auto,q_auto:eco/6b1e2e8d-2e7e-4e2e-8e7e-2e7e4e2e8e7e/air-jordan-1-low-shoes-6Q1tFM.png",
-  },
-  {
-    id: 2,
-    name: "Luxury Shoes",
-    image:
-      "https://cdn.luxatic.com/wp-content/uploads/2022/07/Most-Expensive-Shoes-for-Men-2022.jpg",
-  },
-  {
-    id: 3,
-    name: "Streetwear",
-    image:
-      "https://cdn.shopify.com/s/files/1/0257/6087/9356/products/stussy-8-ball-tee-black-1_1024x1024.jpg",
-  },
-  {
-    id: 4,
-    name: "Luxury Wear",
-    image:
-      "https://cdn-images.farfetch-contents.com/18/60/86/60/18608660_40036713_1000.jpg",
-  },
-  {
-    id: 5,
-    name: "Collectibles",
-    image:
-      "https://cdn.shopify.com/s/files/1/0257/6087/9356/products/kaws-companion-open-edition-vinyl-figure-grey-1_1024x1024.jpg",
-  },
-  {
-    id: 6,
-    name: "Luxury Handbags",
-    image:
-      "https://cdn.luxatic.com/wp-content/uploads/2022/07/Most-Expensive-Handbags-2022.jpg",
-  },
-];
-
-const brands = [
-  {
-    id: 1,
-    name: "Adidas",
-    image:
-      "https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg",
-  },
-  {
-    id: 2,
-    name: "Air Jordan",
-    image:
-      "https://upload.wikimedia.org/wikipedia/commons/3/36/Jordan_brand.svg",
-  },
-  {
-    id: 3,
-    name: "Asics",
-    image: "https://upload.wikimedia.org/wikipedia/commons/2/2e/Asics_Logo.svg",
-  },
-  {
-    id: 4,
-    name: "MLB",
-    image: "https://upload.wikimedia.org/wikipedia/commons/6/6e/MLB_logo.svg",
-  },
-  {
-    id: 5,
-    name: "New Balance",
-    image:
-      "https://upload.wikimedia.org/wikipedia/commons/6/6e/New_Balance_logo.svg",
-  },
-  {
-    id: 6,
-    name: "Nike",
-    image: "https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg",
-  },
-];
 
 const models = [
   {
@@ -149,18 +79,67 @@ const photoInstructions = [
 const CheckNow = () => {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const [selectedBrand, setSelectedBrand] = useState<number | null>(null);
-  const [selectedModel, setSelectedModel] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [uploadedImages, setUploadedImages] = useState<
     { id: number; uri: string }[]
   >([]);
   const [search, setSearch] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedPhotoInstruction, setSelectedPhotoInstruction] =
+    useState<any>(null);
+  const [photoUris, setPhotoUris] = useState<{ [id: number]: string }>({});
 
-  // Filtered models for selected brand
-  const filteredModels = models.filter(
-    (m) => selectedBrand == null || m.brandId === selectedBrand
-  );
+  // Fetch from hooks
+  const { categories: rawCategories = [], loading: loadingCategories } =
+    useCategories();
+  const { brands: rawBrands = [], loading: loadingBrands } = useBrands();
+  const { subBrands: rawModels = [], loading: loadingModels } =
+    useSubBrands(selectedBrand);
+
+  // Explicitly type as any[] for linter
+  const categories: any[] = rawCategories;
+  const brands: any[] = rawBrands;
+  const models: any[] = rawModels;
+  const photoInstructions: any[] = [
+    {
+      id: 1,
+      label: "Outer Exterior",
+      image: models[0]?.logo || models[0]?.image,
+    },
+    {
+      id: 2,
+      label: "Inner Exterior",
+      image: models[0]?.logo || models[0]?.image,
+    },
+    { id: 3, label: "Heel", image: models[0]?.logo || models[0]?.image },
+    {
+      id: 4,
+      label: "Front Tongue",
+      image: models[0]?.logo || models[0]?.image,
+    },
+    { id: 5, label: "Back Tongue", image: models[0]?.logo || models[0]?.image },
+    {
+      id: 6,
+      label: "Inside Label",
+      image: models[0]?.logo || models[0]?.image,
+    },
+    { id: 7, label: "Outsole", image: models[0]?.logo || models[0]?.image },
+    { id: 8, label: "Insole", image: models[0]?.logo || models[0]?.image },
+    {
+      id: 9,
+      label: "Back of Insole",
+      image: models[0]?.logo || models[0]?.image,
+    },
+    {
+      id: 10,
+      label: "Insole Sewing",
+      image: models[0]?.logo || models[0]?.image,
+    },
+    { id: 11, label: "Date Code", image: models[0]?.logo || models[0]?.image },
+    { id: 12, label: "Box Label", image: models[0]?.logo || models[0]?.image },
+  ];
 
   // Progress bar rendering
   const renderProgress = () => (
@@ -209,21 +188,32 @@ const CheckNow = () => {
           <Text style={styles.headerTitle}>Select a Category</Text>
         </View>
         {renderProgress()}
-        <View style={styles.gridContainer}>
-          {categories.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              style={styles.gridItem}
-              onPress={() => {
-                setSelectedCategory(cat.id);
-                setStep(1);
-              }}
-            >
-              <Image source={{ uri: cat.image }} style={styles.gridImage} />
-              <Text style={styles.gridLabel}>{cat.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {loadingCategories ? (
+          <Text style={{ textAlign: "center", marginTop: 40 }}>Loading...</Text>
+        ) : (
+          <View style={styles.gridContainer}>
+            {categories.map((cat: any) => (
+              <TouchableOpacity
+                key={cat._id}
+                style={styles.gridItem}
+                onPress={() => {
+                  setSelectedCategory(cat._id);
+                  setStep(1);
+                }}
+              >
+                <Image
+                  source={{
+                    uri:
+                      `${baseUrl}${cat.image_full_url}` ||
+                      "https://static.nike.com/a/images/t_PDP_864_v1/f_auto,q_auto:eco/6b1e2e8d-2e7e-4e2e-8e7e-2e7e4e2e8e7e/air-jordan-1-low-shoes-6Q1tFM.png",
+                  }}
+                  style={styles.gridImage}
+                />
+                <Text style={styles.gridLabel}>{cat.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </View>
     );
   }
@@ -245,26 +235,37 @@ const CheckNow = () => {
           </TouchableOpacity>
         </View>
         {renderProgress()}
-        <ScrollView style={{ flex: 1 }}>
-          {brands.map((brand) => (
-            <TouchableOpacity
-              key={brand.id}
-              style={styles.brandRow}
-              onPress={() => {
-                setSelectedBrand(brand.id);
-                setStep(2);
-              }}
-            >
-              <Image source={{ uri: brand.image }} style={styles.brandLogo} />
-              <Text style={styles.brandName}>{brand.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {loadingBrands ? (
+          <Text style={{ textAlign: "center", marginTop: 40 }}>Loading...</Text>
+        ) : (
+          <ScrollView style={{ flex: 1 }}>
+            {brands.map((brand: any) => (
+              <TouchableOpacity
+                key={brand._id}
+                style={styles.brandRow}
+                onPress={() => {
+                  setSelectedBrand(brand._id);
+                  setStep(2);
+                }}
+              >
+                <Image
+                  source={{
+                    uri:
+                      `${baseUrl}${brand.image_full_url}` ||
+                      "https://upload.wikimedia.org/wikipedia/commons/3/36/Jordan_brand.svg",
+                  }}
+                  style={styles.brandLogo}
+                />
+                <Text style={styles.brandName}>{brand.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
     );
   }
 
-  // Step 3: Model
+  // Step 3: Model (subBrand)
   if (step === 2) {
     return (
       <View style={styles.container}>
@@ -281,31 +282,42 @@ const CheckNow = () => {
           </TouchableOpacity>
         </View>
         {renderProgress()}
-        <ScrollView style={{ flex: 1 }}>
-          <View style={styles.modelGridContainer}>
-            {filteredModels.map((model) => (
-              <TouchableOpacity
-                key={model.id}
-                style={styles.gridItem}
-                onPress={() => {
-                  setSelectedModel(model.id);
-                  setStep(3);
-                }}
-              >
-                <Image source={{ uri: model.image }} style={styles.gridImage} />
-                <Text style={styles.gridLabel}>{model.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
+        {loadingModels ? (
+          <Text style={{ textAlign: "center", marginTop: 40 }}>Loading...</Text>
+        ) : (
+          <ScrollView style={{ flex: 1 }}>
+            <View style={styles.modelGridContainer}>
+              {models.map((model: any) => (
+                <TouchableOpacity
+                  key={model._id}
+                  style={styles.gridItem}
+                  onPress={() => {
+                    setSelectedModel(model._id);
+                    setStep(3);
+                  }}
+                >
+                  <Image
+                    source={{
+                      uri:
+                        `${baseUrl}${model.image_full_url}` ||
+                        "https://static.nike.com/a/images/t_PDP_864_v1/f_auto,q_auto:eco/6b1e2e8d-2e7e-4e2e-8e7e-2e7e4e2e8e7e/air-jordan-1-low-shoes-6Q1tFM.png",
+                    }}
+                    style={styles.gridImage}
+                  />
+                  <Text style={styles.gridLabel}>{model.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        )}
       </View>
     );
   }
 
   // Step 4: Details
   if (step === 3) {
-    const selectedBrandObj = brands.find((b) => b.id === selectedBrand);
-    const selectedModelObj = models.find((m) => m.id === selectedModel);
+    const selectedBrandObj = brands.find((b: any) => b._id === selectedBrand);
+    const selectedModelObj = models.find((m: any) => m._id === selectedModel);
     return (
       <View style={styles.container}>
         <View style={styles.headerRow}>
@@ -321,14 +333,24 @@ const CheckNow = () => {
         <View style={styles.selectedRow}>
           {selectedBrandObj && (
             <Image
-              source={{ uri: selectedBrandObj.image }}
+              source={{
+                uri:
+                  selectedBrandObj.logo ||
+                  selectedBrandObj.image ||
+                  "https://upload.wikimedia.org/wikipedia/commons/3/36/Jordan_brand.svg",
+              }}
               style={styles.brandLogo}
             />
           )}
           {selectedModelObj && (
             <View style={{ alignItems: "center" }}>
               <Image
-                source={{ uri: selectedModelObj.image }}
+                source={{
+                  uri:
+                    selectedModelObj.logo ||
+                    selectedModelObj.image ||
+                    "https://static.nike.com/a/images/t_PDP_864_v1/f_auto,q_auto:eco/6b1e2e8d-2e7e-4e2e-8e7e-2e7e4e2e8e7e/air-jordan-1-low-shoes-6Q1tFM.png",
+                }}
                 style={styles.shoeThumb}
               />
               <Text style={styles.modelName}>{selectedModelObj.name}</Text>
@@ -346,14 +368,26 @@ const CheckNow = () => {
           </Text>
         </TouchableOpacity>
         <View style={styles.photoGridContainer}>
-          {photoInstructions.map((item) => (
-            <View key={item.id} style={styles.photoGridItem}>
+          {photoInstructions.map((item: any) => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.photoGridItem}
+              onPress={() => {
+                setSelectedPhotoInstruction(item);
+                setModalVisible(true);
+              }}
+            >
               <Image
-                source={{ uri: item.image }}
+                source={{
+                  uri:
+                    photoUris[item.id] ||
+                    item.image ||
+                    "https://static.nike.com/a/images/t_PDP_864_v1/f_auto,q_auto:eco/6b1e2e8d-2e7e-4e2e-8e7e-2e7e4e2e8e7e/air-jordan-1-low-shoes-6Q1tFM.png",
+                }}
                 style={styles.photoGridImage}
               />
               <Text style={styles.photoGridLabel}>{item.label}</Text>
-            </View>
+            </TouchableOpacity>
           ))}
           <View style={styles.photoGridItem}>
             <View style={styles.photoGridAddBox}>
@@ -362,6 +396,24 @@ const CheckNow = () => {
             <Text style={styles.photoGridLabel}>Additional</Text>
           </View>
         </View>
+        <PhotoCaptureModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          onPhotoTaken={(uri: string) => {
+            if (selectedPhotoInstruction) {
+              setPhotoUris((prev) => ({
+                ...prev,
+                [selectedPhotoInstruction.id]: uri,
+              }));
+            }
+          }}
+          photoType={selectedPhotoInstruction?.label || "Photo"}
+          initialPhotoUri={
+            selectedPhotoInstruction
+              ? photoUris[selectedPhotoInstruction.id]
+              : undefined
+          }
+        />
       </View>
     );
   }

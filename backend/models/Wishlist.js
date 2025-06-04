@@ -11,6 +11,11 @@ const wishlistSchema = mongoose.Schema({
     ref: "Product",
     required: true,
   },
+  wishlist_type: {
+    type: String,
+    enum: ["wishlist", "cart", "calender"],
+    default: "wishlist",
+  },
 
   dateCreated: {
     type: Date,

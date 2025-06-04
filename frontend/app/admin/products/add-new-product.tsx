@@ -62,10 +62,10 @@ const defaultProductData = {
   indicatorDuration: 0, // in days
   sellerFee: 0,
   buyerFee: 0,
-  feeStartDate: null,
-  feeEndDate: null,
+  feeStartDate: new Date(),
+  feeEndDate: new Date(),
   tierIds: [],
-  publishDate: new Date(),
+  calenderDateTime: new Date(),
 };
 
 const durationOptions = [
@@ -112,6 +112,7 @@ const durationOptions = [
   { _id: "330", name: "330 Days", value: 330 },
   { _id: "360", name: "360 Days", value: 360 },
 ];
+type Tier = { _id: string; name: string };
 
 export default function AdminAddNewProduct() {
   const router = useRouter();
@@ -128,7 +129,7 @@ export default function AdminAddNewProduct() {
   const [productData, setProductData] = useState(initialProductData);
   const [showDateSheet, setShowDateSheet] = useState(false);
   const [dateType, setDateType] = useState<
-    "releaseDate" | "feeStartDate" | "feeEndDate" | null
+    "releaseDate" | "feeStartDate" | "feeEndDate" | "calenderDateTime" | null
   >(null);
   const [tempDate, setTempDate] = useState<Date>(new Date());
   const [bottomSheetType, setBottomSheetType] = useState<null | string>(null);
@@ -141,6 +142,7 @@ export default function AdminAddNewProduct() {
       setProductData((prev: any) => ({
         ...prev,
         product_type: productType,
+        sellerFee: product.sellerFee,
         images: product.images.map((image: any) => {
           const uri = image.file_full_url.startsWith("http")
             ? image.file_full_url
@@ -196,16 +198,7 @@ export default function AdminAddNewProduct() {
   const { indicators } = useIndicators();
   const createIndicator = useCreateIndicator();
 
-  const {
-    data: buyerTiers,
-    isLoading: buyerTiersLoading,
-    error: buyerTiersError,
-  } = useTiers("buyer");
-  const {
-    data: sellerTiers,
-    isLoading: sellerTiersLoading,
-    error: sellerTiersError,
-  } = useTiers("seller");
+  const { data: tiers = [] } = useTiers() as { data: Tier[] };
 
   // console.log("indicators", indicators);
 
@@ -229,6 +222,15 @@ export default function AdminAddNewProduct() {
       refetchAttributeOptions();
     }
   }, [productData.attributeId]);
+
+  const handleMultiSelect = (key: keyof typeof productData, value: string) => {
+    setProductData((prev: any) => {
+      const arr = prev[key] as string[];
+      return arr.includes(value)
+        ? { ...prev, [key]: arr.filter((v) => v !== value) }
+        : { ...prev, [key]: [...arr, value] };
+    });
+  };
 
   // --- Image Picker ---
   const pickImage = async () => {
@@ -311,9 +313,19 @@ export default function AdminAddNewProduct() {
       // Prepare data for API
       const payload = {
         ...productData,
+        product_type: productType,
         // Convert releaseDate to ISO string if needed
         releaseDate: productData.releaseDate
           ? new Date(productData.releaseDate).toISOString()
+          : undefined,
+        feeStartDate: productData.feeStartDate
+          ? new Date(productData.feeStartDate).toISOString()
+          : undefined,
+        feeEndDate: productData.feeEndDate
+          ? new Date(productData.feeEndDate).toISOString()
+          : undefined,
+        calenderDateTime: productData.calenderDateTime
+          ? new Date(productData.calenderDateTime).toISOString()
           : undefined,
         // You may need to handle image upload separately if your backend expects files
       };
@@ -405,7 +417,13 @@ export default function AdminAddNewProduct() {
       >
         <ScrollView style={{ padding: 16 }}>
           {/* Product Name */}
-          <View style={{ borderBottomWidth: 1, marginBottom: 16 }}>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              marginBottom: 16,
+              borderColor: Colors.grayLinesColor,
+            }}
+          >
             <Text
               style={{
                 fontSize: 16,
@@ -434,7 +452,13 @@ export default function AdminAddNewProduct() {
           </View>
 
           {/* Brand */}
-          <View style={{ borderBottomWidth: 1, marginBottom: 16 }}>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              marginBottom: 16,
+              borderColor: Colors.grayLinesColor,
+            }}
+          >
             <Text
               style={{
                 fontSize: 16,
@@ -459,7 +483,13 @@ export default function AdminAddNewProduct() {
             </TouchableOpacity>
           </View>
           {/* SubBrand */}
-          <View style={{ borderBottomWidth: 1, marginBottom: 16 }}>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              marginBottom: 16,
+              borderColor: Colors.grayLinesColor,
+            }}
+          >
             <Text
               style={{
                 fontSize: 16,
@@ -488,7 +518,13 @@ export default function AdminAddNewProduct() {
             </TouchableOpacity>
           </View>
           {/* Category */}
-          <View style={{ borderBottomWidth: 1, marginBottom: 16 }}>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              marginBottom: 16,
+              borderColor: Colors.grayLinesColor,
+            }}
+          >
             <Text
               style={{
                 fontSize: 16,
@@ -518,7 +554,13 @@ export default function AdminAddNewProduct() {
             </TouchableOpacity>
           </View>
           {/* SubCategory */}
-          <View style={{ borderBottomWidth: 1, marginBottom: 16 }}>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              marginBottom: 16,
+              borderColor: Colors.grayLinesColor,
+            }}
+          >
             <Text
               style={{
                 fontSize: 16,
@@ -547,7 +589,13 @@ export default function AdminAddNewProduct() {
             </TouchableOpacity>
           </View>
           {/* SKU */}
-          <View style={{ borderBottomWidth: 1, marginBottom: 16 }}>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              marginBottom: 16,
+              borderColor: Colors.grayLinesColor,
+            }}
+          >
             <Text
               style={{
                 fontSize: 16,
@@ -582,6 +630,7 @@ export default function AdminAddNewProduct() {
               borderBottomWidth: 1,
               marginBottom: 16,
               paddingBottom: 10,
+              borderColor: Colors.grayLinesColor,
             }}
           >
             <Text
@@ -624,7 +673,13 @@ export default function AdminAddNewProduct() {
           </View>
 
           {/* Release Date */}
-          <View style={{ borderBottomWidth: 1, marginBottom: 16 }}>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              marginBottom: 16,
+              borderColor: Colors.grayLinesColor,
+            }}
+          >
             <Text
               style={{
                 fontSize: 16,
@@ -664,6 +719,7 @@ export default function AdminAddNewProduct() {
               borderBottomWidth: 1,
               marginBottom: 16,
               position: "relative",
+              borderColor: Colors.grayLinesColor,
             }}
           >
             <Text
@@ -714,7 +770,13 @@ export default function AdminAddNewProduct() {
             />
           </View>
           {/* Colorway */}
-          <View style={{ borderBottomWidth: 1, marginBottom: 16 }}>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              marginBottom: 16,
+              borderColor: Colors.grayLinesColor,
+            }}
+          >
             <Text
               style={{
                 fontSize: 16,
@@ -742,7 +804,13 @@ export default function AdminAddNewProduct() {
               }
             />
           </View>
-          <View style={{ borderBottomWidth: 1, marginBottom: 16 }}>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              marginBottom: 16,
+              borderColor: Colors.grayLinesColor,
+            }}
+          >
             <Text
               style={{
                 fontSize: 16,
@@ -761,17 +829,30 @@ export default function AdminAddNewProduct() {
                 paddingBottom: 10,
               }}
               placeholder="Seller Fee"
-              value={productData.sellerFee}
+              value={
+                productData.sellerFee !== undefined &&
+                productData.sellerFee !== null &&
+                productData.sellerFee !== ""
+                  ? Number(productData.sellerFee).toLocaleString("th-TH")
+                  : ""
+              }
               onChangeText={(text) =>
                 setProductData((prev: any) => ({
                   ...prev,
-                  sellerFee: text,
+                  sellerFee: Number(text),
                 }))
               }
+              keyboardType="numeric"
             />
           </View>
 
-          <View style={{ borderBottomWidth: 1, marginBottom: 16 }}>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              marginBottom: 16,
+              borderColor: Colors.grayLinesColor,
+            }}
+          >
             <Text
               style={{
                 fontSize: 16,
@@ -805,7 +886,13 @@ export default function AdminAddNewProduct() {
             </TouchableOpacity>
           </View>
 
-          <View style={{ borderBottomWidth: 1, marginBottom: 16 }}>
+          <View
+            style={{
+              borderBottomWidth: 1,
+              marginBottom: 16,
+              borderColor: Colors.grayLinesColor,
+            }}
+          >
             <Text
               style={{
                 fontSize: 16,
@@ -859,6 +946,49 @@ export default function AdminAddNewProduct() {
                 }
               />
               <Text style={{ marginLeft: 8 }}>Add to Sneaker Calendar</Text>
+            </View>
+          )}
+          {productData.addToCalendar && (
+            <View
+              style={{
+                borderBottomWidth: 1,
+                marginBottom: 16,
+                borderColor: Colors.grayLinesColor,
+              }}
+            >
+              <Text style={{ fontWeight: "bold", marginBottom: 8 }}>
+                Sneaker Calendar Date
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setDateType("calenderDateTime");
+                  setTempDate(
+                    productData.calenderDateTime
+                      ? new Date(productData.calenderDateTime)
+                      : new Date()
+                  );
+                  setShowDateSheet(true);
+                  setTimeout(() => dateSheetRef.current?.expand(), 10);
+                }}
+                style={{
+                  paddingBottom: 10,
+                }}
+              >
+                <Text>
+                  {productData.calenderDateTime
+                    ? new Date(productData.calenderDateTime).toLocaleString(
+                        "en-US",
+                        {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }
+                      )
+                    : "Select Lunch Date"}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
           {/* Images */}
@@ -1035,110 +1165,64 @@ export default function AdminAddNewProduct() {
           )}
 
           {/* Tier */}
-          <View style={{ marginBottom: 16, paddingBottom: 10 }}>
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: "black",
-                marginBottom: 10,
-              }}
-            >
-              Apply to Tier
-            </Text>
 
-            {buyerTiersLoading ? (
-              <ActivityIndicator size="large" color={COLORS.primary} />
-            ) : (
-              <>
-                {buyerTiers &&
-                  buyerTiers.length > 0 &&
-                  buyerTiers.map((item: any) => (
-                    <View
-                      key={item._id}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 10,
-                        marginBottom: 10,
-                      }}
-                    >
-                      <TouchableOpacity
-                        onPress={() => toggleTier(item._id)}
-                        style={{
-                          padding: 10,
-                          borderWidth: 1,
-                          borderColor: productData.tierIds.includes(item._id)
-                            ? "#4CAF50"
-                            : "black",
-                          borderRadius: 8,
-                          backgroundColor: productData.tierIds.includes(
-                            item._id
-                          )
-                            ? "#E8F5E9"
-                            : "white",
-                        }}
-                      >
-                        {productData.tierIds.includes(item._id) ? (
-                          <Ionicons name="checkbox" size={20} color="#4CAF50" />
-                        ) : (
-                          <Ionicons
-                            name="square-outline"
-                            size={20}
-                            color="black"
-                          />
-                        )}
-                      </TouchableOpacity>
-                      <Text style={{ color: "black", fontSize: 16 }}>
-                        {item.name}
-                      </Text>
-                    </View>
-                  ))}
-                {sellerTiers &&
-                  sellerTiers.length > 0 &&
-                  sellerTiers.map((item: any) => (
-                    <View
-                      key={item._id}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 10,
-                        marginBottom: 10,
-                      }}
-                    >
-                      <TouchableOpacity
-                        onPress={() => toggleTier(item._id)}
-                        style={{
-                          padding: 10,
-                          borderWidth: 1,
-                          borderColor: productData.tierIds.includes(item._id)
-                            ? "#4CAF50"
-                            : "black",
-                          borderRadius: 8,
-                          backgroundColor: productData.tierIds.includes(
-                            item._id
-                          )
-                            ? "#E8F5E9"
-                            : "white",
-                        }}
-                      >
-                        {productData.tierIds.includes(item._id) ? (
-                          <Ionicons name="checkbox" size={20} color="#4CAF50" />
-                        ) : (
-                          <Ionicons
-                            name="square-outline"
-                            size={20}
-                            color="black"
-                          />
-                        )}
-                      </TouchableOpacity>
-                      <Text style={{ color: "black", fontSize: 16 }}>
-                        {item.name}
-                      </Text>
-                    </View>
-                  ))}
-              </>
-            )}
+          <View style={styles.formGroup}>
+            <View
+              style={{ flexDirection: "row", justifyContent: "space-between" }}
+            >
+              <Text style={styles.label}> Apply to Tier</Text>
+              <TouchableOpacity
+                style={styles.selectAllBtn}
+                onPress={() => {
+                  if (productData.tierIds.length === tiers.length) {
+                    setProductData((prev: any) => ({
+                      ...prev,
+                      tierIds: [],
+                    }));
+                  } else {
+                    setProductData((prev: any) => ({
+                      ...prev,
+                      tierIds: tiers.map((tier) => tier._id),
+                    }));
+                  }
+                }}
+              >
+                <Text style={styles.selectAllText}>
+                  {productData.tierIds.length === tiers.length
+                    ? "Clear All"
+                    : "Select All"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.inlinePickerList}>
+              {tiers.map((tier) => (
+                <TouchableOpacity
+                  key={tier._id}
+                  style={styles.inlinePickerItem}
+                  onPress={() => handleMultiSelect("tierIds", tier._id)}
+                >
+                  <Ionicons
+                    name={
+                      productData.tierIds.includes(tier._id)
+                        ? "checkbox"
+                        : "square-outline"
+                    }
+                    size={20}
+                    color={COLORS.primary}
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text
+                    style={{
+                      color: productData.tierIds.includes(tier._id)
+                        ? COLORS.primary
+                        : undefined,
+                    }}
+                  >
+                    {tier.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -1509,7 +1593,9 @@ export default function AdminAddNewProduct() {
                 ? "Select Release Date"
                 : dateType === "feeStartDate"
                 ? "Select Start Date"
-                : "Select End Date"}
+                : dateType === "feeEndDate"
+                ? "Select End Date"
+                : "Select Lunch Date"}
             </Text>
             <TouchableOpacity
               style={{}}
@@ -1529,6 +1615,11 @@ export default function AdminAddNewProduct() {
                     ...prev,
                     feeEndDate: tempDate,
                   }));
+                } else if (dateType === "calenderDateTime") {
+                  setProductData((prev: any) => ({
+                    ...prev,
+                    calenderDateTime: tempDate,
+                  }));
                 }
                 dateSheetRef.current?.close();
               }}
@@ -1539,15 +1630,27 @@ export default function AdminAddNewProduct() {
             </TouchableOpacity>
           </View>
           <View style={{ alignItems: "center", justifyContent: "center" }}>
-            <DateTimePicker
-              value={tempDate}
-              mode="date"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              onChange={(_event, selectedDate) => {
-                if (selectedDate) setTempDate(selectedDate);
-              }}
-              style={{ width: 320, backgroundColor: "white" }}
-            />
+            {dateType === "calenderDateTime" ? (
+              <DateTimePicker
+                value={tempDate}
+                mode="datetime"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={(_event, selectedDate) => {
+                  if (selectedDate) setTempDate(selectedDate);
+                }}
+                style={{ width: 320, backgroundColor: "white" }}
+              />
+            ) : (
+              <DateTimePicker
+                value={tempDate}
+                mode="date"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={(_event, selectedDate) => {
+                  if (selectedDate) setTempDate(selectedDate);
+                }}
+                style={{ width: 320, backgroundColor: "white" }}
+              />
+            )}
           </View>
         </BottomSheetView>
       </BottomSheet>
@@ -1637,5 +1740,54 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 14,
     zIndex: 2,
+  },
+  formGroup: { marginBottom: 16 },
+  formGroupRow: { flexDirection: "row", marginBottom: 16 },
+  label: { fontWeight: "bold", marginBottom: 4 },
+  input: {
+    backgroundColor: "#fff",
+    borderRadius: 6,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#eee",
+    marginBottom: 4,
+  },
+  multiSelectRow: { flexDirection: "row", flexWrap: "wrap" },
+  chip: {
+    backgroundColor: "#eee",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    margin: 4,
+  },
+  chipSelected: { backgroundColor: COLORS.primary },
+  chipText: { color: "#333" },
+  chipTextSelected: { color: "#fff" },
+  termRow: { flexDirection: "row", marginBottom: 4, alignItems: "center" },
+  addTermBtn: { flexDirection: "row", alignItems: "center", marginTop: 8 },
+  addTermText: { color: COLORS.primary, marginLeft: 4 },
+  selectAllBtn: {
+    marginBottom: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: "#f0f0f0",
+  },
+  selectAllText: {
+    color: COLORS.primary,
+    fontWeight: "bold",
+    fontSize: 13,
+  },
+  inlinePickerList: {
+    borderRadius: 6,
+    marginTop: 4,
+    marginBottom: 8,
+    paddingVertical: 4,
+  },
+  inlinePickerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
 });

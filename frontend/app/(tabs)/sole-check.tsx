@@ -159,7 +159,10 @@ const SoleCheck = () => {
           </View>
         </View>
         <View style={{ flex: 1, alignItems: "flex-end" }}>
-          <TouchableOpacity style={styles.checkNowButton}>
+          <TouchableOpacity
+            onPress={() => router.push("/sole-check/check-now")}
+            style={styles.checkNowButton}
+          >
             <Text style={styles.checkNowButtonText}>Check Now</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.pendingButton}>
