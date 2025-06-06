@@ -1,12 +1,12 @@
-const Price = ({ price, currency }) => {
+import React from "react";
+
+const Price = ({ price, currency }: { price: number; currency?: string }) => {
   const formattedPrice = new Intl.NumberFormat("th-TH", {
-    style: "currency",
-    currency: currency ? currency : "THB",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(price);
 
-  return <>{formattedPrice}</>;
+  return <>{formattedPrice} Baht</>;
 };
 
 export default Price;

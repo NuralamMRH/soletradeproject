@@ -26,18 +26,7 @@ import {
   useUpdateHomeFeedButton,
 } from "@/hooks/react-query/homeFeedButtonApi";
 import Toast from "react-native-toast-message";
-
-const STATIC_APP_ROUTES: { name: string; route: string }[] = [
-  { name: "Home", route: "/" },
-  { name: "Explore", route: "/explore" },
-  { name: "Edit Profile", route: "/edit-profile" },
-  { name: "Shipping Address", route: "/shipping-address" },
-  { name: "Cart", route: "/cart" },
-  { name: "Dashboard", route: "/(tabs)/dashboard" },
-  { name: "All Products", route: "/admin/products/all-product-manage" },
-  { name: "Add Product", route: "/admin/products/add-new-product" },
-  // ...add more as needed
-];
+import STATIC_APP_ROUTES from "@/utils/staticAppRoutes";
 
 interface Params {
   button?: any;
@@ -602,6 +591,9 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     resizeMode: "contain",
+    padding: 10,
+    justifyContent: "center",
+    alignItems: "center",
   },
   bottomSheetHeader: {
     padding: 16,

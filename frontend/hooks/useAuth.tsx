@@ -140,9 +140,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // LOGIN
   const login = useCallback(async (email: string, password: string) => {
     try {
+      const expoPushToken = await SecureStore.getItemAsync("expoPushToken");
+
       const response = await MainApi.post("/api/v1/users/login", {
         email,
         password,
+        expoPushToken,
       });
       if (response.status === 200) {
         const { token, user } = response.data;
@@ -161,6 +164,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // REGISTER
   const register = useCallback(async (formData: any) => {
     try {
+      const expoPushToken = await SecureStore.getItemAsync("expoPushToken");
+      if (expoPushToken) {
+        formData.expoPushToken = expoPushToken;
+      }
       const response = await MainApi.post("/api/v1/users/register", formData);
       if (response.status === 200) {
         const { user, token } = response.data;

@@ -63,18 +63,22 @@ export const useAddToWishlist = () => {
   const { isAuthenticated } = useAuth();
 
   return useMutation({
-    mutationFn: async (productId) => {
+    mutationFn: async (
+      productId: string,
+      wishlistType: string = "wishlist"
+    ) => {
       if (!isAuthenticated) {
         throw new Error("User not authenticated");
       }
       try {
         const { data } = await MainApi.post("/api/v1/wishlist", {
-          product: productId,
+          productId,
+          wishlistType,
         });
         Toast.show({
           type: "success",
           text1: "Success",
-          text2: "Product added to wishlist",
+          text2: `Product added to ${wishlistType}`,
         });
         return data.wishlist;
       } catch (error: any) {
@@ -107,7 +111,7 @@ export const useRemoveFromWishlist = () => {
         Toast.show({
           type: "success",
           text1: "Success",
-          text2: "Product removed from wishlist",
+          text2: "Product removed",
         });
         return data;
       } catch (error: any) {

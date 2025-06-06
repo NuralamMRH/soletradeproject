@@ -29,7 +29,6 @@ exports.loginAsGuest = catchAsyncErrors(async (req, res, next) => {
 
 // Register a user   => /api/v1/register
 exports.registerUser = catchAsyncErrors(async (req, res, next) => {
-  console.log(req.body);
   const {
     firstName,
     lastName,
@@ -40,6 +39,7 @@ exports.registerUser = catchAsyncErrors(async (req, res, next) => {
     email,
     password,
     guest_id,
+    expoPushToken,
   } = req.body;
 
   let user;
@@ -64,6 +64,7 @@ exports.registerUser = catchAsyncErrors(async (req, res, next) => {
       user.email = email;
       user.password = password;
       user.role = "user";
+      user.expoPushToken = expoPushToken;
       await user.save();
     }
   }
@@ -84,6 +85,7 @@ exports.registerUser = catchAsyncErrors(async (req, res, next) => {
       email,
       password,
       role: "user",
+      expoPushToken,
     });
   }
 
@@ -173,7 +175,7 @@ exports.registerUser = catchAsyncErrors(async (req, res, next) => {
 
 // Login User  =>  /api/v1/login
 exports.loginUser = catchAsyncErrors(async (req, res, next) => {
-  const { email, password, guest_id } = req.body;
+  const { email, password, guest_id, expoPushToken } = req.body;
   let user;
 
   // console.log(req.body);
@@ -205,6 +207,11 @@ exports.loginUser = catchAsyncErrors(async (req, res, next) => {
       // Delete the guest account
       await User.deleteOne({ _id: guestUser._id });
     }
+  }
+
+  if (expoPushToken) {
+    user.expoPushToken = expoPushToken;
+    await user.save();
   }
 
   // Send response with token for the logged-in user

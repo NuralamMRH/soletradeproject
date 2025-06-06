@@ -709,7 +709,10 @@ const styles = StyleSheet.create({
   buttonImage: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
+    resizeMode: "contain",
+    padding: 10,
+    justifyContent: "center",
+    alignItems: "center",
   },
   buttonText: {
     fontSize: 12,

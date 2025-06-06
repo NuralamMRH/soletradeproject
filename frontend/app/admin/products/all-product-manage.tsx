@@ -76,7 +76,7 @@ export default function AllProductManagePage() {
   });
   const { products, loading, error, refetch } = useProducts({ filter });
 
-  console.log("Products", products);
+  // console.log("Products", products);
 
   useFocusEffect(
     useCallback(() => {

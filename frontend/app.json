@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "frontend",
+    "name": "SoleTrade",
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,7 +16,12 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.soletrade.frontend"
     },
     "web": {
       "bundler": "metro",
@@ -44,6 +49,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "747b8120-0e9f-422f-b320-e9a9760319e6"
+      }
     }
   }
 }

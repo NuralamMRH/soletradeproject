@@ -27,6 +27,11 @@ import {
   ActivityIndicator,
   ImageSourcePropType,
 } from "react-native";
+import {
+  useAddToWishlist,
+  useRemoveFromWishlist,
+  useWishlists,
+} from "@/hooks/react-query/useWishlistMutation";
 
 interface HomeFeedButton {
   _id: string;
@@ -81,6 +86,7 @@ interface ProductCardProps {
   name: string;
   price: string;
   image: ImageSourcePropType;
+  productId: string;
 }
 
 type SectionType = {
@@ -137,6 +143,10 @@ export default function HomeScreen() {
   const [selectedTab, setSelectedTab] = useState("Sneakers");
   const router = useRouter();
 
+  const { mutate: addToWishlist } = useAddToWishlist();
+  const { mutate: removeFromWishlist } = useRemoveFromWishlist();
+  const { data: wishlists, isLoading: wishlistsLoading } = useWishlists();
+
   const [filter, setFilter] = useState({
     product_type: "deal",
   });
@@ -189,6 +199,21 @@ export default function HomeScreen() {
 
   // On reload, increment sortOffset
   const handleReload = () => setSortOffset((prev) => prev + 1);
+
+  const handleAddToWishlist = (productId: string) => {
+    console.log("productId", productId);
+    addToWishlist(productId, "wishlist");
+  };
+
+  const handleRemoveFromWishlist = (productId: string) => {
+    // Find the wishlist entry for this product
+    const wishlistEntry = wishlists?.find(
+      (wishlist: any) => wishlist?.productId === productId
+    );
+    if (wishlistEntry) {
+      removeFromWishlist(wishlistEntry._id);
+    }
+  };
 
   // Header component with logo and icons
   const renderHeader = () => {
@@ -337,6 +362,42 @@ export default function HomeScreen() {
   };
 
   // Hot items section with horizontal scroll
+  const renderNewItemsSection = () => {
+    return (
+      <View style={styles.productSectionContainer}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>New Items</Text>
+          <TouchableOpacity onPress={() => router.push("/new-items")}>
+            <Text style={styles.viewMoreText}>View More &gt;</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.productScrollContainer}
+        >
+          {/* Example product cards */}
+          {products.slice(0, 5).map((product: any, index: number) => (
+            <View key={product._id}>
+              <ProductCard
+                index={index + 1}
+                brand={product.brand?.name || ""}
+                name={product.name}
+                price={product.retailPrice ? `${product.retailPrice} Baht` : ""}
+                productId={product._id}
+                image={
+                  product.image_full_url
+                    ? { uri: `${baseUrl}${product.image_full_url}` }
+                    : require("@/assets/images/bg_8.png")
+                }
+              />
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+  // Hot items section with horizontal scroll
   const renderHotItemsSection = () => {
     return (
       <View style={styles.productSectionContainer}>
@@ -359,6 +420,7 @@ export default function HomeScreen() {
                 brand={product.brand?.name || ""}
                 name={product.name}
                 price={product.retailPrice ? `${product.retailPrice} Baht` : ""}
+                productId={product._id}
                 image={
                   product.image_full_url
                     ? { uri: `${baseUrl}${product.image_full_url}` }
@@ -395,6 +457,7 @@ export default function HomeScreen() {
                 brand={product.brand?.name || ""}
                 name={product.name}
                 price={product.retailPrice ? `${product.retailPrice} Baht` : ""}
+                productId={product._id}
                 image={
                   product.image_full_url
                     ? { uri: `${baseUrl}${product.image_full_url}` }
@@ -404,91 +467,6 @@ export default function HomeScreen() {
             </View>
           ))}
         </ScrollView>
-      </View>
-    );
-  };
-
-  // Most Popular section with tabs
-  const renderMostPopularSection = () => {
-    return (
-      <View style={styles.mostPopularContainer}>
-        <Text style={styles.sectionTitle}>Most Popular</Text>
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tab, selectedTab === "Sneakers" && styles.activeTab]}
-            onPress={() => setSelectedTab("Sneakers")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                selectedTab === "Sneakers" && styles.activeTabText,
-              ]}
-            >
-              Sneakers
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, selectedTab === "Apparels" && styles.activeTab]}
-            onPress={() => setSelectedTab("Apparels")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                selectedTab === "Apparels" && styles.activeTabText,
-              ]}
-            >
-              Apparels
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.popularItemsContainer}>
-          {selectedTab === "Sneakers" ? (
-            <View style={styles.popularColumnContainer}>
-              <View style={styles.popularColumn}>
-                {[1, 2, 3, 4].map((num) => (
-                  <View key={`sneaker-${num}`} style={styles.popularItem}>
-                    <Text style={styles.popularItemNumber}>{num}</Text>
-                    <Image
-                      source={
-                        num === 1
-                          ? require("@/assets/images/asics.png")
-                          : num === 2
-                          ? require("@/assets/images/nb.png")
-                          : num === 3
-                          ? require("@/assets/images/adidas.png")
-                          : require("@/assets/images/nike.png")
-                      }
-                      style={styles.popularItemImage}
-                    />
-                  </View>
-                ))}
-              </View>
-            </View>
-          ) : (
-            <View style={styles.popularColumnContainer}>
-              <View style={styles.popularColumn}>
-                {[1, 2, 3, 4].map((num) => (
-                  <View key={`apparel-${num}`} style={styles.popularItem}>
-                    <Text style={styles.popularItemNumber}>{num}</Text>
-                    <Image
-                      source={
-                        num === 1
-                          ? require("@/assets/images/stussy.png")
-                          : num === 2
-                          ? require("@/assets/images/essentials.png")
-                          : num === 3
-                          ? require("@/assets/images/stussy-ball.png")
-                          : require("@/assets/images/flowers.png")
-                      }
-                      style={styles.popularItemImage}
-                    />
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-        </View>
       </View>
     );
   };
@@ -525,6 +503,7 @@ export default function HomeScreen() {
     name,
     price,
     image,
+    productId,
   }) => (
     <TouchableOpacity style={styles.productCard}>
       {index && <Text style={styles.productIndex}>{index}</Text>}
@@ -541,8 +520,25 @@ export default function HomeScreen() {
           </View>
         )}
       </View>
-      <TouchableOpacity style={styles.favoriteButton}>
-        <Ionicons name="bookmark-outline" size={20} color="#000" />
+      <TouchableOpacity
+        onPress={() =>
+          wishlists?.some((wishlist: any) => wishlist?.productId === productId)
+            ? handleRemoveFromWishlist(productId)
+            : handleAddToWishlist(productId)
+        }
+        style={styles.favoriteButton}
+      >
+        <Ionicons
+          name={
+            wishlists?.some(
+              (wishlist: any) => wishlist?.productId === productId
+            )
+              ? "bookmark"
+              : "bookmark-outline"
+          }
+          size={20}
+          color="#000"
+        />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -552,6 +548,7 @@ export default function HomeScreen() {
     { type: "SLIDER", id: "slider" },
     { type: "BUTTONS", id: "buttons" },
     { type: "CATEGORY", id: "category" },
+    { type: "NEW_ITEMS", id: "new-items" },
     // Dynamic sections from API will be added here
     ...(homeFeedSections || [])
       .filter((section) => {
@@ -998,6 +995,8 @@ export default function HomeScreen() {
         return renderButtonSection();
       case "CATEGORY":
         return renderCategorySection();
+      case "NEW_ITEMS":
+        return renderNewItemsSection();
       case "HOT_ITEMS":
         return renderHotItemsSection();
       case "RECOMMENDED":
@@ -1129,7 +1128,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonSectionContainer: {
-    backgroundColor: "#fff",
+    // backgroundColor: "#fff",
     paddingVertical: 10,
     marginBottom: 10,
   },
@@ -1167,6 +1166,9 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     resizeMode: "cover",
+    padding: 10,
+    justifyContent: "center",
+    alignItems: "center",
   },
   buttonText: {
     fontSize: 12,
@@ -1174,7 +1176,7 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   categorySectionContainer: {
-    backgroundColor: "#fff",
+    // backgroundColor: "#fff",
     paddingVertical: 15,
     marginBottom: 10,
   },
@@ -1188,6 +1190,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: "hidden",
     backgroundColor: "#f9f9f9",
+    borderWidth: 2,
+    borderColor: COLORS.black,
   },
   categoryImage: {
     width: "100%",
@@ -1202,7 +1206,7 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   productSectionContainer: {
-    backgroundColor: "#fff",
+    // backgroundColor: "#fff",
     paddingVertical: 15,
     marginBottom: 10,
   },
@@ -1230,7 +1234,6 @@ const styles = StyleSheet.create({
   productCard: {
     width: 170,
     marginRight: 15,
-    backgroundColor: "#fff",
     borderRadius: 10,
     overflow: "hidden",
     position: "relative",
@@ -1246,8 +1249,10 @@ const styles = StyleSheet.create({
   },
   productImage: {
     width: "100%",
+    maxWidth: 170,
     height: 120,
-    resizeMode: "contain",
+    objectFit: "contain",
+    overflow: "hidden",
   },
   productInfo: {
     padding: 10,
@@ -1275,7 +1280,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 10,
     right: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    // backgroundColor: "rgba(255, 255, 255, 0.8)",
     borderRadius: 15,
     padding: 5,
   },
@@ -1335,7 +1340,7 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   topBrandsContainer: {
-    backgroundColor: "#fff",
+    // backgroundColor: "#fff",
     paddingVertical: 15,
     paddingBottom: 25,
   },

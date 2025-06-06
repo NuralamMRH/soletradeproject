@@ -1,6 +1,6 @@
 const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
-const { Wishlist } = require("../models/wishlist");
+const { Wishlist } = require("../models/Wishlist");
 
 // Get all wishlists for current user
 exports.getAllWishlists = catchAsyncErrors(async (req, res, next) => {
@@ -37,31 +37,40 @@ exports.getWishlistById = catchAsyncErrors(async (req, res, next) => {
 
 // Create new wishlist
 exports.createWishlist = catchAsyncErrors(async (req, res, next) => {
-  if (!req.user) {
-    return next(new ErrorHandler("User not authenticated", 401));
+  try {
+    if (!req.user) {
+      return next(new ErrorHandler("User not authenticated", 401));
+    }
+
+    console.log("req.body", req.body);
+
+    // Check if product is already in user's wishlist
+    const existingWishlist = await Wishlist.findOne({
+      user: req.user.id,
+      productId: req.body.productId,
+      wishlistType: req.body.wishlistType,
+    });
+
+    if (existingWishlist) {
+      return next(new ErrorHandler("Product already in wishlist", 400));
+    }
+
+    const wishlist = new Wishlist({
+      user: req.user._id,
+      productId: req.body.productId,
+      wishlistType: req.body.wishlistType,
+    });
+
+    const savedWishlist = await wishlist.save();
+
+    res.status(201).json({
+      success: true,
+      wishlist: savedWishlist,
+    });
+  } catch (error) {
+    console.log("error", error);
+    return next(new ErrorHandler("Error creating wishlist", 500));
   }
-
-  // Check if product is already in user's wishlist
-  const existingWishlist = await Wishlist.findOne({
-    user: req.user._id,
-    product: req.body.product,
-  });
-
-  if (existingWishlist) {
-    return next(new ErrorHandler("Product already in wishlist", 400));
-  }
-
-  const wishlist = new Wishlist({
-    user: req.user._id,
-    product: req.body.product,
-  });
-
-  const savedWishlist = await wishlist.save();
-
-  res.status(201).json({
-    success: true,
-    wishlist: savedWishlist,
-  });
 });
 
 // Delete wishlist
@@ -70,10 +79,7 @@ exports.deleteWishlist = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("User not authenticated", 401));
   }
 
-  const wishlist = await Wishlist.findOneAndDelete({
-    _id: req.params.id,
-    user: req.user._id,
-  });
+  const wishlist = await Wishlist.findByIdAndDelete(req.params.id);
 
   if (!wishlist) {
     return next(new ErrorHandler("Wishlist not found", 404));
@@ -176,3 +182,5 @@ exports.getWishlistByUser = catchAsyncErrors(async (req, res, next) => {
     wishlist,
   });
 });
+
+

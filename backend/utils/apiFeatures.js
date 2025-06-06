@@ -352,6 +352,17 @@ class APIFeatures {
         this.specialFilters.highestSale = highestSales;
       }
 
+      if (queryCopy.calenderDateTime) {
+        queryCopy.calenderDateTime = {
+          ...(queryCopy.calenderDateTime.gte && {
+            $gte: new Date(queryCopy.calenderDateTime.gte),
+          }),
+          ...(queryCopy.calenderDateTime.lte && {
+            $lte: new Date(queryCopy.calenderDateTime.lte),
+          }),
+        };
+      }
+
       return this;
     } catch (error) {
       console.error("Filter error:", error);

@@ -11,6 +11,9 @@ const {
   toggleWishlist,
 } = require("../controllers/wishlistController");
 const { isAuthenticatedUser } = require("../middlewares/auth");
+const {
+  handleTriggerCalenderNotifications,
+} = require("../services/pushNotificationService");
 
 // Get all wishlists for current user
 router.get("/", isAuthenticatedUser, getAllWishlists);
@@ -32,5 +35,20 @@ router.get("/product/:productId", isAuthenticatedUser, getWishlistByProduct);
 
 // Toggle wishlist status
 router.post("/toggle", isAuthenticatedUser, toggleWishlist);
+
+// Function to periodically trigger notifications
+const startCalenderNotificationInterval = () => {
+  const notificationInterval = 60000; // Every 1 minute
+  setInterval(async () => {
+    try {
+      await handleTriggerCalenderNotifications();
+    } catch (error) {
+      console.error("Error in calender notification interval:", error);
+    }
+  }, notificationInterval);
+};
+
+// Start the interval for triggering notifications
+startCalenderNotificationInterval();
 
 module.exports = router;

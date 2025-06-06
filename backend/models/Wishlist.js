@@ -6,12 +6,12 @@ const wishlistSchema = mongoose.Schema({
     ref: "User",
     required: true,
   },
-  product: {
+  productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",
     required: true,
   },
-  wishlist_type: {
+  wishlistType: {
     type: String,
     enum: ["wishlist", "cart", "calender"],
     default: "wishlist",
@@ -29,6 +29,14 @@ wishlistSchema.virtual("id").get(function () {
 
 wishlistSchema.set("toJSON", {
   virtuals: true,
+});
+
+wishlistSchema.index({ user: 1, productId: 1 }, { unique: true });
+wishlistSchema.virtual("product", {
+  ref: "Product",
+  localField: "productId",
+  foreignField: "_id",
+  justOne: true,
 });
 
 exports.Wishlist = mongoose.model("Wishlist", wishlistSchema);

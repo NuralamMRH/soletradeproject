@@ -10,7 +10,7 @@ const {
 } = require("../controllers/calenderNotifyController");
 const { CalenderNotify } = require("../models/calenderNotify");
 const {
-  handleTriggerNotifications,
+  handleTriggerCalenderNotifications,
 } = require("../services/pushNotificationService");
 
 router.get(`/`, getAllCalenderNotifies);
@@ -23,18 +23,18 @@ router
 router.route("/user/:userId").get(getCalenderNotifiesByUser);
 
 // Function to periodically trigger notifications
-const startNotificationInterval = () => {
+const startCalenderNotificationInterval = () => {
   const notificationInterval = 60000; // Every 1 minute
   setInterval(async () => {
     try {
-      await handleTriggerNotifications(CalenderNotify);
+      await handleTriggerCalenderNotifications(CalenderNotify);
     } catch (error) {
-      console.error("Error in notification interval:", error);
+      console.error("Error in calender notification interval:", error);
     }
   }, notificationInterval);
 };
 
 // Start the interval for triggering notifications
-startNotificationInterval();
+startCalenderNotificationInterval();
 
 module.exports = router;

@@ -3,30 +3,31 @@ const { Expo } = require("expo-server-sdk");
 const expo = new Expo();
 const User = require("../models/user");
 const { Product } = require("../models/product");
+const { createLog } = require("../controllers/log/logController");
+const { Wishlist } = require("../models/Wishlist");
 
 const sentNotificationsCache = new Map();
 
 // Function to send push notification via Expo
-const sendExpoPushNotification = async (pushToken, title, body, data = {}) => {
-  if (!Expo.isExpoPushToken(pushToken)) {
-    console.error(`Push token ${pushToken} is not a valid Expo push token`);
+const sendExpoPushNotification = async (
+  expoPushToken,
+  title,
+  body,
+  data = {}
+) => {
+  if (!Expo.isExpoPushToken(expoPushToken)) {
+    console.error(`Push token ${expoPushToken} is not a valid Expo push token`);
     return;
   }
 
   const message = {
-    to: pushToken,
+    to: expoPushToken,
     sound: "default",
     title,
     body,
     data: {
       ...data,
-      screen: data.productId
-        ? "ProductDetails"
-        : data.orderId
-        ? "OrderDetails"
-        : data.drawId
-        ? "DrawDetails"
-        : null,
+      model: data.model,
     },
     priority: "high",
     channelId: "default",
@@ -83,11 +84,21 @@ const sendNotification = async (userId, title, body, data = {}) => {
     };
 
     // Send socket notification for in-app notifications
-    sendSocketNotification(userId, notification);
+    // sendSocketNotification(userId, notification);
+
+    await createLog({
+      user_id: userId,
+      name: "Notification",
+      model_id: data.productId,
+      model: data.model,
+      action: "notification",
+      data: { userId, notification },
+      message: `Notification sent to ${user.name}`,
+    });
 
     // Send Expo push notification for background notifications
-    if (user.pushToken) {
-      await sendExpoPushNotification(user.pushToken, title, body, data);
+    if (user.expoPushToken) {
+      await sendExpoPushNotification(user.expoPushToken, title, body, data);
     }
   } catch (error) {
     console.error("Error sending notification:", error);
@@ -99,7 +110,11 @@ const triggerNotification = async (
   userId,
   productId,
   productName,
-  productImage
+  productImage,
+  model,
+  title,
+  body,
+  type
 ) => {
   const cacheKey = `${userId}_${productId}`;
   const now = Date.now();
@@ -107,49 +122,49 @@ const triggerNotification = async (
 
   // Only send notification if last notification was sent more than 1 hour ago
   if (now - lastNotification > 3600000) {
-    await sendNotification(
-      userId,
-      "Product Available!",
-      `${productName} is now available for purchase.`,
-      {
-        type: "product_available",
-        productId,
-        productName,
-        productImage,
-      }
-    );
+    await sendNotification(userId, title, body, {
+      type: type,
+      productId,
+      productName,
+      productImage,
+      model: model,
+    });
     sentNotificationsCache.set(cacheKey, now);
   }
 };
 
 // Function to handle trigger notifications
-const handleTriggerNotifications = async () => {
+const handleTriggerCalenderNotifications = async () => {
   try {
     const today = new Date();
     const products = await Product.find({
-      publishDate: {
+      isPublished: true,
+      calenderDateTime: {
         $lte: today,
       },
-      isPublished: false,
     });
 
     for (const product of products) {
-      const users = await User.find({
-        wishlist: product._id,
+      const calenders = await Wishlist.find({
+        productId: product._id,
+        wishlistType: "calender",
       });
+
+      const users = calenders.map((calender) => calender.user);
+      console.log(users);
 
       for (const user of users) {
         await triggerNotification(
-          user._id,
+          user.id,
           product._id,
           product.name,
-          product.images[0]
+          product.images[0].file_full_url,
+          "Product",
+          "Product Launched!",
+          "You can trade this product now.",
+          "product_launched"
         );
       }
-
-      // Mark product as published
-      product.isPublished = true;
-      await product.save();
     }
   } catch (error) {
     console.error("Error handling trigger notifications:", error);
@@ -159,5 +174,5 @@ const handleTriggerNotifications = async () => {
 module.exports = {
   sendNotification,
   triggerNotification,
-  handleTriggerNotifications,
+  handleTriggerCalenderNotifications,
 };

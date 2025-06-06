@@ -41,6 +41,7 @@ router
   .put(upload.fields([{ name: "image" }]), isAuthenticatedUser, updateProfile);
 
 router.route("/admin/users").get(allUsers);
+
 router
   .route("/admin/user/:id")
   .get(isAuthenticatedUser, authorizeRoles("admin"), getUserDetails)
