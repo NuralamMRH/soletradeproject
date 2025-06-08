@@ -48,11 +48,9 @@ const AddHomeFeedButton: React.FC = () => {
   const [buttonDesign, setButtonDesign] = useState<string>(
     button?.design || "circle"
   ); // 'circle' or 'square'
-  const [buttonName, setButtonName] = useState<string>(button?.name || "");
-  const [linkPage, setLinkPage] = useState<string>(button?.link || "");
-  const [buttonImage, setButtonImage] = useState<string | undefined>(
-    button?.image_full_url || undefined
-  );
+  const [buttonName, setButtonName] = useState<string>("");
+  const [linkPage, setLinkPage] = useState<string>("");
+  const [buttonImage, setButtonImage] = useState<string | undefined>(undefined);
   const [availablePages, setAvailablePages] = useState<
     { name: string; route: string }[]
   >([]);
@@ -66,13 +64,11 @@ const AddHomeFeedButton: React.FC = () => {
   const deleteHomeFeedButton = useDeleteHomeFeedButton();
 
   useEffect(() => {
-    // If editing, populate fields with existing data
     if (isEditing && params.button) {
       const { name, design, link, image_full_url } = params.button;
       setButtonName(name || "");
       setButtonDesign(design || "circle");
       setLinkPage(link || "");
-      // For existing images, store the full URL
       if (image_full_url) {
         setButtonImage(
           image_full_url.startsWith("http")
@@ -90,7 +86,7 @@ const AddHomeFeedButton: React.FC = () => {
         }
       }
     })();
-  }, [isEditing, params.button]);
+  }, []);
 
   const handleSave = async () => {
     try {
@@ -171,22 +167,6 @@ const AddHomeFeedButton: React.FC = () => {
   };
 
   // Helper function to get image source
-  const getImageSource = () => {
-    if (!buttonImage) return undefined;
-    if (
-      buttonImage.startsWith("file://") ||
-      buttonImage.startsWith("content://")
-    ) {
-      return { uri: buttonImage };
-    }
-    if (
-      buttonImage.startsWith("http://") ||
-      buttonImage.startsWith("https://")
-    ) {
-      return { uri: buttonImage };
-    }
-    return { uri: `${process.env.EXPO_PUBLIC_API_URL}${buttonImage}` };
-  };
 
   const renderHeader = () => {
     return (
@@ -308,10 +288,9 @@ const AddHomeFeedButton: React.FC = () => {
               onPress={handleOpenLinkSelector}
             >
               <Text style={linkPage ? styles.linkText : styles.linkPlaceholder}>
-                {linkPage
-                  ? availablePages.find((page) => page.route === linkPage)
-                      ?.name || "Select a page"
-                  : "Select a page"}
+                {availablePages.find((page) => page.route === linkPage)?.name ||
+                  linkPage ||
+                  "Select a page"}
               </Text>
               <Ionicons name="chevron-down" size={20} color="#333" />
             </TouchableOpacity>

@@ -4,10 +4,6 @@
 		"route": "/"
 	},
 	{
-		"name": "Explore",
-		"route": "/explore"
-	},
-	{
 		"name": "Edit Profile",
 		"route": "/edit-profile"
 	},
@@ -16,19 +12,15 @@
 		"route": "/shipping-address"
 	},
 	{
-		"name": "Cart",
-		"route": "/cart"
-	},
-	{
 		"name": "Dashboard",
 		"route": "/(tabs)/dashboard"
 	},
 	{
-		"name": "All Products",
-		"route": "/admin/products/all-product-manage"
+		"name": "Essentials Products",
+		"route": "/essentials/products"
 	},
 	{
-		"name": "Add Product",
-		"route": "/admin/products/add-new-product"
+		"name": "Essential Cart",
+		"route": "/essentials/cart"
 	}
 ]

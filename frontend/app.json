@@ -9,7 +9,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.soletrade.frontend",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocalNotificationUsageDescription": "This app needs access to send notifications to you."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +26,8 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.soletrade.frontend"
+      "package": "com.soletrade.frontend",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -45,8 +51,18 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
           "recordAudioAndroid": true
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png"
+        }
       ]
     ],
+    "notifications": {
+      "iosDisplayInForeground": true,
+      "androidDisplayInForeground": true
+    },
     "experiments": {
       "typedRoutes": true
     },

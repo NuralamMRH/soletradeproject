@@ -32,6 +32,25 @@ import SwiperFlatList from "react-native-swiper-flatlist";
 import GlobalTimer from "@/components/GlobalTimer";
 import { SIZES } from "@/constants";
 
+// TypeScript interfaces
+interface ProductImage {
+  file_full_url: string;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  images: ProductImage[];
+  calenderDateTime: string;
+  retailPrice: number;
+}
+
+interface Wishlist {
+  _id: string;
+  productId: string;
+}
+
 // Helper to get date-only (no time)
 function getDateOnly(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -45,7 +64,8 @@ const Calender: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const { mutate: addToWishlist } = useAddToWishlist();
   const { mutate: removeFromWishlist } = useRemoveFromWishlist();
-  const { data: wishlists, isLoading: wishlistsLoading } = useWishlists();
+  const { data: wishlists = [], isLoading: wishlistsLoading } =
+    useWishlists() as { data: Wishlist[]; isLoading: boolean };
 
   const [filter] = useState({
     product_type: "deal",
@@ -58,12 +78,17 @@ const Calender: React.FC = () => {
     refetch,
   } = useProducts({
     filter: JSON.stringify(filter),
-  });
+  }) as {
+    products: Product[];
+    loading: boolean;
+    error: any;
+    refetch: () => Promise<void>;
+  };
 
   // Extract unique, sorted date objects from products
   const uniqueDateObjs = useMemo(() => {
     const dates = products
-      .map((p: any) =>
+      .map((p: Product) =>
         p.calenderDateTime ? getDateOnly(new Date(p.calenderDateTime)) : null
       )
       .filter(Boolean) as Date[];
@@ -116,7 +141,7 @@ const Calender: React.FC = () => {
   const filteredProducts = useMemo(() => {
     if (!selectedDate) return products;
     return products.filter(
-      (item: any) =>
+      (item: Product) =>
         new Date(item.calenderDateTime).toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
@@ -132,21 +157,21 @@ const Calender: React.FC = () => {
 
   const handleAddToWishlist = (productId: string) => {
     console.log("productId", productId);
-    addToWishlist(productId, "calender");
+    addToWishlist({ productId, wishlistType: "calender" });
   };
 
   const handleRemoveFromWishlist = (productId: string) => {
     console.log("productId", productId);
     // Find the wishlist entry for this product
     const wishlistEntry = wishlists?.find(
-      (wishlist: any) => wishlist?.productId === productId
+      (wishlist: Wishlist) => wishlist?.productId === productId
     );
     if (wishlistEntry) {
-      removeFromWishlist(wishlistEntry._id);
+      removeFromWishlist(wishlistEntry._id as any);
     }
   };
 
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<ScrollView | null>(null);
 
   useEffect(() => {
     if (!selectedDate) return;
@@ -176,9 +201,16 @@ const Calender: React.FC = () => {
           height: SIZES.height / 3.5,
         }}
       >
-        {products.length > 0 ? (
+        {!loading ? (
           <SwiperFlatList
-            data={products.slice(0, 3)}
+            data={
+              filteredProducts.length > 0
+                ? filteredProducts.slice(0, 3)
+                : products.slice(0, 3).map((p) => ({
+                    ...p,
+                    calenderDateTime: new Date(),
+                  }))
+            }
             index={0}
             autoplay={true}
             autoplayDelay={60}
@@ -197,13 +229,12 @@ const Calender: React.FC = () => {
               justifyContent: "center",
               alignItems: "center",
             }}
-            renderItem={({ item }) => (
+            renderItem={({ item }: { item: Product }) => (
               <ImageBackground
                 source={{ uri: baseUrl + item.images[0].file_full_url }}
                 style={{
                   justifyContent: "center",
                   alignItems: "center",
-                  backgroundColor: "red",
                 }}
                 resizeMode="cover"
               >
@@ -311,7 +342,7 @@ const Calender: React.FC = () => {
       </View>
 
       {/* Product List */}
-      <FlatList
+      <FlatList<Product>
         data={filteredProducts}
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
@@ -389,23 +420,32 @@ const Calender: React.FC = () => {
                     {
                       backgroundColor:
                         new Date(item.calenderDateTime) >= new Date()
-                          ? "rgb(217,217,217)"
+                          ? "rgb(255, 255, 255)"
                           : "#eee",
                     },
                   ]}
                   onPress={() =>
                     wishlists?.some(
-                      (wishlist: any) => wishlist?.productId === item._id
+                      (wishlist: Wishlist) => wishlist?.productId === item._id
                     )
                       ? handleRemoveFromWishlist(item._id)
                       : handleAddToWishlist(item._id)
                   }
                 >
-                  <Text style={{ fontFamily: "Beirut Black" }}>
+                  <Text
+                    style={{
+                      fontFamily: "Beirut Black",
+                      color:
+                        new Date(item.calenderDateTime) <= new Date()
+                          ? "rgba(0, 0, 0, 0.45)"
+                          : "rgba(0, 0, 0, 0.96)",
+                    }}
+                  >
                     {new Date(item.calenderDateTime) <= new Date()
                       ? "Launched"
                       : wishlists?.some(
-                          (wishlist: any) => wishlist?.productId === item._id
+                          (wishlist: Wishlist) =>
+                            wishlist?.productId === item._id
                         )
                       ? "Notified"
                       : "Notify Me"}

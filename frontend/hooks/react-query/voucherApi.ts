@@ -1,7 +1,5 @@
 import MainApi from "@/api/MainApi";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
-import Toast from "react-native-toast-message";
 
 function isReactNativeFile(
   obj: any
@@ -196,7 +194,7 @@ export const useCreateDiscountOfTheWeekSection = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: any) => {
-      const { data } = await axios.post(
+      const { data } = await MainApi.post(
         "/api/v1/voucher-sections/discount-of-the-week",
         payload
       );
@@ -212,7 +210,7 @@ export const useUpdateDiscountOfTheWeekSection = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: any) => {
-      const { data } = await axios.put(
+      const { data } = await MainApi.put(
         "/api/v1/voucher-sections/discount-of-the-week",
         payload
       );

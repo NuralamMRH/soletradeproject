@@ -36,93 +36,118 @@ app.use(express.urlencoded({ limit: "100mb", extended: true }));
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+const api = process.env.API_URL;
 //Routes
 const appContentRoutes = require("./routes/appContents");
+app.use(`${api}/app-content`, appContentRoutes);
+
 const blogRoutes = require("./routes/blogPosts");
+app.use(`${api}/blogs`, blogRoutes);
+
 const categoriesRoutes = require("./routes/categories");
+app.use(`${api}/categories`, categoriesRoutes);
+
 const brandRoutes = require("./routes/brands");
+app.use(`${api}/brands`, brandRoutes);
+
 const productsRoutes = require("./routes/products");
+app.use(`${api}/products`, productsRoutes);
+
 const usersRoutes = require("./routes/users");
+app.use(`${api}/users`, usersRoutes);
+
 const ordersRoutes = require("./routes/orders");
+app.use(`${api}/orders`, ordersRoutes);
+
 const payoutsRoutes = require("./routes/payouts");
+app.use(`${api}/payouts`, payoutsRoutes);
+
 const biddingOfferRoutes = require("./routes/biddingOffers");
+app.use(`${api}/bidding`, biddingOfferRoutes);
+
 const sellingRoutes = require("./routes/sellingItems");
+app.use(`${api}/selling`, sellingRoutes);
+
 const attributeRoutes = require("./routes/attributes");
+app.use(`${api}/attributes`, attributeRoutes);
+
 const attributeOptionsRoutes = require("./routes/attributeOptions");
+app.use(`${api}/attribute-options`, attributeOptionsRoutes);
+
 const shippingRoutes = require("./routes/shippings");
+app.use(`${api}/shippings`, shippingRoutes);
+
 const homeFeedSectionRoutes = require("./routes/homeFeedSectionRoutes");
+app.use(`${api}/home-feed-sections`, homeFeedSectionRoutes);
+
 const tiersRoutes = require("./routes/tiersRoutes");
+app.use(`${api}/tiers`, tiersRoutes);
 
 const soleCheckBrandsRoutes = require("./routes/soleCheckBrands");
+app.use(`${api}/sole-check-brands`, soleCheckBrandsRoutes);
+
 const soleCheckModelsRoutes = require("./routes/soleCheckModels");
+app.use(`${api}/sole-check-models`, soleCheckModelsRoutes);
+
 const soleCheckItemsRoutes = require("./routes/soleCheckItems");
+app.use(`${api}/sole-check-items`, soleCheckItemsRoutes);
 
 const portfolioItemsRoutes = require("./routes/portfolioItems");
+app.use(`${api}/portfolio`, portfolioItemsRoutes);
+
 const wishlistRoutes = require("./routes/wishlists");
+app.use(`${api}/wishlist`, wishlistRoutes);
+
 const soleDrawRoutes = require("./routes/soleDraws");
+app.use(`${api}/draws`, soleDrawRoutes);
+
 const calenderNotifiesRoutes = require("./routes/calenderNotifies");
+app.use(`${api}/user-calender-notifications`, calenderNotifiesRoutes);
+
 const drawAttendsRoutes = require("./routes/drawAttends");
+app.use(`${api}/draw-joins`, drawAttendsRoutes);
+
 const expoPushTokens = require("./routes/expoPushTokens");
+app.use(`${api}/expoPushTokens`, expoPushTokens);
 
 const subBrandRoutes = require("./routes/subBrandRoutes");
+app.use(`${api}/sub-brands`, subBrandRoutes);
+
 const subCategoryRoutes = require("./routes/subCategoryRoutes");
+app.use(`${api}/sub-categories`, subCategoryRoutes);
+
 const indicatorRoutes = require("./routes/indicatorRoutes");
+app.use(`${api}/indicators`, indicatorRoutes);
+
 const feedButtonRoutes = require("./routes/feedButtonRoutes");
-const deleteFileRoutes = require("./routes/deleteFile");
+app.use(`${api}/home-feed-buttons`, feedButtonRoutes);
+
 const trendsRoutes = require("./routes/trends");
+app.use(`${api}/trends`, trendsRoutes);
+
+const deleteFileRoutes = require("./routes/deleteFile");
 const posterRoutes = require("./routes/posterRoutes");
 
 const tierBenefitRoutes = require("./routes/tierBenefitRoutes");
+app.use(`${api}/tier-benefits`, tierBenefitRoutes);
+
 const soleCheckSettingsRoutes = require("./routes/soleCheckSettings");
+app.use(`${api}/sole-check`, soleCheckSettingsRoutes);
+
 const voucherRoutes = require("./routes/voucherRoutes");
+app.use(`${api}/vouchers`, voucherRoutes);
+
 const voucherSectionRoutes = require("./routes/voucherSection");
+app.use(`${api}/voucher-sections`, voucherSectionRoutes);
 
-const api = process.env.API_URL;
+const logRoutes = require("./routes/log");
+app.use(`${api}/logs`, logRoutes);
 
-app.use(`${api}/app-content`, appContentRoutes);
-app.use(`${api}/blogs`, blogRoutes);
-app.use(`${api}/categories`, categoriesRoutes);
-app.use(`${api}/brands`, brandRoutes);
-app.use(`${api}/products`, productsRoutes);
-app.use(`${api}/users`, usersRoutes);
-app.use(`${api}/orders`, ordersRoutes);
-app.use(`${api}/payouts`, payoutsRoutes);
-app.use(`${api}/bidding`, biddingOfferRoutes);
-app.use(`${api}/selling`, sellingRoutes);
-app.use(`${api}/attributes`, attributeRoutes);
-app.use(`${api}/attribute-options`, attributeOptionsRoutes);
-app.use(`${api}/shippings`, shippingRoutes);
-app.use(`${api}/home-feed-sections`, homeFeedSectionRoutes);
-app.use(`${api}/tiers`, tiersRoutes);
+const activityRoutes = require("./routes/activityRoutes");
+app.use(`${api}/activities`, activityRoutes);
 
-app.use(`${api}/sole-check-brands`, soleCheckBrandsRoutes);
-app.use(`${api}/sole-check-models`, soleCheckModelsRoutes);
-app.use(`${api}/sole-check-items`, soleCheckItemsRoutes);
-
-app.use(`${api}/portfolio`, portfolioItemsRoutes);
-
-app.use(`${api}/wishlist`, wishlistRoutes);
-
-app.use(`${api}/draws`, soleDrawRoutes);
-app.use(`${api}/user-calender-notifications`, calenderNotifiesRoutes);
-app.use(`${api}/draw-joins`, drawAttendsRoutes);
-
-app.use(`${api}/expoPushTokens`, expoPushTokens);
-
-app.use("/api/v1/sub-brands", subBrandRoutes);
-app.use("/api/v1/sub-categories", subCategoryRoutes);
-app.use("/api/v1/indicators", indicatorRoutes);
-app.use("/api/v1/home-feed-buttons", feedButtonRoutes);
-app.use("/api/v1/trends", trendsRoutes);
-
-app.use("/api/v1/delete-file", deleteFileRoutes);
-app.use("/api/v1/posters", posterRoutes);
-
-app.use("/api/v1/tier-benefits", tierBenefitRoutes);
-
-app.use("/api/v1/sole-check", soleCheckSettingsRoutes);
-app.use("/api/v1/vouchers", voucherRoutes);
-app.use("/api/v1/voucher-sections", voucherSectionRoutes);
+const paymentMethodRoutes = require("./routes/paymentMethodRoutes");
+app.use(`${api}/payment-methods`, paymentMethodRoutes);
 
 // Middleware to handle errors
 app.use(errorMiddleware);

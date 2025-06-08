@@ -16,6 +16,7 @@ import type { Translations } from "@/context/LanguageContext";
 import { COLORS, SIZES } from "@/constants";
 import Constants from "expo-constants";
 import Colors from "@/constants/Colors";
+import { registerForPushNotificationsAsync } from "@/hooks/useExpoNotifications";
 
 const user = {
   name: "Sukhchot Pruthi",
@@ -96,6 +97,9 @@ export default function ProfileScreen() {
   const router = useRouter();
   const handleToggle = (key: keyof typeof initialNotificationSettings) => {
     setNotificationSettings((prev) => ({ ...prev, [key]: !prev[key] }));
+    if (notificationSettings[key]) {
+      registerForPushNotificationsAsync();
+    }
   };
 
   if (!isAuthenticated) {
@@ -181,7 +185,7 @@ export default function ProfileScreen() {
         <View style={[styles.editRow, styles.subContainer]}>
           <TouchableOpacity
             style={styles.editProfileBtn}
-            onPress={() => router.push("/edit-profile")}
+            onPress={() => router.push("/user/edit-profile")}
           >
             <Text style={styles.editProfileText}>{t.editProfile}</Text>
           </TouchableOpacity>
@@ -319,7 +323,10 @@ export default function ProfileScreen() {
           }}
         />
         {/* Wallet Tab */}
-        <TouchableOpacity style={[styles.walletRow, styles.subContainer]}>
+        <TouchableOpacity
+          onPress={() => router.push("/user/wallet")}
+          style={[styles.walletRow, styles.subContainer]}
+        >
           <Ionicons
             name="card-outline"
             size={28}

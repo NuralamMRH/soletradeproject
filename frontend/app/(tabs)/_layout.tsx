@@ -1,15 +1,12 @@
 import { Tabs, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@/hooks/useAuth";
 import { useNetworkState } from "expo-network";
 import React, { useEffect } from "react";
 import { Alert } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
 export default function TabLayout() {
-  const { user, isAuthenticated } = useAuth();
   const networkState = useNetworkState();
-  const router = useRouter();
   React.useEffect(() => {
     if (
       !networkState.isConnected &&

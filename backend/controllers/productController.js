@@ -148,11 +148,10 @@ exports.createProduct = catchAsyncErrors(async (req, res, next) => {
 
 exports.updateProduct = catchAsyncErrors(async (req, res, next) => {
   try {
-    console.log("req.body", req.body);
+    // console.log("req.body", req.body);
     const { id } = req.params;
     const updateData = { ...req.body };
 
-    console.log("Update Data: ", updateData);
     // Find the existing product first
     const existingProduct = await Product.findById(id);
     if (!existingProduct) {
@@ -162,7 +161,7 @@ exports.updateProduct = catchAsyncErrors(async (req, res, next) => {
       });
     }
 
-    console.log("Images: ", req.files.images);
+    // console.log("Images: ", req.files.images);
 
     // Validate category if provided
     if (updateData.category) {
@@ -213,10 +212,9 @@ exports.updateProduct = catchAsyncErrors(async (req, res, next) => {
       retailPrice: updateData.retailPrice
         ? Number(updateData.retailPrice)
         : undefined,
-      countInStock: updateData.countInStock
-        ? Number(updateData.countInStock)
+      numberOfStocks: updateData.numberOfStocks
+        ? Number(updateData.numberOfStocks)
         : undefined,
-      stocks: updateData.stocks ? Number(updateData.stocks) : undefined,
       // Ensure boolean fields are properly converted
       isIndicatorActive: updateData.isIndicatorActive === "true",
       isCalenderActive: updateData.isCalenderActive === "true",

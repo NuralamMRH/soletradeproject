@@ -553,6 +553,7 @@ const SearchTab = () => {
       data={products}
       renderItem={({ item }) => (
         <TouchableOpacity
+          key={item._id}
           style={styles.gridItem}
           onPress={() => router.push(`/product/${item._id}`)}
         >
@@ -590,6 +591,7 @@ const SearchTab = () => {
   // Render search suggestion/history
   const renderSuggestion = ({ item }: any) => (
     <TouchableOpacity
+      key={item?._id}
       style={styles.suggestionRow}
       onPress={() => handleSuggestion(item)}
     >
@@ -705,7 +707,7 @@ const SearchTab = () => {
         <FlatList
           data={history}
           renderItem={({ item }) => (
-            <View style={styles.recentRow}>
+            <View key={item?._id} style={styles.recentRow}>
               <TouchableOpacity
                 style={{ flex: 1 }}
                 onPress={() => handleSuggestion(item)}

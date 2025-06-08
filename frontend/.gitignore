@@ -33,6 +33,10 @@ yarn-error.*
 # local env files
 .env*.local
 
+# firebase
+google-services.json
+soletrade-9b752-firebase-adminsdk-fbsvc-74ec404982.json
+
 # typescript
 *.tsbuildinfo
 

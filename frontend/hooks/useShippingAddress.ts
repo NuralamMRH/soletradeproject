@@ -61,11 +61,26 @@ export function useShippingAddress() {
     }
   };
 
+  const getMyShippingAddress = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await MainApi.get("/api/v1/shippings/me");
+      setLoading(false);
+      return res.data;
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Fetch failed");
+      setLoading(false);
+      throw err;
+    }
+  };
+
   return {
     addShippingAddress,
     updateShippingAddress,
     deleteShippingAddress,
     getShippingAddress,
+    getMyShippingAddress,
     loading,
     error,
   };

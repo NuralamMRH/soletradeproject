@@ -10,6 +10,8 @@ import React, {
 } from "react";
 import { isValidToken, setSession } from "../api/auth";
 import MainApi from "@/api/MainApi";
+import { socket } from "@/api/socket";
+import { showNotification } from "./useLocalNotifications";
 
 interface User {
   id: string;
@@ -137,6 +139,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initialize();
   }, [initialize]);
 
+  useEffect(() => {
+    if (state.isAuthenticated && state.user) {
+      socket.emit("register", state.user.id);
+    }
+
+    return () => {
+      if (state.isAuthenticated && state.user) {
+        socket.emit("logout", state.user.id);
+      }
+      socket.off("new_notification");
+    };
+  }, [state.isAuthenticated, state.user]);
+
   // LOGIN
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -150,6 +165,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.status === 200) {
         const { token, user } = response.data;
         setSession(token);
+        if (state.isAuthenticated && state.user) {
+          socket.emit("register", state.user.id);
+        }
         dispatch({
           type: "LOGIN",
           payload: { user },
@@ -188,6 +206,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await MainApi.post("/api/v1/users/logout");
       setSession(null);
+      // Notify the server about user logout
+      if (state.isAuthenticated && state.user) {
+        socket.emit("logout", state.user.id);
+      }
       dispatch({ type: "LOGOUT" });
     } catch (error: any) {
       console.error("Logout failed:", error);
@@ -252,6 +274,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         );
         if (response.status === 200 && response.data.success) {
+          if (state.isAuthenticated && state.user) {
+            socket.emit("register", state.user.id);
+            showNotification({
+              title: "Welcome to Sole Trade",
+              body: "You have successfully verified your OTP",
+            });
+          }
           // Optionally: log in user here if backend returns token
           return { success: true };
         } else {

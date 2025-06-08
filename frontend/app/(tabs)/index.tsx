@@ -32,6 +32,7 @@ import {
   useRemoveFromWishlist,
   useWishlists,
 } from "@/hooks/react-query/useWishlistMutation";
+import { useSocket } from "@/context/SocketContext";
 
 interface HomeFeedButton {
   _id: string;
@@ -142,17 +143,15 @@ export default function HomeScreen() {
   const [theme, setTheme] = useState("light");
   const [selectedTab, setSelectedTab] = useState("Sneakers");
   const router = useRouter();
-
+  const { notifications } = useSocket();
   const { mutate: addToWishlist } = useAddToWishlist();
   const { mutate: removeFromWishlist } = useRemoveFromWishlist();
   const { data: wishlists, isLoading: wishlistsLoading } = useWishlists();
 
-  const [filter, setFilter] = useState({
-    product_type: "deal",
-  });
-
   const { products, loading, error, refetch } = useProducts({
-    filter: JSON.stringify(filter),
+    filter: {
+      product_type: "deal",
+    },
   });
 
   const { brands, loading: brandsLoading, error: brandsError } = useBrands();
@@ -202,7 +201,7 @@ export default function HomeScreen() {
 
   const handleAddToWishlist = (productId: string) => {
     console.log("productId", productId);
-    addToWishlist(productId, "wishlist");
+    addToWishlist({ productId, wishlistType: "wishlist" });
   };
 
   const handleRemoveFromWishlist = (productId: string) => {
@@ -214,6 +213,10 @@ export default function HomeScreen() {
       removeFromWishlist(wishlistEntry._id);
     }
   };
+
+  useEffect(() => {
+    console.log("Socket notifications", notifications);
+  }, [notifications]);
 
   // Header component with logo and icons
   const renderHeader = () => {
@@ -282,9 +285,9 @@ export default function HomeScreen() {
           >
             {circleButtons.map((item, index) => (
               <TouchableOpacity
-                key={item._id || index}
+                key={item?._id || index}
                 style={styles.buttonContainer}
-                onPress={() => router.push(item.link || "/")}
+                onPress={() => router.push((item.link as any) || "/")}
               >
                 <View style={styles.circleButton}>
                   <Image
@@ -309,7 +312,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 key={item._id || index}
                 style={styles.buttonContainer}
-                onPress={() => router.push(item.link || "/")}
+                onPress={() => router.push((item.link as any) || "/")}
               >
                 <View style={styles.squareButton}>
                   <Image
@@ -343,7 +346,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 key={item._id}
                 style={[styles.categoryCard, { marginLeft: 15 }]}
-                onPress={() => router.push("/category/sneakers")}
+                onPress={() => router.push(`/category/${item.id}`)}
               >
                 <Image
                   source={
@@ -505,7 +508,10 @@ export default function HomeScreen() {
     image,
     productId,
   }) => (
-    <TouchableOpacity style={styles.productCard}>
+    <TouchableOpacity
+      onPress={() => router.push(`/product/${productId}`)}
+      style={styles.productCard}
+    >
       {index && <Text style={styles.productIndex}>{index}</Text>}
       <Image source={image} style={styles.productImage} />
       <View style={styles.productInfo}>
@@ -1144,7 +1150,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: COLORS.brandColor,
+    backgroundColor: COLORS.brandDarkColor,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 8,

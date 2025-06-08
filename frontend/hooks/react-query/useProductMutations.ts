@@ -132,6 +132,23 @@ export const useUpdateProduct = () => {
   });
 };
 
+export const useIncrementProductViews = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await MainApi.get(`/api/v1/products/viewed/${id}`);
+      console.log("Res", res);
+      return res.data.product;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product"] });
+    },
+    onError: (error) => {
+      console.log("Error", error);
+    },
+  });
+};
+
 export const useDeleteProduct = () => {
   const queryClient = useQueryClient();
   return useMutation({

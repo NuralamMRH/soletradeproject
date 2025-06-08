@@ -38,7 +38,11 @@ router.route("/password/verify-otp").put(verifyOtp);
 router.route("/password/update").put(isAuthenticatedUser, updatePassword);
 router
   .route("/my-account/update")
-  .put(upload.fields([{ name: "image" }]), isAuthenticatedUser, updateProfile);
+  .put(
+    upload.fields([{ name: "image", maxCount: 1 }]),
+    isAuthenticatedUser,
+    updateProfile
+  );
 
 router.route("/admin/users").get(allUsers);
 

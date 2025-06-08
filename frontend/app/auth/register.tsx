@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Link, router } from "expo-router";
+import { router, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Image,
   KeyboardAvoidingView,
@@ -15,18 +15,25 @@ import {
   Alert,
 } from "react-native";
 import { useAuth } from "../../hooks/useAuth";
+import { useAppContent } from "@/context/AppContentContext";
+import { baseUrl } from "@/api/MainApi";
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import Colors from "@/constants/Colors";
+import { COUNTRY_CODES } from "@/utils/COUNTRY_CODES";
 
 export default function RegisterScreen() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
+  const [country, setCountry] = useState(COUNTRY_CODES[0]);
   const [countryCode, setCountryCode] = useState("+66");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agree, setAgree] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { registerWithOtp } = useAuth();
-
+  const { appContent } = useAppContent();
+  const dateSheetRef = useRef<any>(null);
   const handleRegister = async () => {
     if (!(firstName && lastName && phone && email && password && agree)) return;
 
@@ -35,7 +42,7 @@ export default function RegisterScreen() {
         firstName,
         lastName,
         callingCode: countryCode,
-        phone,
+        phone: `${countryCode}${phone}`,
         email,
         password,
       });
@@ -56,15 +63,18 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <StatusBar style="dark" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Image
-            source={require("../../assets/images/logo.png")}
+            source={
+              useAppContent?.appLogo
+                ? {
+                    uri: `${baseUrl}/public/uploads/app-settings/${appContent?.appLogo}`,
+                  }
+                : require("../../assets/images/top-logo.png")
+            }
             style={styles.logo}
             resizeMode="contain"
           />
@@ -107,10 +117,13 @@ export default function RegisterScreen() {
               marginBottom: 20,
             }}
           >
-            <View style={styles.countryCodeBox}>
-              <Text style={styles.flag}>🇹🇭</Text>
+            <TouchableOpacity
+              style={styles.countryCodeBox}
+              onPress={() => dateSheetRef.current?.expand()}
+            >
+              <Text style={styles.flag}>{country.flag}</Text>
               <Text style={styles.countryCodeText}>{countryCode}</Text>
-            </View>
+            </TouchableOpacity>
             <TextInput
               style={[styles.input, { flex: 1, marginLeft: 10 }]}
               placeholder="Phone Number"
@@ -132,9 +145,14 @@ export default function RegisterScreen() {
           </View>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Password</Text>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View
+              style={[
+                styles.passwordInput,
+                { flexDirection: "row", alignItems: "center" },
+              ]}
+            >
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={[{ height: "100%", flex: 1 }]}
                 placeholder="Enter your password"
                 value={password}
                 onChangeText={setPassword}
@@ -195,15 +213,89 @@ export default function RegisterScreen() {
           </View>
           <View style={styles.loginContainer}>
             <Text style={styles.loginText}>Already have an Account? </Text>
-            <Link href="/auth/login" asChild>
-              <TouchableOpacity>
-                <Text style={styles.loginLink}>Log in</Text>
-              </TouchableOpacity>
-            </Link>
+
+            <TouchableOpacity onPress={() => router.back()}>
+              <Text style={styles.loginLink}>Log in</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+
+      <BottomSheet
+        ref={dateSheetRef}
+        index={-1}
+        snapPoints={["35%"]}
+        enablePanDownToClose={true}
+        onClose={() => dateSheetRef.current?.close()}
+        handleIndicatorStyle={{ backgroundColor: "#000" }}
+        backgroundStyle={{ backgroundColor: "#f1f1f1" }}
+      >
+        <BottomSheetView style={{ flex: 1, padding: 16 }}>
+          <View
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
+          >
+            <TouchableOpacity
+              style={[{ marginRight: 8 }]}
+              onPress={() => dateSheetRef.current?.close()}
+            >
+              <Text style={{ color: Colors.dark, fontSize: 16 }}>Cancel</Text>
+            </TouchableOpacity>
+            <Text
+              style={{ fontSize: 16, fontWeight: "bold", marginBottom: 16 }}
+            >
+              {"Select Country Code"}
+            </Text>
+            <TouchableOpacity
+              style={{}}
+              onPress={() => {
+                dateSheetRef.current?.close();
+              }}
+            >
+              <Text style={{ color: Colors.primary, fontSize: 16 }}>
+                Confirm
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{ flex: 1 }}>
+            <ScrollView>
+              {COUNTRY_CODES.map((item) => (
+                <TouchableOpacity
+                  key={item.code}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingVertical: 12,
+                    borderBottomWidth: 1,
+                    borderBottomColor: "#eee",
+                  }}
+                  onPress={() => {
+                    setCountry(item);
+                    setCountryCode(item.code);
+                    dateSheetRef.current?.close();
+                  }}
+                >
+                  <Text style={{ fontSize: 22, marginRight: 10 }}>
+                    {item.flag}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "bold",
+                      marginRight: 10,
+                    }}
+                  >
+                    {item.code}
+                  </Text>
+                  <Text style={{ fontSize: 16, color: "#666" }}>
+                    {item.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </BottomSheetView>
+      </BottomSheet>
+    </View>
   );
 }
 
@@ -222,9 +314,11 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   logo: {
-    width: 100,
-    height: 100,
+    width: 180,
+    height: 80,
     marginBottom: 20,
+    borderRadius: 10,
+    objectFit: "cover",
   },
   title: {
     fontSize: 24,
@@ -253,6 +347,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 15,
     fontSize: 16,
+    height: 58,
+    backgroundColor: "#f9f9f9",
+  },
+  passwordInput: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    height: 58,
+    paddingHorizontal: 12,
+    fontSize: 16,
     backgroundColor: "#f9f9f9",
   },
   registerButton: {
@@ -279,7 +383,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   loginLink: {
-    color: "#007AFF",
+    color: "red",
     fontSize: 14,
     fontWeight: "bold",
   },
@@ -294,6 +398,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 12,
+    height: 58,
   },
   flag: {
     fontSize: 18,

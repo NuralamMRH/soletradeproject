@@ -63,10 +63,13 @@ export const useAddToWishlist = () => {
   const { isAuthenticated } = useAuth();
 
   return useMutation({
-    mutationFn: async (
-      productId: string,
-      wishlistType: string = "wishlist"
-    ) => {
+    mutationFn: async ({
+      productId,
+      wishlistType = "wishlist",
+    }: {
+      productId: string;
+      wishlistType?: string;
+    }) => {
       if (!isAuthenticated) {
         throw new Error("User not authenticated");
       }

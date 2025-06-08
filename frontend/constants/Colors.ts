@@ -31,6 +31,7 @@ export default {
   brandGray: "#d8d8d8",
   backgroundGray: "rgb(245,245,245)",
   brandGreen: "rgb(11, 122, 59)",
+  brandDarkGreen: "rgb(5, 76, 35)",
   brandRed: "rgb(192, 0, 0)",
   primary: "#fc5c65",
   secondary: "#4ecdc4",

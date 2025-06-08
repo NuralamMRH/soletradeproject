@@ -16,6 +16,18 @@ const wishlistSchema = mongoose.Schema({
     enum: ["wishlist", "cart", "calender"],
     default: "wishlist",
   },
+  pushNotified: {
+    type: Boolean,
+    default: false,
+  },
+  emailNotified: {
+    type: Boolean,
+    default: false,
+  },
+  smsNotified: {
+    type: Boolean,
+    default: false,
+  },
 
   dateCreated: {
     type: Date,

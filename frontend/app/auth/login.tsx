@@ -12,15 +12,19 @@ import {
   TouchableOpacity,
   View,
   Alert,
+  ScrollView,
 } from "react-native";
 import { useAuth } from "../../hooks/useAuth";
 import { router } from "expo-router";
+import { useAppContent } from "@/context/AppContentContext";
+import { baseUrl } from "@/api/MainApi";
 
 export default function LoginScreen() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const { appContent } = useAppContent();
 
   const handleLogin = async () => {
     try {
@@ -36,85 +40,106 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
+    <View style={styles.container}>
       <StatusBar style="dark" />
-      <View style={styles.header}>
-        <Image
-          source={require("../../assets/images/logo.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Text style={styles.title}>Welcome Back!</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
-      </View>
-
-      <View style={styles.form}>
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
+        <View style={styles.header}>
+          <Image
+            source={
+              appContent?.appLogo
+                ? {
+                    uri: `${baseUrl}/public/uploads/app-settings/${appContent?.appLogo}`,
+                  }
+                : require("../../assets/images/top-logo.png")
+            }
+            style={styles.logo}
+            resizeMode="contain"
           />
+
+          <Text style={styles.title}>Welcome Back!</Text>
+          <Text style={styles.subtitle}>Sign in to continue</Text>
         </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Password</Text>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={styles.form}>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Email</Text>
             <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="Enter your password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
+              style={styles.input}
+              placeholder="Enter your email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
             />
-            <TouchableOpacity onPress={() => setShowPassword((v) => !v)}>
-              <Ionicons
-                name={showPassword ? "eye-off-outline" : "eye-outline"}
-                size={22}
-                color="#222"
-                style={{ marginLeft: 8 }}
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Password</Text>
+            <View
+              style={[
+                styles.passwordInput,
+                { flexDirection: "row", alignItems: "center" },
+              ]}
+            >
+              <TextInput
+                style={[{ height: "100%", flex: 1 }]}
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
               />
+              <TouchableOpacity onPress={() => setShowPassword((v) => !v)}>
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={22}
+                  color="#222"
+                  style={{ marginLeft: 8 }}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.rowBetween}>
+            <Link href="./register" asChild>
+              <TouchableOpacity>
+                <Text style={styles.registerNow}>Register Now</Text>
+              </TouchableOpacity>
+            </Link>
+            <TouchableOpacity style={styles.forgotPassword}>
+              <Text style={styles.forgotPasswordText}>Forget Password?</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+            <Text style={styles.loginButtonText}>Login</Text>
+          </TouchableOpacity>
+
+          <View style={styles.socialDivider}>
+            <TouchableOpacity style={styles.socialButton}>
+              <Ionicons name="logo-google" size={28} color="#000" />
+              <Text style={styles.socialButtonText}>Sign in with Google</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.socialDivider}>
+            <TouchableOpacity style={styles.socialButton}>
+              <Ionicons name="logo-apple" size={28} color="#000" />
+              <Text style={styles.socialButtonText}>Sign in with Apple</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ alignItems: "center", marginTop: 20 }}>
+            <TouchableOpacity onPress={() => router.push("/(tabs)")}>
+              <Text
+                style={{ fontSize: 14, color: "#007AFF", fontWeight: "bold" }}
+              >
+                Go Back
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
-
-        <View style={styles.rowBetween}>
-          <Link href="./register" asChild>
-            <TouchableOpacity>
-              <Text style={styles.registerNow}>Register Now</Text>
-            </TouchableOpacity>
-          </Link>
-          <TouchableOpacity style={styles.forgotPassword}>
-            <Text style={styles.forgotPasswordText}>Forget Password?</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Login</Text>
-        </TouchableOpacity>
-
-        <View style={styles.socialDivider}>
-          <TouchableOpacity style={styles.socialButton}>
-            <Ionicons name="logo-google" size={28} color="#000" />
-            <Text style={styles.socialButtonText}>Sign in with Google</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.socialDivider}>
-          <TouchableOpacity style={styles.socialButton}>
-            <Ionicons name="logo-apple" size={28} color="#000" />
-            <Text style={styles.socialButtonText}>Sign in with Apple</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -122,17 +147,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    padding: 20,
   },
   header: {
     alignItems: "center",
-    marginTop: 60,
-    marginBottom: 40,
+    marginTop: 10,
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 180,
+    height: 80,
     marginBottom: 20,
+    borderRadius: 10,
+    objectFit: "cover",
   },
   title: {
     fontSize: 24,
@@ -161,6 +186,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 15,
     fontSize: 16,
+    height: 60,
+    backgroundColor: "#f9f9f9",
+  },
+  passwordInput: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    height: 60,
+    paddingHorizontal: 12,
+    fontSize: 16,
     backgroundColor: "#f9f9f9",
   },
   forgotPassword: {
@@ -172,7 +207,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   loginButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#000",
     borderRadius: 8,
     padding: 15,
     alignItems: "center",

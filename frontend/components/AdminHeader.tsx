@@ -5,12 +5,20 @@ import Constants from "expo-constants";
 import Colors from "@/constants/Colors";
 
 interface AdminHeaderProps {
-  title: string;
+  title?: string;
   onBack?: () => void;
+  left?: React.ReactNode;
   right?: React.ReactNode;
+  center?: React.ReactNode;
 }
 
-const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onBack, right }) => {
+const AdminHeader: React.FC<AdminHeaderProps> = ({
+  title,
+  onBack,
+  left,
+  right,
+  center,
+}) => {
   return (
     <View
       style={[
@@ -29,9 +37,14 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ title, onBack, right }) => {
                 <Ionicons name="arrow-back" size={25} color={"black"} />
               </TouchableOpacity>
             )}
+            {left}
           </View>
           <View style={[styles.headerCenter, { flex: 2 }]}>
-            <Text style={styles.sectionTitle}>{title}</Text>
+            {center ? (
+              center
+            ) : title ? (
+              <Text style={styles.sectionTitle}>{title}</Text>
+            ) : null}
           </View>
           <View style={styles.headerRight}>{right}</View>
         </View>

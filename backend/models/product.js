@@ -108,6 +108,7 @@ const productSchema = mongoose.Schema(
       type: Date,
       default: null,
     },
+
     sellerFee: {
       type: Number,
       default: 0,
@@ -142,6 +143,10 @@ const productSchema = mongoose.Schema(
       type: Number,
       default: 0,
     },
+    numberOfStocks: {
+      type: Number,
+      default: 1,
+    },
     duration_icon: {
       type: String,
       default: "",
@@ -151,6 +156,18 @@ const productSchema = mongoose.Schema(
       default: Date.now,
     },
     isUnpublished: {
+      type: Boolean,
+      default: false,
+    },
+    pushNotified: {
+      type: Boolean,
+      default: false,
+    },
+    emailNotified: {
+      type: Boolean,
+      default: false,
+    },
+    smsNotified: {
       type: Boolean,
       default: false,
     },

@@ -14,12 +14,8 @@ const { isAuthenticatedUser, authorizeRoles } = require("../middlewares/auth");
 // Public routes
 router.route("/calculate").post(calculateShippingCost);
 
-router
-  .route("/")
-  .get(isAuthenticatedUser, getMyShipping)
-  .get(isAuthenticatedUser, authorizeRoles("admin"), getAllShipping)
-  .post(isAuthenticatedUser, createShipping);
-
+router.route("/").get(getAllShipping).post(isAuthenticatedUser, createShipping);
+router.route("/me").get(isAuthenticatedUser, getMyShipping);
 router
   .route("/:id")
   .get(getShippingById)

@@ -19,7 +19,7 @@ exports.getAllShipping = catchAsyncErrors(async (req, res, next) => {
 
 exports.getMyShipping = catchAsyncErrors(async (req, res, next) => {
   try {
-    const shipping = await Shipping.findOne({ user: req.user.id });
+    const shipping = await Shipping.find({ user: req.user.id });
 
     if (!shipping) {
       return next(new ErrorHandler("Shipping method not found", 404));

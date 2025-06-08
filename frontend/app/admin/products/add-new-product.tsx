@@ -40,6 +40,7 @@ import {
 import { baseUrl } from "@/api/MainApi";
 import { useTiers } from "@/hooks/react-query/useTierMutation";
 import { COLORS } from "@/constants/theme";
+import { DatePicker } from "react-native-wheel-pick";
 // import your styles and any custom components as needed
 
 const defaultProductData = {
@@ -57,7 +58,7 @@ const defaultProductData = {
   colorway: "",
   addToCalendar: false,
   images: [],
-  indicatorId: "", // indicator id
+  indicatorId: null, // indicator id
   isIndicatorActive: false, // true or false
   indicatorDuration: 0, // in days
   sellerFee: 0,
@@ -66,6 +67,10 @@ const defaultProductData = {
   feeEndDate: new Date(),
   tierIds: [],
   calenderDateTime: new Date(),
+  numberOfStocks: 0,
+  pushNotified: false,
+  emailNotified: false,
+  smsNotified: false,
 };
 
 const durationOptions = [
@@ -143,6 +148,7 @@ export default function AdminAddNewProduct() {
         ...prev,
         product_type: productType,
         sellerFee: product.sellerFee,
+        numberOfStocks: product.numberOfStocks,
         images: product.images.map((image: any) => {
           const uri = image.file_full_url.startsWith("http")
             ? image.file_full_url
@@ -169,9 +175,6 @@ export default function AdminAddNewProduct() {
       }));
     }
   }, [productType, params.product]);
-
-  // Bottom sheet ref and snap points
-  const snapPoints = useMemo(() => ["40%", "60%"], []);
 
   // Handle bottom sheet opening
 
@@ -205,17 +208,6 @@ export default function AdminAddNewProduct() {
   const [indicatorName, setIndicatorName] = useState<string | null>(null);
   const [indicatorImage, setIndicatorImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<any>(null);
-
-  const [selectedTiers, setSelectedTiers] = useState<string[]>([]);
-
-  const toggleTier = (id: string) => {
-    setProductData((prev: any) => ({
-      ...prev,
-      tierIds: prev.tierIds.includes(id)
-        ? prev.tierIds.filter((i: any) => i !== id)
-        : [...prev.tierIds, id],
-    }));
-  };
 
   useEffect(() => {
     if (productData.attributeId) {
@@ -327,6 +319,7 @@ export default function AdminAddNewProduct() {
         calenderDateTime: productData.calenderDateTime
           ? new Date(productData.calenderDateTime).toISOString()
           : undefined,
+        numberOfStocks: productData.numberOfStocks,
         // You may need to handle image upload separately if your backend expects files
       };
 
@@ -483,40 +476,42 @@ export default function AdminAddNewProduct() {
             </TouchableOpacity>
           </View>
           {/* SubBrand */}
-          <View
-            style={{
-              borderBottomWidth: 1,
-              marginBottom: 16,
-              borderColor: Colors.grayLinesColor,
-            }}
-          >
-            <Text
+          {productType !== "essential" && (
+            <View
               style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: "black",
-                paddingBottom: 10,
-              }}
-            >
-              Sub Brand
-            </Text>
-            <TouchableOpacity
-              onPress={() => openSheet("subBrand")}
-              style={{
-                paddingBottom: 10,
+                borderBottomWidth: 1,
+                marginBottom: 16,
+                borderColor: Colors.grayLinesColor,
               }}
             >
               <Text
-                style={{ color: productData.subBrandId ? "black" : "gray" }}
+                style={{
+                  fontSize: 16,
+                  fontWeight: "bold",
+                  color: "black",
+                  paddingBottom: 10,
+                }}
               >
-                {productData.subBrandId
-                  ? subBrands.find(
-                      (sb: any) => sb._id === productData.subBrandId
-                    )?.name
-                  : "Select Sub Brand"}
+                Sub Brand
               </Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                onPress={() => openSheet("subBrand")}
+                style={{
+                  paddingBottom: 10,
+                }}
+              >
+                <Text
+                  style={{ color: productData.subBrandId ? "black" : "gray" }}
+                >
+                  {productData.subBrandId
+                    ? subBrands.find(
+                        (sb: any) => sb._id === productData.subBrandId
+                      )?.name
+                    : "Select Sub Brand"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
           {/* Category */}
           <View
             style={{
@@ -554,40 +549,44 @@ export default function AdminAddNewProduct() {
             </TouchableOpacity>
           </View>
           {/* SubCategory */}
-          <View
-            style={{
-              borderBottomWidth: 1,
-              marginBottom: 16,
-              borderColor: Colors.grayLinesColor,
-            }}
-          >
-            <Text
+          {productType !== "essential" && (
+            <View
               style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: "black",
-                paddingBottom: 10,
-              }}
-            >
-              SubCategory
-            </Text>
-            <TouchableOpacity
-              onPress={() => openSheet("subCategory")}
-              style={{
-                paddingBottom: 10,
+                borderBottomWidth: 1,
+                marginBottom: 16,
+                borderColor: Colors.grayLinesColor,
               }}
             >
               <Text
-                style={{ color: productData.subCategoryId ? "black" : "gray" }}
+                style={{
+                  fontSize: 16,
+                  fontWeight: "bold",
+                  color: "black",
+                  paddingBottom: 10,
+                }}
               >
-                {productData.subCategoryId
-                  ? subCategories.find(
-                      (sc: any) => sc._id === productData.subCategoryId
-                    )?.name
-                  : "Select SubCategory"}
+                SubCategory
               </Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                onPress={() => openSheet("subCategory")}
+                style={{
+                  paddingBottom: 10,
+                }}
+              >
+                <Text
+                  style={{
+                    color: productData.subCategoryId ? "black" : "gray",
+                  }}
+                >
+                  {productData.subCategoryId
+                    ? subCategories.find(
+                        (sc: any) => sc._id === productData.subCategoryId
+                      )?.name
+                    : "Select SubCategory"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
           {/* SKU */}
           <View
             style={{
@@ -623,95 +622,135 @@ export default function AdminAddNewProduct() {
               }
             />
           </View>
+          {productType === "essential" && (
+            <View
+              style={{
+                borderBottomWidth: 1,
+                marginBottom: 16,
+                borderColor: Colors.grayLinesColor,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  color: "black",
+                  paddingBottom: 10,
+                  fontWeight: "bold",
+                }}
+              >
+                Number of stocks
+              </Text>
+              <TextInput
+                style={{
+                  fontSize: 16,
+                  paddingBottom: 10,
+                  color: "black",
+                }}
+                placeholder="Number of stocks"
+                value={productData.numberOfStocks?.toString()}
+                onChangeText={(text) =>
+                  setProductData((prev: any) => ({
+                    ...prev,
+                    numberOfStocks: text,
+                  }))
+                }
+                keyboardType="numeric"
+              />
+            </View>
+          )}
           {/* Sizing Attributes */}
-
-          <View
-            style={{
-              borderBottomWidth: 1,
-              marginBottom: 16,
-              paddingBottom: 10,
-              borderColor: Colors.grayLinesColor,
-            }}
-          >
-            <Text
+          {productType !== "essential" && (
+            <View
               style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: "black",
+                borderBottomWidth: 1,
+                marginBottom: 16,
                 paddingBottom: 10,
+                borderColor: Colors.grayLinesColor,
               }}
             >
-              Sizing Attributes
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                setBottomSheetType("attribute");
-                bottomSheetRef.current?.expand();
-              }}
-              style={{
-                paddingBottom: 10,
-              }}
-            >
-              <View style={{ paddingBottom: 10 }}>
-                {productData.variations && productData.variations.length > 0 ? (
-                  <Text>
-                    {productData.variations
-                      .map(
-                        (v: any) =>
-                          attributeOptions.find((o: any) => o._id === v)
-                            ?.optionName
-                      )
-                      .join(", ")}
-                  </Text>
-                ) : (
-                  <Text style={{ color: "gray" }}>
-                    Select Sizing Attributes
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "bold",
+                  color: "black",
+                  paddingBottom: 10,
+                }}
+              >
+                Sizing Attributes
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setBottomSheetType("attribute");
+                  bottomSheetRef.current?.expand();
+                }}
+                style={{
+                  paddingBottom: 10,
+                }}
+              >
+                <View style={{ paddingBottom: 10 }}>
+                  {productData.variations &&
+                  productData.variations.length > 0 ? (
+                    <Text>
+                      {productData.variations
+                        .map(
+                          (v: any) =>
+                            attributeOptions.find((o: any) => o._id === v)
+                              ?.optionName
+                        )
+                        .join(", ")}
+                    </Text>
+                  ) : (
+                    <Text style={{ color: "gray" }}>
+                      Select Sizing Attributes
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Release Date */}
-          <View
-            style={{
-              borderBottomWidth: 1,
-              marginBottom: 16,
-              borderColor: Colors.grayLinesColor,
-            }}
-          >
-            <Text
+          {productType !== "essential" && (
+            <View
               style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: "black",
-                paddingBottom: 10,
+                borderBottomWidth: 1,
+                marginBottom: 16,
+                borderColor: Colors.grayLinesColor,
               }}
             >
-              Release Date
-            </Text>
-            <TouchableOpacity
-              style={{
-                paddingBottom: 10,
-              }}
-              onPress={() => {
-                setDateType("releaseDate");
-                setTempDate(
-                  productData.releaseDate
-                    ? new Date(productData.releaseDate)
-                    : new Date()
-                );
-                setShowDateSheet(true);
-                setTimeout(() => dateSheetRef.current?.expand(), 10);
-              }}
-            >
-              <Text>
-                {productData.releaseDate
-                  ? new Date(productData.releaseDate).toLocaleDateString()
-                  : "Select Release Date"}
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: "bold",
+                  color: "black",
+                  paddingBottom: 10,
+                }}
+              >
+                Release Date
               </Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={{
+                  paddingBottom: 10,
+                }}
+                onPress={() => {
+                  setDateType("releaseDate");
+                  setTempDate(
+                    productData.releaseDate
+                      ? new Date(productData.releaseDate)
+                      : new Date()
+                  );
+                  setShowDateSheet(true);
+                  setTimeout(() => dateSheetRef.current?.expand(), 10);
+                }}
+              >
+                <Text>
+                  {productData.releaseDate
+                    ? new Date(productData.releaseDate).toLocaleDateString()
+                    : "Select Release Date"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Retail Price */}
           <View
@@ -770,185 +809,229 @@ export default function AdminAddNewProduct() {
             />
           </View>
           {/* Colorway */}
-          <View
-            style={{
-              borderBottomWidth: 1,
-              marginBottom: 16,
-              borderColor: Colors.grayLinesColor,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: "black",
-                paddingBottom: 10,
-              }}
-            >
-              Colorway
-            </Text>
-            <TextInput
-              style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: "black",
-                paddingBottom: 10,
-              }}
-              placeholder="Colorway"
-              value={productData.colorway}
-              onChangeText={(text) =>
-                setProductData((prev: any) => ({
-                  ...prev,
-                  colorway: text,
-                }))
-              }
-            />
-          </View>
-          <View
-            style={{
-              borderBottomWidth: 1,
-              marginBottom: 16,
-              borderColor: Colors.grayLinesColor,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: "black",
-                paddingBottom: 10,
-              }}
-            >
-              Seller Fee
-            </Text>
-            <TextInput
-              style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: "black",
-                paddingBottom: 10,
-              }}
-              placeholder="Seller Fee"
-              value={
-                productData.sellerFee !== undefined &&
-                productData.sellerFee !== null &&
-                productData.sellerFee !== ""
-                  ? Number(productData.sellerFee).toLocaleString("th-TH")
-                  : ""
-              }
-              onChangeText={(text) =>
-                setProductData((prev: any) => ({
-                  ...prev,
-                  sellerFee: Number(text),
-                }))
-              }
-              keyboardType="numeric"
-            />
-          </View>
-
-          <View
-            style={{
-              borderBottomWidth: 1,
-              marginBottom: 16,
-              borderColor: Colors.grayLinesColor,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: "black",
-                paddingBottom: 10,
-              }}
-            >
-              Start date
-            </Text>
-            <TouchableOpacity
-              style={{
-                paddingBottom: 10,
-              }}
-              onPress={() => {
-                setDateType("feeStartDate");
-                setTempDate(
-                  productData.feeStartDate
-                    ? new Date(productData.feeStartDate)
-                    : new Date()
-                );
-                setShowDateSheet(true);
-                setTimeout(() => dateSheetRef.current?.expand(), 10);
-              }}
-            >
-              <Text>
-                {productData.feeStartDate
-                  ? new Date(productData.feeStartDate).toLocaleDateString()
-                  : "Select Start Date"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View
-            style={{
-              borderBottomWidth: 1,
-              marginBottom: 16,
-              borderColor: Colors.grayLinesColor,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: "bold",
-                color: "black",
-                paddingBottom: 10,
-              }}
-            >
-              End date
-            </Text>
-            <TouchableOpacity
-              style={{
-                paddingBottom: 10,
-              }}
-              onPress={() => {
-                setDateType("feeEndDate");
-                setTempDate(
-                  productData.feeEndDate
-                    ? new Date(productData.feeEndDate)
-                    : new Date()
-                );
-                setShowDateSheet(true);
-                setTimeout(() => dateSheetRef.current?.expand(), 10);
-              }}
-            >
-              <Text>
-                {productData.feeEndDate
-                  ? new Date(productData.feeEndDate).toLocaleDateString()
-                  : "Select End Date"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Add to Calendar */}
-
           {productType !== "essential" && (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginBottom: 16,
-              }}
-            >
-              <Switch
-                value={productData.addToCalendar}
-                onValueChange={(value) =>
-                  setProductData((prev: any) => ({
-                    ...prev,
-                    addToCalendar: value,
-                  }))
-                }
-              />
-              <Text style={{ marginLeft: 8 }}>Add to Sneaker Calendar</Text>
-            </View>
+            <>
+              <View
+                style={{
+                  borderBottomWidth: 1,
+                  marginBottom: 16,
+                  borderColor: Colors.grayLinesColor,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: "black",
+                    paddingBottom: 10,
+                  }}
+                >
+                  Colorway
+                </Text>
+                <TextInput
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: "black",
+                    paddingBottom: 10,
+                  }}
+                  placeholder="Colorway"
+                  value={productData.colorway}
+                  onChangeText={(text) =>
+                    setProductData((prev: any) => ({
+                      ...prev,
+                      colorway: text,
+                    }))
+                  }
+                />
+              </View>
+              <View
+                style={{
+                  borderBottomWidth: 1,
+                  marginBottom: 16,
+                  borderColor: Colors.grayLinesColor,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: "black",
+                    paddingBottom: 10,
+                  }}
+                >
+                  Seller Fee
+                </Text>
+                <TextInput
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: "black",
+                    paddingBottom: 10,
+                  }}
+                  placeholder="Seller Fee"
+                  value={
+                    productData.sellerFee !== undefined &&
+                    productData.sellerFee !== null &&
+                    productData.sellerFee !== ""
+                      ? Number(productData.sellerFee).toLocaleString("th-TH")
+                      : ""
+                  }
+                  onChangeText={(text) =>
+                    setProductData((prev: any) => ({
+                      ...prev,
+                      sellerFee: Number(text),
+                    }))
+                  }
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View
+                style={{
+                  borderBottomWidth: 1,
+                  marginBottom: 16,
+                  borderColor: Colors.grayLinesColor,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: "black",
+                    paddingBottom: 10,
+                  }}
+                >
+                  Start date
+                </Text>
+                <TouchableOpacity
+                  style={{
+                    paddingBottom: 10,
+                  }}
+                  onPress={() => {
+                    setDateType("feeStartDate");
+                    setTempDate(
+                      productData.feeStartDate
+                        ? new Date(productData.feeStartDate)
+                        : new Date()
+                    );
+                    setShowDateSheet(true);
+                    setTimeout(() => dateSheetRef.current?.expand(), 10);
+                  }}
+                >
+                  <Text>
+                    {productData.feeStartDate
+                      ? new Date(productData.feeStartDate).toLocaleDateString()
+                      : "Select Start Date"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View
+                style={{
+                  borderBottomWidth: 1,
+                  marginBottom: 16,
+                  borderColor: Colors.grayLinesColor,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "bold",
+                    color: "black",
+                    paddingBottom: 10,
+                  }}
+                >
+                  End date
+                </Text>
+                <TouchableOpacity
+                  style={{
+                    paddingBottom: 10,
+                  }}
+                  onPress={() => {
+                    setDateType("feeEndDate");
+                    setTempDate(
+                      productData.feeEndDate
+                        ? new Date(productData.feeEndDate)
+                        : new Date()
+                    );
+                    setShowDateSheet(true);
+                    setTimeout(() => dateSheetRef.current?.expand(), 10);
+                  }}
+                >
+                  <Text>
+                    {productData.feeEndDate
+                      ? new Date(productData.feeEndDate).toLocaleDateString()
+                      : "Select End Date"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Add to Calendar */}
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <Switch
+                  value={productData.addToCalendar}
+                  onValueChange={(value) =>
+                    setProductData((prev: any) => ({
+                      ...prev,
+                      addToCalendar: value,
+                    }))
+                  }
+                />
+                <Text style={{ marginLeft: 8 }}>Add to Sneaker Calendar</Text>
+              </View>
+
+              <View
+                style={{
+                  borderBottomWidth: 1,
+                  marginBottom: 16,
+                  borderColor: Colors.grayLinesColor,
+                }}
+              >
+                <Text style={{ fontWeight: "bold", marginBottom: 8 }}>
+                  Sneaker Calendar Date
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setDateType("calenderDateTime");
+                    setTempDate(
+                      productData.calenderDateTime
+                        ? new Date(productData.calenderDateTime)
+                        : new Date()
+                    );
+                    setShowDateSheet(true);
+                    setTimeout(() => dateSheetRef.current?.expand(), 10);
+                  }}
+                  style={{
+                    paddingBottom: 10,
+                  }}
+                >
+                  <Text>
+                    {productData.calenderDateTime
+                      ? new Date(productData.calenderDateTime).toLocaleString(
+                          "en-US",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )
+                      : "Select Lunch Date"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </>
           )}
-          {productData.addToCalendar && (
+          {productType === "essential" && (
             <View
               style={{
                 borderBottomWidth: 1,
@@ -956,39 +1039,37 @@ export default function AdminAddNewProduct() {
                 borderColor: Colors.grayLinesColor,
               }}
             >
-              <Text style={{ fontWeight: "bold", marginBottom: 8 }}>
-                Sneaker Calendar Date
-              </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setDateType("calenderDateTime");
-                  setTempDate(
-                    productData.calenderDateTime
-                      ? new Date(productData.calenderDateTime)
-                      : new Date()
-                  );
-                  setShowDateSheet(true);
-                  setTimeout(() => dateSheetRef.current?.expand(), 10);
-                }}
+              <Text
                 style={{
+                  fontSize: 16,
+                  color: "black",
                   paddingBottom: 10,
+                  fontWeight: "bold",
                 }}
               >
-                <Text>
-                  {productData.calenderDateTime
-                    ? new Date(productData.calenderDateTime).toLocaleString(
-                        "en-US",
-                        {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }
-                      )
-                    : "Select Lunch Date"}
-                </Text>
-              </TouchableOpacity>
+                Description
+              </Text>
+              <TextInput
+                style={{
+                  fontSize: 16,
+                  paddingBottom: 10,
+                  color: "black",
+                  borderWidth: 2,
+                  borderColor: Colors.black,
+                  borderRadius: 0,
+                  padding: 10,
+                }}
+                placeholder="Description"
+                value={productData.description}
+                onChangeText={(text) =>
+                  setProductData((prev: any) => ({
+                    ...prev,
+                    description: text,
+                  }))
+                }
+                multiline={true}
+                numberOfLines={5}
+              />
             </View>
           )}
           {/* Images */}
@@ -1034,196 +1115,197 @@ export default function AdminAddNewProduct() {
             </View>
           </View>
 
-          {productType !== "essential" && (
-            <View style={{ marginBottom: 16, paddingBottom: 10 }}>
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "bold",
-                  color: "black",
-                  paddingBottom: 10,
-                }}
-              >
-                Special Indicator
-              </Text>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <TouchableOpacity
-                  onPress={() => openSheet("indicator")}
-                  style={{
-                    paddingBottom: 10,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: productData.indicatorId ? "black" : "gray",
-                    }}
-                  >
-                    {productData.indicatorId
-                      ? indicators.find(
-                          (i: any) => i._id === productData.indicatorId
-                        )?.name
-                      : "Indicator"}
-                  </Text>
-                </TouchableOpacity>
-                <View
-                  style={{ flexDirection: "row", marginLeft: "auto", gap: 0 }}
-                >
-                  <TouchableOpacity
-                    style={{
-                      borderWidth: 1,
-                      borderColor: "#000000",
-                      borderRadius: 0,
-                      paddingVertical: 4,
-                      paddingHorizontal: 18,
-                      backgroundColor: productData.isIndicatorActive
-                        ? "#000000"
-                        : "#fff",
-                    }}
-                    onPress={() =>
-                      setProductData((prev: any) => ({
-                        ...prev,
-                        isIndicatorActive: true,
-                      }))
-                    }
-                  >
-                    <Text
-                      style={{
-                        color: productData.isIndicatorActive
-                          ? "#ffffff"
-                          : "#000000",
-                      }}
-                    >
-                      Yes
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{
-                      borderWidth: 1,
-                      borderColor: "#000000",
-                      borderRadius: 0,
-                      paddingVertical: 4,
-                      paddingHorizontal: 18,
-                      backgroundColor: productData.isIndicatorActive
-                        ? "#fff"
-                        : "#000000",
-                    }}
-                    onPress={() =>
-                      setProductData((prev: any) => ({
-                        ...prev,
-                        isIndicatorActive: false,
-                      }))
-                    }
-                  >
-                    <Text
-                      style={{
-                        color: !productData.isIndicatorActive
-                          ? "#ffffff"
-                          : "#000000",
-                      }}
-                    >
-                      No
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Duration */}
-          {productType !== "essential" && (
-            <View style={{ marginBottom: 16, paddingBottom: 10 }}>
-              <Text
-                style={{
-                  fontSize: 16,
-                  fontWeight: "bold",
-                  color: "black",
-                  paddingBottom: 10,
-                }}
-              >
-                Duration
-              </Text>
-
+          <View style={{ marginBottom: 16, paddingBottom: 10 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "bold",
+                color: "black",
+                paddingBottom: 10,
+              }}
+            >
+              Special Indicator
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
               <TouchableOpacity
-                onPress={() => openSheet("duration")}
+                onPress={() => openSheet("indicator")}
                 style={{
                   paddingBottom: 10,
                 }}
               >
                 <Text
                   style={{
-                    color: productData.indicatorDuration ? "black" : "gray",
+                    color: productData.indicatorId ? "black" : "gray",
                   }}
                 >
-                  {productData.indicatorDuration
-                    ? durationOptions.find(
-                        (d: any) => d.value === productData.indicatorDuration
+                  {productData.indicatorId
+                    ? indicators.find(
+                        (i: any) => i._id === productData.indicatorId
                       )?.name
-                    : "Select Duration"}
+                    : "Indicator"}
                 </Text>
               </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Tier */}
-
-          <View style={styles.formGroup}>
-            <View
-              style={{ flexDirection: "row", justifyContent: "space-between" }}
-            >
-              <Text style={styles.label}> Apply to Tier</Text>
-              <TouchableOpacity
-                style={styles.selectAllBtn}
-                onPress={() => {
-                  if (productData.tierIds.length === tiers.length) {
-                    setProductData((prev: any) => ({
-                      ...prev,
-                      tierIds: [],
-                    }));
-                  } else {
-                    setProductData((prev: any) => ({
-                      ...prev,
-                      tierIds: tiers.map((tier) => tier._id),
-                    }));
-                  }
-                }}
+              <View
+                style={{ flexDirection: "row", marginLeft: "auto", gap: 0 }}
               >
-                <Text style={styles.selectAllText}>
-                  {productData.tierIds.length === tiers.length
-                    ? "Clear All"
-                    : "Select All"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.inlinePickerList}>
-              {tiers.map((tier) => (
                 <TouchableOpacity
-                  key={tier._id}
-                  style={styles.inlinePickerItem}
-                  onPress={() => handleMultiSelect("tierIds", tier._id)}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: "#000000",
+                    borderRadius: 0,
+                    paddingVertical: 4,
+                    paddingHorizontal: 18,
+                    backgroundColor: productData.isIndicatorActive
+                      ? "#000000"
+                      : "#fff",
+                  }}
+                  onPress={() =>
+                    setProductData((prev: any) => ({
+                      ...prev,
+                      isIndicatorActive: true,
+                    }))
+                  }
                 >
-                  <Ionicons
-                    name={
-                      productData.tierIds.includes(tier._id)
-                        ? "checkbox"
-                        : "square-outline"
-                    }
-                    size={20}
-                    color={COLORS.primary}
-                    style={{ marginRight: 8 }}
-                  />
                   <Text
                     style={{
-                      color: productData.tierIds.includes(tier._id)
-                        ? COLORS.primary
-                        : undefined,
+                      color: productData.isIndicatorActive
+                        ? "#ffffff"
+                        : "#000000",
                     }}
                   >
-                    {tier.name}
+                    Yes
                   </Text>
                 </TouchableOpacity>
-              ))}
+                <TouchableOpacity
+                  style={{
+                    borderWidth: 1,
+                    borderColor: "#000000",
+                    borderRadius: 0,
+                    paddingVertical: 4,
+                    paddingHorizontal: 18,
+                    backgroundColor: productData.isIndicatorActive
+                      ? "#fff"
+                      : "#000000",
+                  }}
+                  onPress={() =>
+                    setProductData((prev: any) => ({
+                      ...prev,
+                      isIndicatorActive: false,
+                    }))
+                  }
+                >
+                  <Text
+                    style={{
+                      color: !productData.isIndicatorActive
+                        ? "#ffffff"
+                        : "#000000",
+                    }}
+                  >
+                    No
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
+
+          {/* Duration */}
+
+          <View style={{ marginBottom: 16, paddingBottom: 10 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "bold",
+                color: "black",
+                paddingBottom: 10,
+              }}
+            >
+              Duration
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => openSheet("duration")}
+              style={{
+                paddingBottom: 10,
+              }}
+            >
+              <Text
+                style={{
+                  color: productData.indicatorDuration ? "black" : "gray",
+                }}
+              >
+                {productData.indicatorDuration
+                  ? durationOptions.find(
+                      (d: any) => d.value === productData.indicatorDuration
+                    )?.name
+                  : "Select Duration"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Tier */}
+          {productType !== "essential" && (
+            <View style={styles.formGroup}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Text style={styles.label}> Apply to Tier</Text>
+                <TouchableOpacity
+                  style={styles.selectAllBtn}
+                  onPress={() => {
+                    if (productData.tierIds.length === tiers.length) {
+                      setProductData((prev: any) => ({
+                        ...prev,
+                        tierIds: [],
+                      }));
+                    } else {
+                      setProductData((prev: any) => ({
+                        ...prev,
+                        tierIds: tiers.map((tier) => tier._id),
+                      }));
+                    }
+                  }}
+                >
+                  <Text style={styles.selectAllText}>
+                    {productData.tierIds.length === tiers.length
+                      ? "Clear All"
+                      : "Select All"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.inlinePickerList}>
+                {tiers.map((tier) => (
+                  <TouchableOpacity
+                    key={tier._id}
+                    style={styles.inlinePickerItem}
+                    onPress={() => handleMultiSelect("tierIds", tier._id)}
+                  >
+                    <Ionicons
+                      name={
+                        productData.tierIds.includes(tier._id)
+                          ? "checkbox"
+                          : "square-outline"
+                      }
+                      size={20}
+                      color={COLORS.primary}
+                      style={{ marginRight: 8 }}
+                    />
+                    <Text
+                      style={{
+                        color: productData.tierIds.includes(tier._id)
+                          ? COLORS.primary
+                          : undefined,
+                      }}
+                    >
+                      {tier.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -1630,26 +1712,58 @@ export default function AdminAddNewProduct() {
             </TouchableOpacity>
           </View>
           <View style={{ alignItems: "center", justifyContent: "center" }}>
-            {dateType === "calenderDateTime" ? (
-              <DateTimePicker
-                value={tempDate}
-                mode="datetime"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={(_event, selectedDate) => {
-                  if (selectedDate) setTempDate(selectedDate);
-                }}
-                style={{ width: 320, backgroundColor: "white" }}
-              />
+            {Platform.OS === "ios" ? (
+              <>
+                {dateType === "calenderDateTime" ? (
+                  <DateTimePicker
+                    value={tempDate}
+                    mode="datetime"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={(_event, selectedDate) => {
+                      if (selectedDate) setTempDate(selectedDate);
+                    }}
+                    style={{ width: 320, backgroundColor: "white" }}
+                  />
+                ) : (
+                  <DateTimePicker
+                    value={tempDate}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={(_event, selectedDate) => {
+                      if (selectedDate) setTempDate(selectedDate);
+                    }}
+                    style={{ width: 320, backgroundColor: "white" }}
+                  />
+                )}
+              </>
             ) : (
-              <DateTimePicker
-                value={tempDate}
-                mode="date"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={(_event, selectedDate) => {
-                  if (selectedDate) setTempDate(selectedDate);
-                }}
-                style={{ width: 320, backgroundColor: "white" }}
-              />
+              <>
+                {dateType === "calenderDateTime" ? (
+                  <DatePicker
+                    style={{ width: 320, backgroundColor: "white" }}
+                    textSize={14}
+                    selectTextColor="#000"
+                    selectLineColor="white"
+                    selectLineSize={6}
+                    order="Y-M-D"
+                    onDateChange={(_event, selectedDate) => {
+                      if (selectedDate) setTempDate(selectedDate);
+                    }}
+                  />
+                ) : (
+                  <DatePicker
+                    style={{ width: 320, backgroundColor: "white" }}
+                    textSize={14}
+                    selectTextColor="#000"
+                    selectLineColor="white"
+                    selectLineSize={6}
+                    order="Y-M-D"
+                    onDateChange={(_event, selectedDate) => {
+                      if (selectedDate) setTempDate(selectedDate);
+                    }}
+                  />
+                )}
+              </>
             )}
           </View>
         </BottomSheetView>

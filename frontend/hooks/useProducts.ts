@@ -41,6 +41,8 @@ export const useProducts = ({ filter }: { filter: any | null }) => {
     }
   };
 
+  
+
   useEffect(() => {
     fetchProducts();
   }, [JSON.stringify(safeFilter)]);
