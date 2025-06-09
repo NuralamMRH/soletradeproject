@@ -81,20 +81,26 @@ exports.getBiddingOfferById = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.createBiddingOffer = catchAsyncErrors(async (req, res, next) => {
-  const biddingOffer = new BiddingOffer({
-    userId: req.user.id,
-    ...req.body,
-  });
+  try {
+    console.log("req.body", req.body);
+    const biddingOffer = new BiddingOffer({
+      userId: req.user.id,
+      ...req.body,
+    });
 
-  const savedBiddingOffer = await biddingOffer.save();
-  if (!savedBiddingOffer) {
-    return next(new ErrorHandler("Error creating bidding offer", 500));
+    const savedBiddingOffer = await biddingOffer.save();
+    if (!savedBiddingOffer) {
+      return next(new ErrorHandler("Error creating bidding offer", 500));
+    }
+
+    res.status(201).json({
+      success: true,
+      biddingOffer: savedBiddingOffer,
+    });
+  } catch (error) {
+    console.log(error);
+    return next(new ErrorHandler(error.message, 500));
   }
-
-  res.status(201).json({
-    success: true,
-    biddingOffer: savedBiddingOffer,
-  });
 });
 
 exports.updateBiddingOffer = catchAsyncErrors(async (req, res, next) => {

@@ -57,13 +57,6 @@ export default function ProductDetailsScreen() {
     return <Text>Error: {error}</Text>;
   }
 
-  console.log(productData);
-
-  const handleAddToCart = () => {
-    // TODO: Implement add to cart logic
-    console.log("Add to cart:", { id, selectedSize, selectedColor });
-  };
-
   return (
     <View style={styles.container}>
       {productData?.product_type === "essential" ? (

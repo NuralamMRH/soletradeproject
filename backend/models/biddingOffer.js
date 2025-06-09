@@ -47,6 +47,10 @@ const biddingOfferSchema = mongoose.Schema({
     type: Number,
     required: true,
   },
+  deliverySystem: {
+    type: String,
+    default: "Standard",
+  },
   offerCreateDate: {
     type: Date,
     default: Date.now,

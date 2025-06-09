@@ -20,20 +20,7 @@ import { useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
-const sliderImages = [
-  {
-    id: 1,
-    uri: "https://images.unsplash.com/photo-1517263904808-5dc0d6d3fa0c?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: 2,
-    uri: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: 3,
-    uri: "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=800&q=80",
-  },
-];
+
 
 const featuredBrands = [
   {

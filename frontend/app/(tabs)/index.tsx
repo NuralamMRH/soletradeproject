@@ -1257,8 +1257,9 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 170,
     height: 120,
-    objectFit: "contain",
+    objectFit: "cover",
     overflow: "hidden",
+    borderRadius: 10,
   },
   productInfo: {
     padding: 10,

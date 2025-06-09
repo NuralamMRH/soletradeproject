@@ -3,7 +3,7 @@ import MainApi from "@/api/MainApi";
 import Toast from "react-native-toast-message";
 import { useAuth } from "../useAuth";
 
-// Get all bidding offers 
+// Get all bidding offers
 export const useBiddingOffers = () => {
   const { isAuthenticated } = useAuth();
 
@@ -20,12 +20,39 @@ export const useBiddingOffers = () => {
         Toast.show({
           type: "error",
           text1: "Error",
-          text2: error.response?.data?.message || "Failed to fetch bidding offers",
+          text2:
+            error.response?.data?.message || "Failed to fetch bidding offers",
         });
         return [];
       }
     },
     enabled: isAuthenticated,
+  });
+};
+
+export const useBiddingOfferById = (biddingOfferId: string) => {
+  const { isAuthenticated } = useAuth();
+
+  return useQuery({
+    queryKey: ["biddingOffer", biddingOfferId],
+    queryFn: async () => {
+      if (!isAuthenticated) {
+        return null;
+      }
+      try {
+        const { data } = await MainApi.get(`/api/v1/bidding/${biddingOfferId}`);
+        return data.biddingOffer;
+      } catch (error: any) {
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2:
+            error.response?.data?.message || "Failed to fetch bidding offer",
+        });
+        return null;
+      }
+    },
+    enabled: !!biddingOfferId && isAuthenticated,
   });
 };
 // Get all bidding offers for current user
@@ -89,32 +116,24 @@ export const useAddToBiddingOffer = () => {
   const { isAuthenticated } = useAuth();
 
   return useMutation({
-    mutationFn: async ({
-      productId,
-      biddingOfferType = "biddingOffer",
-    }: {
-      productId: string;
-      biddingOfferType?: string;
-    }) => {
+    mutationFn: async (orderData: object) => {
       if (!isAuthenticated) {
         throw new Error("User not authenticated");
       }
       try {
-        const { data } = await MainApi.post("/api/v1/bidding", {
-          productId,
-          biddingOfferType,
-        });
+        const { data } = await MainApi.post("/api/v1/bidding", orderData);
         Toast.show({
           type: "success",
           text1: "Success",
-          text2: `Product added to ${biddingOfferType}`,
+          text2: "Bidding offer created successfully",
         });
         return data.biddingOffer;
       } catch (error: any) {
         Toast.show({
           type: "error",
           text1: "Error",
-          text2: error.response?.data?.message || "Failed to add to bidding offer",
+          text2:
+            error.response?.data?.message || "Failed to create bidding offer",
         });
         throw error;
       }
@@ -125,7 +144,49 @@ export const useAddToBiddingOffer = () => {
   });
 };
 
-// Remove from wishlist
+export const useUpdateBiddingOffer = () => {
+  const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({
+      biddingOfferId,
+      orderData,
+    }: {
+      biddingOfferId: string;
+      orderData: object;
+    }) => {
+      if (!isAuthenticated) {
+        throw new Error("User not authenticated");
+      }
+      try {
+        const { data } = await MainApi.put(
+          `/api/v1/bidding/${biddingOfferId}`,
+          orderData
+        );
+        Toast.show({
+          type: "success",
+          text1: "Success",
+          text2: "Bidding offer updated successfully",
+        });
+        return data.biddingOffer;
+      } catch (error: any) {
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2:
+            error.response?.data?.message || "Failed to update bidding offer",
+        });
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["biddingOffers"] });
+    },
+  });
+};
+
+// Remove from bidding offer
 export const useRemoveFromBiddingOffer = () => {
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
@@ -150,7 +211,8 @@ export const useRemoveFromBiddingOffer = () => {
           type: "error",
           text1: "Error",
           text2:
-            error.response?.data?.message || "Failed to remove from bidding offer",
+            error.response?.data?.message ||
+            "Failed to remove from bidding offer",
         });
         throw error;
       }
@@ -188,7 +250,8 @@ export const useToggleBiddingOffer = () => {
         Toast.show({
           type: "error",
           text1: "Error",
-          text2: error.response?.data?.message || "Failed to toggle bidding offer",
+          text2:
+            error.response?.data?.message || "Failed to toggle bidding offer",
         });
         throw error;
       }

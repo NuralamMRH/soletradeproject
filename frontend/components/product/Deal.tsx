@@ -11,6 +11,7 @@ import {
   Platform,
   Animated,
   Modal,
+  FlatList,
 } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,7 +26,7 @@ import * as Linking from "expo-linking";
 import { Image as ExpoImage } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Price from "@/utils/Price";
-import { SIZES } from "@/constants";
+import { COLORS, SIZES } from "@/constants";
 import Colors from "@/constants/Colors";
 import {
   useAddToWishlist,
@@ -33,6 +34,8 @@ import {
   useWishlists,
 } from "@/hooks/react-query/useWishlistMutation";
 import { LineChart } from "react-native-chart-kit";
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import AdminHeader from "../AdminHeader";
 
 const { width } = Dimensions.get("window");
 
@@ -60,6 +63,13 @@ const Deal = ({ product }: { product: any }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [zoomIndex, setZoomIndex] = useState(0);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnimSell = useRef(new Animated.Value(1)).current;
+  const [bottomSheetType, setBottomSheetType] = useState<"buy" | "sell">("buy");
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<
+    "buyNow" | "placeOffer" | "sellNow" | "placeAsk"
+  >("buyNow");
 
   const { mutate: addToWishlist } = useAddToWishlist();
   const { mutate: removeFromWishlist } = useRemoveFromWishlist();
@@ -83,9 +93,7 @@ const Deal = ({ product }: { product: any }) => {
 
   const insets = useSafeAreaInsets();
 
-  const cartCount = useSelector(
-    (state: any) => state.product.checkout.totalItems
-  );
+  console.log("product.variations", product.variations);
 
   const handleAddToWishlist = (productId: string) => {
     console.log("productId", productId);
@@ -102,28 +110,40 @@ const Deal = ({ product }: { product: any }) => {
     }
   };
 
-  const handleAddToCart = () => {
-    dispatch(
-      addToCart({
-        id: product._id,
-        name: product.name,
-        brand: product.brand?.name || "",
-        price: product.retailPrice,
-        quantity: 1,
-        image: product.images[0]
-          ? `${baseUrl}${product.images[0].file_full_url}`
-          : "",
-      })
-    );
-    // Animate button
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 1.1,
-        duration: 120,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }),
-    ]).start();
+  // Handle bottom sheet closing
+  const handleCloseBottomSheet = () => {
+    setTimeout(() => {
+      bottomSheetRef.current?.close();
+    }, 0);
+  };
+
+  const handleButtonClicked = (type: "buy" | "sell") => {
+    setBottomSheetType(type);
+    setSelectedSize(null);
+    setActiveTab("buyNow");
+    bottomSheetRef.current?.expand();
+    if (type === "buy") {
+      // Animate button
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.1,
+          duration: 120,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }),
+      ]).start();
+    }
+
+    if (type === "sell") {
+      Animated.sequence([
+        Animated.timing(scaleAnimSell, {
+          toValue: 1.1,
+          duration: 120,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnimSell, { toValue: 1, useNativeDriver: true }),
+      ]).start();
+    }
   };
 
   const handleShare = async () => {
@@ -141,6 +161,64 @@ const Deal = ({ product }: { product: any }) => {
     }
   };
 
+  const handleGoToOfferPlace = () => {
+    router.push({
+      pathname: "/deal/offer-place",
+      params: {
+        offerType: activeTab,
+        productId: product._id,
+        productName: product.name,
+        brand: product.brand?.name,
+        sizeId: selectedSize,
+        size: product.variations.find(
+          (variation: any) => variation._id === selectedSize
+        )?.size,
+        variations: JSON.stringify(product.variations) || [],
+        retailPrice: product.retailPrice,
+        image: `${baseUrl}${product.images[0].file_full_url}`,
+        colorway: product.colorway,
+        productType: product.product_type,
+        brandId: product.brandId || "",
+        categoryId: product.categoryId || "",
+        subCategoryId: product.subCategoryId || "",
+        attribute: product.attribute || null,
+        bidding: product.bidding || null,
+        selling: product.selling || null,
+        transactions: product.transactions || null,
+        // Add more params as needed
+      },
+    });
+  };
+
+  const handleGoToPlaceAsk = () => {
+    router.push({
+      pathname: "/deal/seller/product-condition",
+      params: {
+        offerType: activeTab,
+        productId: product._id,
+        productName: product.name,
+        brand: product.brand?.name,
+        sizeId: selectedSize,
+        size: product.variations.find(
+          (variation: any) => variation._id === selectedSize
+        )?.size,
+        variations: JSON.stringify(product.variations) || [],
+        retailPrice: product.retailPrice,
+        image: `${baseUrl}${product.images[0].file_full_url}`,
+        colorway: product.colorway,
+        productType: product.product_type,
+        brandId: product.brandId || "",
+        categoryId: product.categoryId || "",
+        subCategoryId: product.subCategoryId || "",
+        attribute: product.attribute || null,
+        bidding: product.bidding || null,
+        selling: product.selling || null,
+        transactions: product.transactions || null,
+        // Add more params as needed
+      },
+    });
+  };
+
   const ProductCard: React.FC<ProductCardProps> = ({
     index,
     brand,
@@ -154,15 +232,32 @@ const Deal = ({ product }: { product: any }) => {
       style={styles.productCard}
     >
       {index && <Text style={styles.productIndex}>{index}</Text>}
-      <Image source={image} style={styles.productImage} />
+      <Image
+        source={image}
+        style={{
+          width: "100%",
+          maxWidth: 170,
+          height: 120,
+          objectFit: "cover",
+          overflow: "hidden",
+          borderRadius: 10,
+        }}
+      />
       <View style={styles.productInfo}>
-        <Text style={styles.productBrand}>{brand}</Text>
-        <Text style={styles.productName} numberOfLines={2}>
+        <Text style={{ fontSize: 14, fontWeight: "bold", color: "#333" }}>
+          {brand}
+        </Text>
+        <Text
+          style={{ fontSize: 12, color: "#666", marginVertical: 4 }}
+          numberOfLines={2}
+        >
           {name}
         </Text>
         {price && (
           <View>
-            <Text style={styles.productPrice}>{price}</Text>
+            <Text style={{ fontSize: 16, fontWeight: "bold", color: "#333" }}>
+              {price}
+            </Text>
             <Text style={styles.lowestAsk}>Lowest Ask</Text>
           </View>
         )}
@@ -286,73 +381,96 @@ const Deal = ({ product }: { product: any }) => {
 
   return (
     <>
-      <StatusBar style="dark" />
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          headerTitle: "",
-          headerTransparent: true,
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={styles.backButton}
-            >
-              <Ionicons name="arrow-back" size={24} color="#333" />
+      <AdminHeader
+        onBack={() => router.back()}
+        backgroundColor={"transparent"}
+        borderHide
+        right={
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacity style={styles.headerButton} onPress={handleShare}>
+              <Ionicons name="share-outline" size={24} color="#333" />
             </TouchableOpacity>
-          ),
-          headerRight: () => (
-            <>
-              <TouchableOpacity
-                onPress={() =>
+            <TouchableOpacity
+              onPress={() =>
+                wishlists?.some(
+                  (wishlist: any) => wishlist?.productId === product._id
+                )
+                  ? handleRemoveFromWishlist(product._id)
+                  : handleAddToWishlist(product._id)
+              }
+              style={styles.headerButton}
+            >
+              <Ionicons
+                name={
                   wishlists?.some(
                     (wishlist: any) => wishlist?.productId === product._id
                   )
-                    ? handleRemoveFromWishlist(product._id)
-                    : handleAddToWishlist(product._id)
+                    ? "bookmark"
+                    : "bookmark-outline"
                 }
-                style={styles.favoriteButton}
-              >
-                <Ionicons
-                  name={
-                    wishlists?.some(
-                      (wishlist: any) => wishlist?.productId === product._id
-                    )
-                      ? "bookmark"
-                      : "bookmark-outline"
-                  }
-                  size={20}
-                  color="#000"
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.headerButton}
-                onPress={handleShare}
-              >
-                <Ionicons name="share-outline" size={24} color="#333" />
-              </TouchableOpacity>
-            </>
-          ),
-        }}
+                size={20}
+                color="#000"
+              />
+            </TouchableOpacity>
+          </View>
+        }
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={[styles.buttonRow, { paddingTop: insets.top + 50 }]}>
-          <TouchableOpacity style={styles.buyBigButton}>
-            <Text style={styles.buyButtonLabel}>BUY</Text>
-            <Text style={styles.buyButtonPrice}>8,400 Baht</Text>
-            <Text style={styles.buyButtonSub}>Lowest Ask</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.sellBigButton}>
-            <Text style={styles.sellButtonLabel}>SELL</Text>
-            <Text style={styles.sellButtonPrice}>12,400 Baht</Text>
-            <Text style={styles.sellButtonSub}>Highest Offer</Text>
-          </TouchableOpacity>
+        <View style={styles.buttonRow}>
+          <Animated.View
+            style={{
+              transform: [{ scale: scaleAnim }],
+              flex: 1,
+              paddingRight: 2,
+              height: "100%",
+              width: "100%",
+            }}
+          >
+            <TouchableOpacity
+              style={styles.buyButtonExact}
+              onPress={() => handleButtonClicked("buy")}
+              activeOpacity={0.8}
+            >
+              <View style={styles.buttonLeftExact}>
+                <Text style={styles.buyLabelExact}>BUY</Text>
+              </View>
+              <View style={styles.buttonRightExact}>
+                <Text style={styles.buyPriceExact}>8,400 Baht</Text>
+                <Text style={styles.buySubExact}>Lowest Ask</Text>
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
+          <Animated.View
+            style={{
+              transform: [{ scale: scaleAnimSell }],
+              flex: 1,
+              paddingLeft: 2,
+              height: "100%",
+              width: "100%",
+            }}
+          >
+            <TouchableOpacity
+              style={styles.sellButtonExact}
+              onPress={() => handleButtonClicked("sell")}
+              activeOpacity={0.8}
+            >
+              <View style={styles.buttonLeftExact}>
+                <Text style={styles.sellLabelExact}>SELL</Text>
+              </View>
+              <View style={styles.buttonRightExact}>
+                <Text style={styles.sellPriceExact}>12,400 Baht</Text>
+                <Text style={styles.sellSubExact}>Highest Offer</Text>
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
         <View style={styles.imageContainer}>
           <SwiperFlatList
             showPagination
-            paginationActiveColor="#007A3D"
-            paginationDefaultColor="#ccc"
+            paginationActiveColor={COLORS.brandColor}
+            paginationDefaultColor={COLORS.gray}
+            paginationStyleItem={styles.paginationDot}
             data={product.images}
             index={currentImageIndex}
             onChangeIndex={({ index }) => setCurrentImageIndex(index)}
@@ -488,7 +606,7 @@ const Deal = ({ product }: { product: any }) => {
                 yAxisSuffix=""
                 chartConfig={{
                   backgroundColor: "#fff",
-                  backgroundGradientFrom: "#fff",
+                  backgroundGradientFrom: COLORS.brandGray,
                   backgroundGradientTo: "#fff",
                   decimalPlaces: 0,
                   color: (opacity = 1) => `rgba(123, 36, 28, ${opacity})`,
@@ -590,6 +708,491 @@ const Deal = ({ product }: { product: any }) => {
           title={"Recently Viewed"}
         />
       </ScrollView>
+
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={-1}
+        snapPoints={["60%"]}
+        onClose={handleCloseBottomSheet}
+        enablePanDownToClose={true}
+        backgroundStyle={{ backgroundColor: "#000", borderRadius: 0 }}
+        handleIndicatorStyle={{ backgroundColor: "white" }}
+      >
+        <BottomSheetView style={{ flex: 1, padding: 20 }}>
+          {/* Size Selection Grid */}
+          {!selectedSize ? (
+            <>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 20,
+                }}
+              >
+                <Text
+                  style={{ color: "white", fontWeight: "bold", fontSize: 20 }}
+                >
+                  Select Size
+                </Text>
+                <TouchableOpacity>
+                  <Text style={{ color: "white", fontSize: 14 }}>
+                    Size Chart &gt;
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  justifyContent: "space-between",
+                }}
+              >
+                {product.variations?.map((variation: any, idx: number) => (
+                  <TouchableOpacity
+                    key={variation._id}
+                    style={{
+                      width: "30%",
+                      marginBottom: 16,
+                      borderWidth: 2,
+                      borderColor:
+                        selectedSize === variation._id ? "#fff" : "#888",
+                      borderRadius: 8,
+                      paddingVertical: 16,
+                      alignItems: "center",
+                      backgroundColor:
+                        selectedSize === variation._id ? "#222" : "transparent",
+                    }}
+                    onPress={() => {
+                      setSelectedSize(variation._id);
+                      {
+                        bottomSheetType === "buy"
+                          ? setActiveTab("buyNow")
+                          : setActiveTab("sellNow");
+                      }
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "#fff",
+                        fontWeight: "bold",
+                        fontSize: 16,
+                      }}
+                    >
+                      {variation.optionName}{" "}
+                      {product.attribute?.name || variation.attributeId.name}
+                    </Text>
+                    <Text style={{ color: "#fff", fontSize: 14, marginTop: 4 }}>
+                      14,800 Baht
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          ) : (
+            <>
+              {bottomSheetType === "buy" ? (
+                <>
+                  {/* Tab Bar */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      borderBottomWidth: 2,
+                      borderBottomColor: "#888",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        alignItems: "center",
+                        paddingVertical: 12,
+                        borderBottomWidth: activeTab === "buyNow" ? 3 : 0,
+                        borderBottomColor:
+                          activeTab === "buyNow" ? "#a00" : "transparent",
+                        marginBottom: -2,
+                      }}
+                      onPress={() => setActiveTab("buyNow")}
+                    >
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontWeight: "bold",
+                          fontSize: 18,
+                        }}
+                      >
+                        Buy Now
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        alignItems: "center",
+                        paddingVertical: 12,
+                        borderBottomWidth: activeTab === "placeOffer" ? 3 : 0,
+                        borderBottomColor:
+                          activeTab === "placeOffer" ? "#a00" : "transparent",
+                        marginBottom: -2,
+                      }}
+                      onPress={() => setActiveTab("placeOffer")}
+                    >
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontWeight: "bold",
+                          fontSize: 18,
+                        }}
+                      >
+                        Place Offer
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  {/* Tab Content */}
+                  {activeTab === "buyNow" ? (
+                    <>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 24,
+                        }}
+                      >
+                        <View>
+                          <Text
+                            style={{
+                              color: "#fff",
+                              fontSize: 22,
+                              fontWeight: "bold",
+                            }}
+                          >
+                            16,800 Baht
+                          </Text>
+                          <Text
+                            style={{
+                              color: "#fff",
+                              fontSize: 14,
+                              marginTop: 2,
+                            }}
+                          >
+                            Lowest Price / Brand New
+                          </Text>
+                          <Text
+                            style={{
+                              color: "#aaa",
+                              fontSize: 12,
+                              marginTop: 2,
+                            }}
+                          >
+                            3-5 days / verified before shipping
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          style={{
+                            borderWidth: 2,
+                            borderColor: "#fff",
+                            borderRadius: 4,
+                            paddingVertical: 6,
+                            paddingHorizontal: 18,
+                          }}
+                        >
+                          <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                            Select
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      <View
+                        style={{
+                          height: 1,
+                          backgroundColor: "#888",
+                          marginBottom: 24,
+                        }}
+                      />
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <View>
+                          <Text
+                            style={{
+                              color: "#fff",
+                              fontSize: 22,
+                              fontWeight: "bold",
+                            }}
+                          >
+                            20,000 Baht
+                          </Text>
+                          <Text
+                            style={{
+                              color: "#fff",
+                              fontSize: 14,
+                              marginTop: 2,
+                            }}
+                          >
+                            Brand New / Box with Defect
+                          </Text>
+                          <Text
+                            style={{
+                              color: "#aaa",
+                              fontSize: 12,
+                              marginTop: 2,
+                            }}
+                          >
+                            3-5 days / verified before shipping
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          style={{
+                            borderWidth: 2,
+                            borderColor: "#fff",
+                            borderRadius: 4,
+                            paddingVertical: 6,
+                            paddingHorizontal: 18,
+                          }}
+                        >
+                          <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                            Select
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 24,
+                        }}
+                      >
+                        <Text style={{ color: "#fff", fontSize: 18 }}>
+                          Highest Bid
+                        </Text>
+                        <Text style={{ color: "#fff", fontSize: 18 }}>
+                          14,595 Baht
+                        </Text>
+                        <TouchableOpacity
+                          style={{
+                            borderWidth: 2,
+                            borderColor: "#fff",
+                            borderRadius: 4,
+                            paddingVertical: 6,
+                            paddingHorizontal: 18,
+                          }}
+                          onPress={handleGoToOfferPlace}
+                        >
+                          <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                            Offer
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text style={{ color: "#fff", fontSize: 18 }}>
+                          Last Sale
+                        </Text>
+                        <Text style={{ color: "#fff", fontSize: 18 }}>
+                          18,900 Baht
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                  {/* Back to size selection */}
+                  <TouchableOpacity
+                    style={{ marginTop: 32, alignSelf: "center" }}
+                    onPress={() => setSelectedSize(null)}
+                  >
+                    <Text
+                      style={{ color: "#fff", textDecorationLine: "underline" }}
+                    >
+                      Change Size
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  {/* Tab Bar */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      borderBottomWidth: 2,
+                      borderBottomColor: "#888",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        alignItems: "center",
+                        paddingVertical: 12,
+                        borderBottomWidth: activeTab === "sellNow" ? 3 : 0,
+                        borderBottomColor:
+                          activeTab === "sellNow" ? "#a00" : "transparent",
+                        marginBottom: -2,
+                      }}
+                      onPress={() => setActiveTab("sellNow")}
+                    >
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontWeight: "bold",
+                          fontSize: 18,
+                        }}
+                      >
+                        Sell Now
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        alignItems: "center",
+                        paddingVertical: 12,
+                        borderBottomWidth: activeTab === "placeAsk" ? 3 : 0,
+                        borderBottomColor:
+                          activeTab === "placeAsk" ? "#a00" : "transparent",
+                        marginBottom: -2,
+                      }}
+                      onPress={() => setActiveTab("placeAsk")}
+                    >
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontWeight: "bold",
+                          fontSize: 18,
+                        }}
+                      >
+                        Place Ask
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  {/* Tab Content */}
+                  {activeTab === "sellNow" ? (
+                    <View style={{ marginTop: 24 }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 16,
+                        }}
+                      >
+                        <View>
+                          <Text
+                            style={{
+                              color: "#fff",
+                              fontSize: 22,
+                              fontWeight: "bold",
+                            }}
+                          >
+                            12,400 Baht
+                          </Text>
+                          <Text
+                            style={{
+                              color: "#fff",
+                              fontSize: 15,
+                              marginTop: 2,
+                            }}
+                          >
+                            Sell Now / Highest Offer
+                          </Text>
+                          <Text
+                            style={{
+                              color: "#888",
+                              fontSize: 13,
+                              marginTop: 2,
+                            }}
+                          >
+                            Sell to the highest offer price instantly.
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          style={{
+                            borderWidth: 2,
+                            borderColor: "#fff",
+                            borderRadius: 4,
+                            paddingVertical: 6,
+                            paddingHorizontal: 18,
+                          }}
+                        >
+                          <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                            Select
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={{ marginTop: 24 }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 24,
+                        }}
+                      >
+                        <Text style={{ color: "#fff", fontSize: 18 }}>
+                          Highest Bid
+                        </Text>
+                        <Text style={{ color: "#fff", fontSize: 18 }}>
+                          12,400 Baht
+                        </Text>
+                        <TouchableOpacity
+                          style={{
+                            borderWidth: 2,
+                            borderColor: "#fff",
+                            borderRadius: 4,
+                            paddingVertical: 6,
+                            paddingHorizontal: 18,
+                          }}
+                          onPress={handleGoToPlaceAsk}
+                        >
+                          <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                            Offer
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Text style={{ color: "#fff", fontSize: 18 }}>
+                          Last Sale
+                        </Text>
+                        <Text style={{ color: "#fff", fontSize: 18 }}>
+                          14,400 Baht
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                  {/* Back to size selection */}
+                  <TouchableOpacity
+                    style={{ marginTop: 32, alignSelf: "center" }}
+                    onPress={() => setSelectedSize(null)}
+                  >
+                    <Text
+                      style={{ color: "#fff", textDecorationLine: "underline" }}
+                    >
+                      Change Size
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </>
+          )}
+        </BottomSheetView>
+      </BottomSheet>
     </>
   );
 };
@@ -625,8 +1228,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   productImage: {
-    width: "80%",
-    height: "80%",
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    overflow: "hidden",
   },
   imageDots: {
     flexDirection: "row",
@@ -634,14 +1239,14 @@ const styles = StyleSheet.create({
     bottom: 20,
   },
   dot: {
-    width: 8,
-    height: 8,
+    width: 2,
+    height: 2,
     borderRadius: 4,
     backgroundColor: "#ccc",
     marginHorizontal: 4,
   },
   activeDot: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#007A3D",
   },
   detailsContainer: {
     padding: 20,
@@ -768,48 +1373,195 @@ const styles = StyleSheet.create({
   productInfo: {
     padding: 10,
   },
-  buyButton: {
-    width: SIZES.width / 2 + 40,
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+    flex: 1,
+    paddingHorizontal: 16,
+    height: 70,
+  },
+  buyButtonExact: {
     flexDirection: "row",
     backgroundColor: Colors.brandDarkGreen,
     borderRadius: 8,
-    paddingHorizontal: 15,
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-    alignSelf: "center",
+    height: "100%",
+    width: "100%",
+    paddingHorizontal: 10,
   },
-  buyButtonText: {
+  sellButtonExact: {
+    flexDirection: "row",
+    backgroundColor: Colors.brandDarkColor,
+    borderRadius: 8,
+    alignItems: "center",
+    height: "100%",
+    width: "100%",
+    paddingHorizontal: 10,
+  },
+  buyLabelExact: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
   },
-  productBrand: {
+  buyPriceExact: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  buySubExact: {
+    color: "#fff",
+    fontSize: 12,
+  },
+  sellLabelExact: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  sellPriceExact: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  sellSubExact: {
+    color: "#fff",
+    fontSize: 12,
+  },
+  buttonLeftExact: {
+    flex: 1,
+    paddingVertical: 5,
+    paddingHorizontal: 5,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRightWidth: 1,
+    borderRightColor: "#fff",
+    minWidth: 20,
+  },
+  buttonRightExact: {
+    flex: 3,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  productDetailsSection: {
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  productNameBig: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 8,
+  },
+  productBrandSmall: {
+    fontSize: 16,
+    color: "#888",
+  },
+  detailsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  detailItem: {
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: "#666",
+  },
+  detailValueGreen: {
+    fontSize: 16,
+    color: "#007A3D",
+    fontWeight: "bold",
+  },
+  detailValue: {
+    fontSize: 16,
+    color: "#333",
+  },
+  detailSubValue: {
+    fontSize: 12,
+    color: "#999",
+  },
+  chartAndListRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  salesListContainer: {
+    flex: 1,
+    padding: 10,
+  },
+  salesListItem: {
+    marginBottom: 12,
+    alignItems: "flex-end",
+  },
+  salesListPriceOnly: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  salesListDateOnly: {
+    fontSize: 12,
+    color: "#999",
+  },
+  salesReportCard: {
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  salesTabBar: {
+    flexDirection: "row",
+    marginBottom: 10,
+    backgroundColor: "#ccc",
+    borderRadius: 10,
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 3,
+    marginHorizontal: 50,
+  },
+  salesTab: {
+    padding: 10,
+    borderRadius: 5,
+    width: SIZES.width / 5 - 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activeSalesTab: {
+    backgroundColor: "#fff",
+  },
+  salesTabText: {
     fontSize: 14,
     fontWeight: "bold",
     color: "#333",
   },
-
-  lowestAsk: {
-    fontSize: 10,
-    color: "#999",
+  activeSalesTabText: {
+    color: "#000",
   },
-  favoriteButton: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    // backgroundColor: "rgba(255, 255, 255, 0.8)",
-    borderRadius: 15,
-    padding: 5,
+  salesTableHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 10,
   },
-  mostPopularContainer: {
-    backgroundColor: "#fff",
-    paddingVertical: 15,
-    marginBottom: 10,
+  salesTableHeader: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  salesTableRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 10,
+  },
+  salesTableCell: {
+    fontSize: 14,
+    color: "#666",
   },
   chartCard: {
     padding: 20,
-    backgroundColor: "#fff",
     borderRadius: 10,
     marginBottom: 20,
   },
@@ -880,172 +1632,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
   },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 20,
-    gap: 20,
-  },
-  buyBigButton: {
-    flex: 1,
-    padding: 20,
-    borderRadius: 8,
-    backgroundColor: Colors.brandDarkGreen,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sellBigButton: {
-    flex: 1,
-    padding: 20,
-    borderRadius: 8,
-    backgroundColor: Colors.brandDarkGreen,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buyButtonLabel: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  buyButtonPrice: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  buyButtonSub: {
-    color: "#fff",
+  productBrand: {
     fontSize: 14,
-  },
-  sellButtonLabel: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  sellButtonPrice: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  sellButtonSub: {
-    color: "#fff",
-    fontSize: 14,
-  },
-  productDetailsSection: {
-    padding: 20,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  productNameBig: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 8,
-  },
-  productBrandSmall: {
-    fontSize: 16,
     color: "#888",
-  },
-  detailsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 10,
-  },
-  detailItem: {
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: "#666",
-  },
-  detailValueGreen: {
-    fontSize: 16,
-    color: "#007A3D",
     fontWeight: "bold",
+    marginBottom: 2,
   },
-  detailValue: {
-    fontSize: 16,
-    color: "#333",
-  },
-  detailSubValue: {
+  lowestAsk: {
     fontSize: 12,
-    color: "#999",
+    color: "#888",
+    marginTop: 2,
   },
-  chartAndListRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  salesListContainer: {
-    flex: 1,
-    padding: 10,
-  },
-  salesListItem: {
-    marginBottom: 12,
-    alignItems: "flex-end",
-  },
-  salesListPriceOnly: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  salesListDateOnly: {
-    fontSize: 12,
-    color: "#999",
-  },
-  salesReportCard: {
-    padding: 20,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  salesTabBar: {
-    flexDirection: "row",
-    marginBottom: 10,
-    backgroundColor: "#ccc",
-    borderRadius: 10,
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 3,
-    marginHorizontal: 50,
-  },
-  salesTab: {
-    padding: 10,
-    borderRadius: 5,
-    width: SIZES.width / 5 - 12,
+  favoriteButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    borderRadius: 16,
+    width: 32,
+    height: 32,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 2,
   },
-  activeSalesTab: {
-    backgroundColor: "#fff",
-  },
-  salesTabText: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  activeSalesTabText: {
-    color: "#000",
-  },
-  salesTableHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 10,
-  },
-  salesTableHeader: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  salesTableRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 10,
-  },
-  salesTableCell: {
-    fontSize: 14,
-    color: "#666",
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 2,
   },
 });
 

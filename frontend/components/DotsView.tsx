@@ -1,6 +1,15 @@
-import { View } from "react-native"
-import React from "react"
-import { COLORS } from "@/constants"
+import { View } from "react-native";
+import React from "react";
+import { COLORS } from "@/constants";
+
+type DotsViewProps = {
+  progress: number;
+  dotSize?: number;
+  dotSpacing?: number;
+  dotColor?: string;
+  activeDotColor?: string;
+  numDots?: number;
+};
 
 const DotsView = ({
   progress,
@@ -9,8 +18,8 @@ const DotsView = ({
   dotColor = "gray",
   activeDotColor = COLORS.primary,
   numDots = 3,
-}) => {
-  const dots = []
+}: DotsViewProps) => {
+  const dots = [];
 
   for (let i = 0; i < numDots; i++) {
     dots.push(
@@ -36,13 +45,13 @@ const DotsView = ({
               },
         ]}
       />
-    )
+    );
   }
   return (
     <View style={{ flexDirection: "row", justifyContent: "center" }}>
       {dots}
     </View>
-  )
-}
+  );
+};
 
-export default DotsView
+export default DotsView;

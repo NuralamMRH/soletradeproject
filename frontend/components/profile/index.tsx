@@ -17,6 +17,7 @@ import { COLORS, SIZES } from "@/constants";
 import Constants from "expo-constants";
 import Colors from "@/constants/Colors";
 import { registerForPushNotificationsAsync } from "@/hooks/useExpoNotifications";
+import { baseUrl } from "@/api/MainApi";
 
 const user = {
   name: "Sukhchot Pruthi",
@@ -127,9 +128,9 @@ export default function ProfileScreen() {
     return <Redirect href="/auth/login" />;
   }
 
-  const avatar =
-    process.env.EXPO_NATIVE_API + user.image_full_url ||
-    require("@/assets/images/avatar.png");
+  const avatar = user?.image
+    ? `${baseUrl}/public/uploads/user/${user?.image}`
+    : require("@/assets/images/avatar.png");
 
   // Header component with logo and icons
   const renderHeader = () => {

@@ -18,16 +18,16 @@ const { isAuthenticatedUser } = require("../middlewares/auth");
 router.get("/", getAllBiddingOffers);
 
 // Get a single bidding offer by ID
-router.get("/:id", getBiddingOfferById);
+router.get("/:id", isAuthenticatedUser, getBiddingOfferById);
 
 // Create a new bidding offer
-router.post("/", createBiddingOffer);
+router.post("/", isAuthenticatedUser, createBiddingOffer);
 
 // Update a bidding offer
-router.put("/:id", updateBiddingOffer);
+router.put("/:id", isAuthenticatedUser, updateBiddingOffer);
 
 // Delete a bidding offer
-router.delete("/:id", deleteBiddingOffer);
+router.delete("/:id", isAuthenticatedUser, deleteBiddingOffer);
 
 // Get total count of bidding offers
 router.get("/get/count", getBiddingOfferCount);

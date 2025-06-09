@@ -10,6 +10,8 @@ interface AdminHeaderProps {
   left?: React.ReactNode;
   right?: React.ReactNode;
   center?: React.ReactNode;
+  backgroundColor?: string;
+  borderHide?: boolean;
 }
 
 const AdminHeader: React.FC<AdminHeaderProps> = ({
@@ -18,6 +20,8 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
   left,
   right,
   center,
+  backgroundColor,
+  borderHide,
 }) => {
   return (
     <View
@@ -25,7 +29,8 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
         styles.header,
         {
           paddingTop: Constants.statusBarHeight,
-          backgroundColor: Colors.brandGray,
+          backgroundColor: backgroundColor || Colors.brandGray,
+          borderBottomWidth: borderHide ? 0 : 1,
         },
       ]}
     >
@@ -36,7 +41,11 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
           >
             {onBack && (
               <TouchableOpacity style={{ padding: 5 }} onPress={onBack}>
-                <Ionicons name="arrow-back" size={25} color={"black"} />
+                <Ionicons
+                  name="arrow-back"
+                  size={25}
+                  color={backgroundColor === "black" ? "white" : "black"}
+                />
               </TouchableOpacity>
             )}
             {left}
@@ -47,7 +56,14 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
             {center ? (
               center
             ) : title ? (
-              <Text style={styles.sectionTitle}>{title}</Text>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: backgroundColor === "black" ? "white" : "black" },
+                ]}
+              >
+                {title}
+              </Text>
             ) : null}
           </View>
           <View
@@ -64,7 +80,6 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
 const styles = StyleSheet.create({
   header: {
     padding: 10,
-    backgroundColor: Colors.brandGray,
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
   },

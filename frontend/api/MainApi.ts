@@ -7,10 +7,10 @@ const localIP =
   Constants.expoConfig?.hostUri?.split(":")[0] ||
   "localhost"; // fallback
 
+// export const baseUrl = "https://backend.soletrade.co.th";
+
 export const baseUrl =
-  process.env.NODE_ENV !== "development"
-    ? process.env.EXPO_PUBLIC_API_URL
-    : Platform.OS === "web" || Platform.OS === "ios"
+  Platform.OS === "web" || Platform.OS === "ios"
     ? "http://localhost:8000"
     : `http://${localIP}:8000`;
 

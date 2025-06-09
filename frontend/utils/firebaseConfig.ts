@@ -2,12 +2,12 @@
 import { initializeApp } from "firebase/app";
 
 const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyBg1rfbTlim7vmoSV39a4exUgMISDMiGLI",
+  authDomain: "soletrade-9b752.firebaseapp.com",
+  projectId: "soletrade-9b752",
+  storageBucket: "soletrade-9b752.appspot.com",
+  messagingSenderId: "355476389048",
+  appId: "1:355476389048:android:df39a794594bdb168ec84d",
 };
 
 export const firebaseApp = initializeApp(firebaseConfig);

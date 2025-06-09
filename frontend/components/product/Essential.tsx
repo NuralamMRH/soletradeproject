@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useProduct } from "@/hooks/useProduct";
 import { baseUrl } from "@/api/MainApi";
 import { useProducts } from "@/hooks/useProducts";
 import EssentialProductCard from "./EssentialProductCard";
@@ -29,6 +28,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Price from "@/utils/Price";
 import { SIZES } from "@/constants";
 import Colors from "@/constants/Colors";
+import AdminHeader from "../AdminHeader";
 
 const { width } = Dimensions.get("window");
 
@@ -131,80 +131,64 @@ const Essential = ({ product }: { product: any }) => {
 
   return (
     <>
-      <StatusBar style="dark" />
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          headerTitle: "",
-          headerTransparent: true,
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={styles.backButton}
-            >
-              <Ionicons name="arrow-back" size={24} color="#333" />
+      <AdminHeader
+        onBack={() => router.back()}
+        backgroundColor={"transparent"}
+        right={
+          <>
+            <TouchableOpacity style={styles.headerButton} onPress={handleShare}>
+              <Ionicons name="share-outline" size={24} color="#333" />
             </TouchableOpacity>
-          ),
-          headerRight: () => (
-            <>
-              <TouchableOpacity
-                style={styles.headerButton}
-                onPress={handleShare}
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => router.push("/essentials/cart")}
+            >
+              <Ionicons name="cart-outline" size={24} color="#333" />
+              <Text
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  right: 0,
+                  backgroundColor: "red",
+                  color: "#fff",
+                  borderRadius: 10,
+                  fontSize: 12,
+                  height: 15,
+                  width: 15,
+                  textAlign: "center",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
               >
-                <Ionicons name="share-outline" size={24} color="#333" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.headerButton}
-                onPress={() => router.push("/essentials/cart")}
-              >
-                <Ionicons name="cart-outline" size={24} color="#333" />
-                <Text
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    right: 0,
-                    backgroundColor: "red",
-                    color: "#fff",
-                    borderRadius: 10,
-                    fontSize: 12,
-                    height: 15,
-                    width: 15,
-                    textAlign: "center",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  {cartCount}
-                </Text>
-              </TouchableOpacity>
-            </>
-          ),
-        }}
+                {cartCount}
+              </Text>
+            </TouchableOpacity>
+          </>
+        }
       />
 
       {/* Product name, brand, and price section */}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          paddingHorizontal: 20,
-          paddingTop: insets.top + 50,
-        }}
-      >
-        <View>
-          <Text style={styles.productName}>{product.name}</Text>
-          <Text
-            style={{ color: "#888", fontSize: 16, marginBottom: 4 }}
-          >{`${product.name} from ${product.brand?.name}`}</Text>
-        </View>
-
-        <Text style={styles.productPrice}>
-          <Price price={product.retailPrice} currency="THB" />
-        </Text>
-      </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            paddingHorizontal: 20,
+          }}
+        >
+          <View>
+            <Text style={styles.productName}>{product.name}</Text>
+            <Text
+              style={{ color: "#888", fontSize: 16, marginBottom: 4 }}
+            >{`${product.name} from ${product.brand?.name}`}</Text>
+          </View>
+
+          <Text style={styles.productPrice}>
+            <Price price={product.retailPrice} currency="THB" />
+          </Text>
+        </View>
         <View style={styles.imageContainer}>
           <SwiperFlatList
             showPagination

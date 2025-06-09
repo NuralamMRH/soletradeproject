@@ -2,9 +2,8 @@ import React, { createContext, useContext, useState, ReactNode } from "react";
 
 // Define the type for the context value
 type ListCreationContextType = {
-  columnProducts: { [colIdx: number]: any[] };
-  setColumnProducts: (colIdx: number, products: any[]) => void;
-  clearColumnProducts: () => void;
+  images: string[];
+  setImage: (index: number, uri: string) => void;
 };
 
 // Create the context with a default value of undefined
@@ -12,24 +11,25 @@ const ListCreationContext = createContext<ListCreationContextType | undefined>(
   undefined
 );
 
+const defaultImages = Array(9).fill(null);
+
 // Provider component to wrap the part of the app that needs access to this context
 export function ListCreationProvider({ children }: { children: ReactNode }) {
-  const [columnProducts, setColumnProductsState] = useState<{
-    [colIdx: number]: any[];
-  }>({});
+  const [images, setImages] = useState(defaultImages);
 
-  const setColumnProducts = (colIdx: number, products: any[]) => {
-    setColumnProductsState((prev) => ({ ...prev, [colIdx]: products }));
+  const setImage = (index: number, uri: string) => {
+    setImages((prev) => {
+      const updated = [...prev];
+      updated[index] = uri;
+      return updated;
+    });
   };
-
-  const clearColumnProducts = () => setColumnProductsState({});
 
   return (
     <ListCreationContext.Provider
       value={{
-        columnProducts,
-        setColumnProducts,
-        clearColumnProducts,
+        images,
+        setImage,
       }}
     >
       {children}
