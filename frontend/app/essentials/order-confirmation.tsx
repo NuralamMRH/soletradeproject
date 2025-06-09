@@ -16,11 +16,27 @@ import {
   useRootNavigationState,
 } from "expo-router";
 import Colors from "@/constants/Colors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useOrderById } from "@/hooks/react-query/useOrderMutation";
+import Price from "@/utils/Price";
+
+type Params = {
+  orderId: string;
+};
 
 const EssentialOrderConfirmation = () => {
-  const route = useLocalSearchParams();
-  const { orderId } = route.params || { orderId: "ORD123456" };
-  const animationRef = useRef(null);
+  const paramsRaw = useLocalSearchParams();
+  const params: Params = {
+    orderId: paramsRaw.orderId as string,
+  };
+  const orderId = params.orderId;
+  const animationRef = useRef<any>(null);
+
+  const {
+    data: order,
+    isLoading: isOrderLoading,
+    isError: isOrderError,
+  } = useOrderById(orderId as string);
 
   // Get current date for order date
   const orderDate = new Date().toLocaleDateString("en-US", {
@@ -64,11 +80,12 @@ const EssentialOrderConfirmation = () => {
 
   const handleViewOrderDetails = () => {
     // Navigate to order details screen
-    router.push("/order-history");
+    router.push("/essentials/order-history");
   };
 
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.animationContainer}>
           <LottieView
@@ -93,24 +110,48 @@ const EssentialOrderConfirmation = () => {
 
           <View style={styles.orderInfoRow}>
             <Text style={styles.orderInfoLabel}>Order Date</Text>
-            <Text style={styles.orderInfoValue}>{orderDate}</Text>
+            <Text style={styles.orderInfoValue}>
+              {order?.orderCreatedAt
+                ? new Date(order?.orderCreatedAt).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "N/A"}
+            </Text>
           </View>
 
           <View style={styles.orderInfoRow}>
             <Text style={styles.orderInfoLabel}>Estimated Delivery</Text>
-            <Text style={styles.orderInfoValue}>{estimatedDelivery}</Text>
+            <Text style={styles.orderInfoValue}>
+              {order?.orderCreatedAt
+                ? new Date(
+                    new Date(order?.orderCreatedAt).getTime() +
+                      3 * 24 * 60 * 60 * 1000
+                  ).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "N/A"}
+            </Text>
           </View>
 
           <View style={styles.orderInfoRow}>
             <Text style={styles.orderInfoLabel}>Payment Method</Text>
-            <Text style={styles.orderInfoValue}>Visa ending in **34</Text>
+            <Text style={styles.orderInfoValue}>
+              {order?.paymentMethod?.name} ending in{" "}
+              {order?.paymentMethod?.cardNumber?.slice(-4)}
+            </Text>
           </View>
 
           <View style={styles.divider} />
 
           <View style={styles.orderInfoRow}>
             <Text style={styles.orderInfoLabel}>Total Amount</Text>
-            <Text style={styles.totalAmount}>400 Baht</Text>
+            <Text style={styles.totalAmount}>
+              <Price price={order?.totalPrice} currency="THB" />
+            </Text>
           </View>
         </View>
 
@@ -134,7 +175,7 @@ const EssentialOrderConfirmation = () => {
         style={styles.mainAppButton}
         onPress={handleGoToMainApp}
       >
-        <Text style={styles.mainAppButtonText}>Go to Main App</Text>
+        <Text style={styles.mainAppButtonText}>Go to Home</Text>
       </TouchableOpacity>
     </View>
   );

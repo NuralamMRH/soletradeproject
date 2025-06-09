@@ -8,31 +8,24 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/constants";
-import { useRouter } from "expo-router";
+import { router } from "expo-router";
 import AdminHeader from "@/components/AdminHeader";
 
-const OrdersData: React.FC = () => {
-  const router = useRouter();
-
-  const handleNavigation = (
-    screen: string,
-    params: { orderType?: string } = {}
-  ) => {
-    if (screen === "OrdersTypes" && params.orderType) {
+const Orders = () => {
+  const handleNavigation = (screen: string, params: any = {}) => {
+    if (screen === "OrdersTypes") {
       router.push({
-        pathname: "/admin/orders/types" as any,
+        pathname: "/user/orders-types",
         params: { orderType: params.orderType },
-      });
-    } else if (screen === "ProcessPayout") {
-      router.push({ pathname: "/admin/orders/process-payout" as any });
-    } else if (screen === "ProcessRefund") {
-      router.push({ pathname: "/admin/orders/process-refund" as any });
+      } as any);
+    } else {
+      router.push(screen as any);
     }
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#F2F2F7" }}>
-      <AdminHeader title="Orders" onBack={() => router.back()} />
+    <View style={{ flex: 1 }}>
+      <AdminHeader title={"Orders"} onBack={() => router.back()} />
       <ScrollView style={styles.container}>
         <View style={styles.section}>
           <TouchableOpacity
@@ -144,4 +137,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OrdersData;
+export default Orders;

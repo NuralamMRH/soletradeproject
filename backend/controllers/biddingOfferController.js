@@ -82,23 +82,8 @@ exports.getBiddingOfferById = catchAsyncErrors(async (req, res, next) => {
 
 exports.createBiddingOffer = catchAsyncErrors(async (req, res, next) => {
   const biddingOffer = new BiddingOffer({
-    user: req.user.id,
-    biddingType: req.body.biddingType,
-    biddingStatus: req.body.biddingStatus,
-    productId: req.body.productId,
-    sellerOffer: req.body.sellerOffer,
-    itemCondition: req.body.itemCondition,
-    packaging: req.body.packaging,
-    selectedAttributeId: req.body.selectedAttributeId,
-    offeredPrice: req.body.offeredPrice,
-    totalPrice: req.body.totalPrice,
-    offerCreateDate: req.body.offerCreateDate,
-    validUntil: req.body.validUntil,
-    paymentMethod: req.body.paymentMethod,
-    paymentStatus: req.body.paymentStatus,
-    paymentDate: req.body.paymentDate,
-    shippingStatus: req.body.shippingStatus,
-    shippingLocation: req.body.shippingLocation,
+    userId: req.user.id,
+    ...req.body,
   });
 
   const savedBiddingOffer = await biddingOffer.save();
@@ -116,15 +101,9 @@ exports.updateBiddingOffer = catchAsyncErrors(async (req, res, next) => {
   const biddingOffer = await BiddingOffer.findByIdAndUpdate(
     req.params.id,
     {
-      biddingType: req.body.biddingType,
-      biddingStatus: req.body.biddingStatus,
-      offeredPrice: req.body.offeredPrice,
-      totalPrice: req.body.totalPrice,
-      paymentStatus: req.body.paymentStatus,
-      validUntil: req.body.validUntil,
-      shippingStatus: req.body.shippingStatus,
+      ...req.body,
     },
-    { new: true }
+    { new: true, runValidators: true }
   );
 
   if (!biddingOffer) {
@@ -164,7 +143,7 @@ exports.getBiddingOfferCount = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.getUserBiddingOffers = catchAsyncErrors(async (req, res, next) => {
-  const userOfferList = await BiddingOffer.find({ user: req.user.id })
+  const userOfferList = await BiddingOffer.find({ userId: req.user.id })
     .populate({
       path: "productId",
       select: "name richDescription image",

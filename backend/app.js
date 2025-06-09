@@ -126,7 +126,10 @@ const trendsRoutes = require("./routes/trends");
 app.use(`${api}/trends`, trendsRoutes);
 
 const deleteFileRoutes = require("./routes/deleteFile");
+app.use(`${api}/delete-file`, deleteFileRoutes);
+
 const posterRoutes = require("./routes/posterRoutes");
+app.use(`${api}/posters`, posterRoutes);
 
 const tierBenefitRoutes = require("./routes/tierBenefitRoutes");
 app.use(`${api}/tier-benefits`, tierBenefitRoutes);
@@ -148,6 +151,9 @@ app.use(`${api}/activities`, activityRoutes);
 
 const paymentMethodRoutes = require("./routes/paymentMethodRoutes");
 app.use(`${api}/payment-methods`, paymentMethodRoutes);
+
+const transactionRoutes = require("./routes/transactionRoutes");
+app.use(`${api}/transactions`, transactionRoutes);
 
 // Middleware to handle errors
 app.use(errorMiddleware);

@@ -31,7 +31,9 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
     >
       <View style={{ paddingBottom: 5 }}>
         <View style={styles.headerContent}>
-          <View style={styles.headerLeft}>
+          <View
+            style={[styles.headerLeft, { flex: !center || !title ? 2 : 1 }]}
+          >
             {onBack && (
               <TouchableOpacity style={{ padding: 5 }} onPress={onBack}>
                 <Ionicons name="arrow-back" size={25} color={"black"} />
@@ -39,14 +41,20 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({
             )}
             {left}
           </View>
-          <View style={[styles.headerCenter, { flex: 2 }]}>
+          <View
+            style={[styles.headerCenter, { flex: center || title ? 2 : 0 }]}
+          >
             {center ? (
               center
             ) : title ? (
               <Text style={styles.sectionTitle}>{title}</Text>
             ) : null}
           </View>
-          <View style={styles.headerRight}>{right}</View>
+          <View
+            style={[styles.headerRight, { flex: !center || !title ? 2 : 1 }]}
+          >
+            {right}
+          </View>
         </View>
       </View>
     </View>
@@ -66,18 +74,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerLeft: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-start",
   },
   headerCenter: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
   headerRight: {
-    flex: 1,
     flexDirection: "row",
     paddingRight: 10,
     alignItems: "center",
@@ -87,6 +92,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "#111",
+    textAlign: "center",
   },
 });
 

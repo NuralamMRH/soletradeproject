@@ -29,12 +29,10 @@ router.route("/get/count").get(getTotalSalesCount);
 router.route("/get/sells").get(isAuthenticatedUser, getUserSellingItems);
 
 // Get product offers
-router.route("/productoffers/:productId").get(getProductOffers);
+router.route("/offers/:productId").get(getProductOffers);
 
 // Get offers by product and attribute
-router
-  .route("/offers/:productId/:selectedAttributeId")
-  .get(getOffersByProductAndAttribute);
+router.route("/offers/:productId/:sizeId").get(getOffersByProductAndAttribute);
 
 // Create new selling item with file upload
 router
@@ -62,6 +60,5 @@ router.route("/product/:productId").get(getSellingItemsByProduct);
 
 // Get selling items by user
 router.route("/user").get(isAuthenticatedUser, getSellingItemsByUser);
-
 
 module.exports = router;

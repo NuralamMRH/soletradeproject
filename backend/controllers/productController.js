@@ -11,10 +11,6 @@ const {
 const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const APIFeatures = require("../utils/apiFeatures");
-const { BiddingOffer } = require("../models/biddingOffer");
-const { User } = require("../models/user");
-const { SellingItem } = require("../models/sellingItem");
-const { Order } = require("../models/order");
 
 exports.getAllProducts = catchAsyncErrors(async (req, res, next) => {
   try {
@@ -31,6 +27,10 @@ exports.getAllProducts = catchAsyncErrors(async (req, res, next) => {
         .populate("brand")
         .populate("indicator")
         .populate("attribute")
+        .populate("bidding")
+        .populate("selling")
+        .populate("transactions")
+        .populate("wishlist")
         .populate({
           path: "variations",
           populate: {

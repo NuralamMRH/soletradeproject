@@ -8,12 +8,12 @@ const {
   deleteOrder,
   getOrdersByUser,
 } = require("../controllers/orderController");
+const { isAuthenticatedUser } = require("../middlewares/auth");
 
 router.get(`/`, getAllOrders);
-router.get("/:id", getOrderById);
-router.post("/", createOrder);
-router.put("/:id", updateOrder);
-router.delete("/:id", deleteOrder);
-router.get("/user/:userId", getOrdersByUser);
+router.get("/:id", isAuthenticatedUser, getOrderById);
+router.post("/", isAuthenticatedUser, createOrder);
+router.put("/:id", isAuthenticatedUser, updateOrder);
+router.delete("/:id", isAuthenticatedUser, deleteOrder);
 
 module.exports = router;

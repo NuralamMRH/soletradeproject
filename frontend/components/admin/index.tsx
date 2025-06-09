@@ -115,7 +115,7 @@ export default function AdminScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.buttonRow}
-            onPress={() => router.push("/admin/orders-data")}
+            onPress={() => router.push("/admin/orders/orders")}
           >
             <Ionicons
               name="cart-outline"

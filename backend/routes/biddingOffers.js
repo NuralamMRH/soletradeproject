@@ -33,7 +33,7 @@ router.delete("/:id", deleteBiddingOffer);
 router.get("/get/count", getBiddingOfferCount);
 
 // Get all bidding offers for a specific user
-router.get("/get/useroffer", isAuthenticatedUser, getUserBiddingOffers);
+router.get("/get/user-offer", isAuthenticatedUser, getUserBiddingOffers);
 
 // Get all bidding offers for a specific product
 router.get("/get/product/:productId", getProductBiddingOffers);

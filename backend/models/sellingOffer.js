@@ -1,12 +1,12 @@
 const mongoose = require("mongoose");
 
 const sellingSchema = mongoose.Schema({
-  sellingType: {
+  type: {
     type: String,
     default: "Ask",
     required: true,
   },
-  sellerId: {
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
@@ -18,10 +18,6 @@ const sellingSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",
   },
-  bidderOffer: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "BiddingOffer",
-  },
   itemCondition: {
     type: String,
     default: "Ready to Ship Items",
@@ -30,7 +26,7 @@ const sellingSchema = mongoose.Schema({
     type: String,
     default: "Good Box",
   },
-  selectedAttributeId: {
+  sizeId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "AttributeOption",
     required: true,
@@ -85,4 +81,34 @@ sellingSchema.set("toJSON", {
   virtuals: true,
 });
 
-exports.SellingItem = mongoose.model("SellingItem", sellingSchema);
+sellingSchema.virtual("user", {
+  ref: "User",
+  localField: "userId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+sellingSchema.virtual("product", {
+  ref: "Product",
+  localField: "productId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+sellingSchema.virtual("size", {
+  ref: "AttributeOption",
+  localField: "sizeId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+sellingSchema.virtual("buyer", {
+  ref: "User",
+  localField: "buyerId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+sellingSchema.set("toObject", { virtuals: true });
+
+exports.SellingOffer = mongoose.model("SellingOffer", sellingSchema);

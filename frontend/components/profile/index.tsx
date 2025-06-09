@@ -27,23 +27,44 @@ type HistoryKey = keyof Translations;
 type HistoryItem = {
   key: HistoryKey;
   icon: React.ComponentProps<typeof Ionicons>["name"];
+  route: string;
 };
 
 const purchaseHistory: HistoryItem[] = [
-  { key: "bids", icon: "hammer-outline" },
-  { key: "order", icon: "document-text-outline" },
-  { key: "verification", icon: "shield-checkmark-outline" },
-  { key: "delivery", icon: "car-outline" },
-  { key: "completed", icon: "checkmark-done-circle-outline" },
-  { key: "cancelled", icon: "close-circle-outline" },
+  { key: "bids", icon: "hammer-outline", route: "/user/bids" },
+  {
+    key: "order",
+    icon: "document-text-outline",
+    route: "/user/sole-essential-orders",
+  },
+  {
+    key: "verification",
+    icon: "shield-checkmark-outline",
+    route: "/user/verification",
+  },
+  { key: "delivery", icon: "car-outline", route: "/user/delivery" },
+  {
+    key: "completed",
+    icon: "checkmark-done-circle-outline",
+    route: "/user/completed",
+  },
+  { key: "cancelled", icon: "close-circle-outline", route: "/user/cancelled" },
 ];
 const salesHistory: HistoryItem[] = [
-  { key: "asks", icon: "storefront-outline" },
-  { key: "order", icon: "document-text-outline" },
-  { key: "shipment", icon: "cube-outline" },
-  { key: "verification", icon: "shield-checkmark-outline" },
-  { key: "completed", icon: "checkmark-done-circle-outline" },
-  { key: "cancelled", icon: "close-circle-outline" },
+  { key: "asks", icon: "storefront-outline", route: "/user/asks" },
+  { key: "order", icon: "document-text-outline", route: "/user/orders" },
+  { key: "shipment", icon: "cube-outline", route: "/user/shipment" },
+  {
+    key: "verification",
+    icon: "shield-checkmark-outline",
+    route: "/user/verification",
+  },
+  {
+    key: "completed",
+    icon: "checkmark-done-circle-outline",
+    route: "/user/completed",
+  },
+  { key: "cancelled", icon: "close-circle-outline", route: "/user/cancelled" },
 ];
 
 const NOTIFICATIONS = [
@@ -215,7 +236,11 @@ export default function ProfileScreen() {
           style={[styles.historyScroll]}
         >
           {purchaseHistory.map((item) => (
-            <TouchableOpacity key={item.key} style={styles.historyBtn}>
+            <TouchableOpacity
+              key={item.key}
+              style={styles.historyBtn}
+              onPress={() => router.push(item.route as any)}
+            >
               <Ionicons name={item.icon} size={32} color="#111" />
               <Text style={styles.historyLabel}>
                 {t[item.key as keyof Translations]}
@@ -248,7 +273,11 @@ export default function ProfileScreen() {
           style={[styles.historyScroll]}
         >
           {salesHistory.map((item) => (
-            <TouchableOpacity key={item.key} style={styles.historyBtn}>
+            <TouchableOpacity
+              key={item.key}
+              style={styles.historyBtn}
+              onPress={() => router.push(item.route as any)}
+            >
               <Ionicons name={item.icon} size={32} color="#111" />
               <Text style={styles.historyLabel}>
                 {t[item.key as keyof Translations]}

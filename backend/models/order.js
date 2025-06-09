@@ -10,48 +10,34 @@ const orderSchema = mongoose.Schema({
     type: String,
     default: "Sold",
   },
+
+  offerPrice: {
+    type: Number,
+  },
+  sellerOfferId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "SellingItem",
+  },
+  buyerOfferId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "BiddingOffer",
+  },
+  items: [],
   totalPrice: {
     type: Number,
     required: true,
   },
-  offerPrice: {
-    type: Number,
-  },
-  sellerOffer: {
+  voucherId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "SellingItem",
+    ref: "Voucher",
   },
-  mainProduct: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Product",
-  },
-  productId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Product",
-    required: true,
-  },
-  size: {
+  sizeId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "AttributeOption",
   },
-  billingAddress1: {
-    type: String,
-  },
-  billingAddress2: {
-    type: String,
-  },
-  city: {
-    type: String,
-  },
-  zip: {
-    type: String,
-  },
-  country: {
-    type: String,
-  },
-  phone: {
-    type: String,
-    required: true,
+  shippingAddressId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Shipping",
   },
   itemCondition: {
     type: String,
@@ -62,9 +48,9 @@ const orderSchema = mongoose.Schema({
     type: String,
     default: "Good Box",
   },
-  paymentMethod: {
-    type: String,
-    required: true,
+  paymentMethodId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "PaymentMethod",
   },
   paymentStatus: {
     type: String,
@@ -74,17 +60,20 @@ const orderSchema = mongoose.Schema({
   paymentDate: {
     type: Date,
   },
-  user: {
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
-  orderCreateAt: {
+  orderCreatedAt: {
     type: Date,
     default: Date.now,
   },
   shippingStatus: {
     type: String,
     default: "Pending",
+  },
+  shippingDate: {
+    type: Date,
   },
 });
 
@@ -96,29 +85,53 @@ orderSchema.set("toJSON", {
   virtuals: true,
 });
 
+orderSchema.virtual("sellerOffer", {
+  ref: "SellingItem",
+  localField: "sellerOfferId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+orderSchema.virtual("buyerOffer", {
+  ref: "BiddingOffer",
+  localField: "buyerOfferId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+orderSchema.virtual("voucher", {
+  ref: "Voucher",
+  localField: "voucherId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+orderSchema.virtual("shippingAddress", {
+  ref: "Shipping",
+  localField: "shippingAddressId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+orderSchema.virtual("paymentMethod", {
+  ref: "PaymentMethod",
+  localField: "paymentMethodId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+orderSchema.virtual("size", {
+  ref: "AttributeOption",
+  localField: "sizeId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+orderSchema.virtual("user", {
+  ref: "User",
+  localField: "userId",
+  foreignField: "_id",
+  justOne: true,
+});
+
 exports.Order = mongoose.model("Order", orderSchema);
-
-/**
-Order Example:
-
-{
-    "orderItems" : [
-        {
-            "quantity": 3,
-            "product" : "5fcfc406ae79b0a6a90d2585"
-        },
-        {
-            "quantity": 2,
-            "product" : "5fd293c7d3abe7295b1403c4"
-        }
-    ],
-    "shippingAddress1" : "Flowers Street , 45",
-    "shippingAddress2" : "1-B",
-    "city": "Prague",
-    "zip": "00000",
-    "country": "Czech Republic",
-    "phone": "+420702241333",
-    "user": "5fd51bc7e39ba856244a3b44"
-}
-
- */

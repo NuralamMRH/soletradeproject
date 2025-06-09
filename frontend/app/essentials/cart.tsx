@@ -206,8 +206,8 @@ const EssentialCart = () => {
                 <Text style={styles.brandName}>Select All</Text>
               </TouchableOpacity>
             </View> */}
-            {Object.entries(groupedItems).map(([brand, items]) => (
-              <View key={brand} style={styles.brandSection}>
+            {Object.entries(groupedItems).map(([brand, items], index) => (
+              <View key={brand + index} style={styles.brandSection}>
                 <View style={styles.brandHeader}>
                   <TouchableOpacity
                     style={styles.checkboxContainer}

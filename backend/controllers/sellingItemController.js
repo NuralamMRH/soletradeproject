@@ -1,26 +1,17 @@
-const { SellingItem } = require("../models/sellingItem");
+const { SellingOffer } = require("../models/sellingOffer");
 const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const {
-  uploadMultipleFiles,
   filesUpdatePromises,
 } = require("../utils/fileUploader");
 
 // Get all selling items
 exports.getAllSellingItems = catchAsyncErrors(async (req, res, next) => {
-  const sellingList = await SellingItem.find()
-    .populate({ path: "sellerId", select: "-passwordHash" })
-    .populate({ path: "buyerId", select: "-passwordHash" })
-    .populate({ path: "productId", select: "-description -variations -images" })
+  const sellingList = await SellingOffer.find()
+    .populate({ path: "user", select: "-passwordHash" })
+    .populate({ path: "product", select: "-description -variations -images" })
     .populate({
-      path: "bidderOffer",
-      select: "-passwordHash",
-      populate: {
-        path: "shippingLocation",
-      },
-    })
-    .populate({
-      path: "selectedAttributeId",
+      path: "size",
       select: "optionName",
       populate: {
         path: "attributeId",
@@ -41,19 +32,13 @@ exports.getAllSellingItems = catchAsyncErrors(async (req, res, next) => {
 
 // Get selling item by ID
 exports.getSellingItemById = catchAsyncErrors(async (req, res, next) => {
-  const sellingItem = await SellingItem.findById(req.params.id)
-    .populate({ path: "sellerId", select: "-passwordHash" })
-    .populate({ path: "buyerId", select: "-passwordHash" })
-    .populate({ path: "productId", select: "-description -variations -images" })
+  const sellingItem = await SellingOffer.findById(req.params.id)
+    .populate({ path: "seller", select: "-passwordHash" })
+    .populate({ path: "buyer", select: "-passwordHash" })
+    .populate({ path: "product", select: "-description -variations -images" })
+
     .populate({
-      path: "bidderOffer",
-      select: "-passwordHash",
-      populate: {
-        path: "shippingLocation",
-      },
-    })
-    .populate({
-      path: "selectedAttributeId",
+      path: "size",
       select: "optionName",
       populate: {
         path: "attributeId",
@@ -73,7 +58,7 @@ exports.getSellingItemById = catchAsyncErrors(async (req, res, next) => {
 
 // Get total sales count
 exports.getTotalSalesCount = catchAsyncErrors(async (req, res, next) => {
-  const totalSales = await SellingItem.countDocuments();
+  const totalSales = await SellingOffer.countDocuments();
 
   if (!totalSales) {
     return next(new ErrorHandler("Error getting sales count", 500));
@@ -87,21 +72,14 @@ exports.getTotalSalesCount = catchAsyncErrors(async (req, res, next) => {
 
 // Get user's selling items
 exports.getUserSellingItems = catchAsyncErrors(async (req, res, next) => {
-  const userSellingItems = await SellingItem.find({
+  const userSellingItems = await SellingOffer.find({
     sellerId: req.user.id,
   })
-    .populate({ path: "sellerId", select: "-passwordHash" })
-    .populate({ path: "buyerId", select: "-passwordHash" })
-    .populate({ path: "productId", select: "-description -variations -images" })
+    .populate({ path: "seller", select: "-passwordHash" })
+    .populate({ path: "buyer", select: "-passwordHash" })
+    .populate({ path: "product", select: "-description -variations -images" })
     .populate({
-      path: "bidderOffer",
-      select: "-passwordHash",
-      populate: {
-        path: "shippingLocation",
-      },
-    })
-    .populate({
-      path: "selectedAttributeId",
+      path: "size",
       select: "optionName",
       populate: {
         path: "attributeId",
@@ -122,21 +100,14 @@ exports.getUserSellingItems = catchAsyncErrors(async (req, res, next) => {
 
 // Get product offers
 exports.getProductOffers = catchAsyncErrors(async (req, res, next) => {
-  const offersInProduct = await SellingItem.find({
+  const offersInProduct = await SellingOffer.find({
     productId: req.params.productId,
   })
-    .populate({ path: "sellerId", select: "-passwordHash" })
-    .populate({ path: "buyerId", select: "-passwordHash" })
-    .populate({ path: "productId", select: "-description -variations -images" })
+    .populate({ path: "seller", select: "-passwordHash" })
+    .populate({ path: "buyer", select: "-passwordHash" })
+    .populate({ path: "product", select: "-description -variations -images" })
     .populate({
-      path: "bidderOffer",
-      select: "-passwordHash",
-      populate: {
-        path: "shippingLocation",
-      },
-    })
-    .populate({
-      path: "selectedAttributeId",
+      path: "size",
       select: "optionName",
       populate: {
         path: "attributeId",
@@ -156,45 +127,36 @@ exports.getProductOffers = catchAsyncErrors(async (req, res, next) => {
 });
 
 // Get offers by product and attribute
-exports.getOffersByProductAndAttribute = catchAsyncErrors(
-  async (req, res, next) => {
-    const offersInProduct = await SellingItem.find({
-      productId: req.params.productId,
-      selectedAttributeId: req.params.selectedAttributeId,
+exports.getOffersByProductAndAttribute = catchAsyncErrors(async (req, res, next) => {
+  const offersInProduct = await SellingOffer.find({
+    productId: req.params.productId,
+    sizeId: req.params.sizeId,
+  })
+    .populate({ path: "user", select: "-passwordHash" })
+    .populate({ path: "buyer", select: "-passwordHash" })
+    .populate({
+      path: "product",
+      select: "-description -variations -images",
     })
-      .populate({ path: "sellerId", select: "-passwordHash" })
-      .populate({ path: "buyerId", select: "-passwordHash" })
-      .populate({
-        path: "productId",
-        select: "-description -variations -images",
-      })
-      .populate({
-        path: "bidderOffer",
-        select: "-passwordHash",
-        populate: {
-          path: "shippingLocation",
-        },
-      })
-      .populate({
-        path: "selectedAttributeId",
-        select: "optionName",
-        populate: {
-          path: "attributeId",
-          select: "name",
-        },
-      })
-      .sort({ validUntil: -1 });
+    .populate({
+      path: "size",
+      select: "optionName",
+      populate: {
+        path: "attributeId",
+        select: "name",
+      },
+    })
+    .sort({ validUntil: -1 });
 
-    if (!offersInProduct) {
-      return next(new ErrorHandler("Offers not found", 500));
-    }
-
-    res.status(200).json({
-      success: true,
-      offers: offersInProduct,
-    });
+  if (!offersInProduct) {
+    return next(new ErrorHandler("Offers not found", 500));
   }
-);
+
+  res.status(200).json({
+    success: true,
+    offers: offersInProduct,
+  });
+});
 
 // Create new selling item
 exports.createSellingItem = catchAsyncErrors(async (req, res, next) => {
@@ -208,7 +170,7 @@ exports.createSellingItem = catchAsyncErrors(async (req, res, next) => {
       "selling"
     );
 
-    const sellingItem = new SellingItem({
+    const sellingItem = new SellingOffer({
       ...req.body,
       ...uploadedFile,
     });
@@ -231,7 +193,7 @@ exports.createSellingItem = catchAsyncErrors(async (req, res, next) => {
 // Update selling item
 exports.updateSellingItem = catchAsyncErrors(async (req, res, next) => {
   try {
-    const existingSellingItem = await SellingItem.findById(req.params.id);
+    const existingSellingItem = await SellingOffer.findById(req.params.id);
     if (!existingSellingItem) {
       return next(new ErrorHandler("Selling item not found", 404));
     }
@@ -245,7 +207,7 @@ exports.updateSellingItem = catchAsyncErrors(async (req, res, next) => {
       existingSellingItem
     );
 
-    const sellingItem = await SellingItem.findByIdAndUpdate(
+    const sellingItem = await SellingOffer.findByIdAndUpdate(
       req.params.id,
       {
         ...req.body,
@@ -268,7 +230,7 @@ exports.updateSellingItem = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.deleteSellingItem = catchAsyncErrors(async (req, res, next) => {
-  const sellingItem = await SellingItem.findById(req.params.id);
+  const sellingItem = await SellingOffer.findById(req.params.id);
   if (!sellingItem) {
     return next(new ErrorHandler("Selling item not found", 404));
   }
@@ -291,7 +253,7 @@ exports.deleteSellingItem = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.getSellingItemsByUser = catchAsyncErrors(async (req, res, next) => {
-  const sellingItems = await SellingItem.find({ user: req.user.id })
+  const sellingItems = await SellingOffer.find({ userId: req.user.id })
     .populate("product")
     .populate("size");
 
@@ -306,8 +268,8 @@ exports.getSellingItemsByUser = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.getSellingItemsByProduct = catchAsyncErrors(async (req, res, next) => {
-  const sellingItems = await SellingItem.find({
-    product: req.params.productId,
+  const sellingItems = await SellingOffer.find({
+    productId: req.params.productId,
   })
     .populate("user")
     .populate("size");

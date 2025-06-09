@@ -1,29 +1,29 @@
 const mongoose = require("mongoose");
 
 const biddingOfferSchema = mongoose.Schema({
-  biddingType: {
+  type: {
     type: String,
     default: "Offer",
     required: true,
   },
-  biddingStatus: {
+  status: {
     type: String,
     enum: ["Active", "Sold", "Banned"],
     default: "Active",
   },
-  user: {
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
+  },
+  sellerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
   },
   productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",
     required: true,
-  },
-  sellerOffer: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "SellingItem",
   },
   itemCondition: {
     type: String,
@@ -34,7 +34,7 @@ const biddingOfferSchema = mongoose.Schema({
     type: String,
     default: "Good",
   },
-  selectedAttributeId: {
+  sizeId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "AttributeOption",
     required: true,
@@ -54,9 +54,9 @@ const biddingOfferSchema = mongoose.Schema({
   validUntil: {
     type: Date,
   },
-  paymentMethod: {
-    type: String,
-    required: true,
+  paymentMethodId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "PaymentMethod",
   },
   paymentStatus: {
     type: String,
@@ -70,7 +70,7 @@ const biddingOfferSchema = mongoose.Schema({
     type: String,
     default: "Pending",
   },
-  shippingLocation: {
+  shippingAddressId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Shipping",
   },
@@ -83,5 +83,49 @@ biddingOfferSchema.virtual("id").get(function () {
 biddingOfferSchema.set("toJSON", {
   virtuals: true,
 });
+
+biddingOfferSchema.virtual("user", {
+  ref: "User",
+  localField: "userId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+biddingOfferSchema.virtual("seller", {
+  ref: "User",
+  localField: "sellerId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+biddingOfferSchema.virtual("product", {
+  ref: "Product",
+  localField: "productId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+biddingOfferSchema.virtual("size", {
+  ref: "AttributeOption",
+  localField: "sizeId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+biddingOfferSchema.virtual("paymentMethod", {
+  ref: "PaymentMethod",
+  localField: "paymentMethodId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+biddingOfferSchema.virtual("shippingAddress", {
+  ref: "Shipping",
+  localField: "shippingAddressId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+biddingOfferSchema.set("toObject", { virtuals: true });
 
 exports.BiddingOffer = mongoose.model("BiddingOffer", biddingOfferSchema);
