@@ -1,9 +1,7 @@
 const { SellingOffer } = require("../models/sellingOffer");
 const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
-const {
-  filesUpdatePromises,
-} = require("../utils/fileUploader");
+const { filesUpdatePromises } = require("../utils/fileUploader");
 
 // Get all selling items
 exports.getAllSellingItems = catchAsyncErrors(async (req, res, next) => {
@@ -127,40 +125,43 @@ exports.getProductOffers = catchAsyncErrors(async (req, res, next) => {
 });
 
 // Get offers by product and attribute
-exports.getOffersByProductAndAttribute = catchAsyncErrors(async (req, res, next) => {
-  const offersInProduct = await SellingOffer.find({
-    productId: req.params.productId,
-    sizeId: req.params.sizeId,
-  })
-    .populate({ path: "user", select: "-passwordHash" })
-    .populate({ path: "buyer", select: "-passwordHash" })
-    .populate({
-      path: "product",
-      select: "-description -variations -images",
+exports.getOffersByProductAndAttribute = catchAsyncErrors(
+  async (req, res, next) => {
+    const offersInProduct = await SellingOffer.find({
+      productId: req.params.productId,
+      sizeId: req.params.sizeId,
     })
-    .populate({
-      path: "size",
-      select: "optionName",
-      populate: {
-        path: "attributeId",
-        select: "name",
-      },
-    })
-    .sort({ validUntil: -1 });
+      .populate({ path: "user", select: "-passwordHash" })
+      .populate({ path: "buyer", select: "-passwordHash" })
+      .populate({
+        path: "product",
+        select: "-description -variations -images",
+      })
+      .populate({
+        path: "size",
+        select: "optionName",
+        populate: {
+          path: "attributeId",
+          select: "name",
+        },
+      })
+      .sort({ validUntil: -1 });
 
-  if (!offersInProduct) {
-    return next(new ErrorHandler("Offers not found", 500));
+    if (!offersInProduct) {
+      return next(new ErrorHandler("Offers not found", 500));
+    }
+
+    res.status(200).json({
+      success: true,
+      offers: offersInProduct,
+    });
   }
-
-  res.status(200).json({
-    success: true,
-    offers: offersInProduct,
-  });
-});
+);
 
 // Create new selling item
 exports.createSellingItem = catchAsyncErrors(async (req, res, next) => {
   try {
+    console.log("req.body", req.body);
     const fileFieldsToUpload = ["images"];
     const uploadedFile = await filesUpdatePromises(
       req,
@@ -171,7 +172,9 @@ exports.createSellingItem = catchAsyncErrors(async (req, res, next) => {
     );
 
     const sellingItem = new SellingOffer({
+      userId: req.user.id,
       ...req.body,
+
       ...uploadedFile,
     });
 
@@ -186,7 +189,8 @@ exports.createSellingItem = catchAsyncErrors(async (req, res, next) => {
       sellingItem: savedSellingItem,
     });
   } catch (error) {
-    next(error);
+    console.log("Error", error);
+    return next(new ErrorHandler("Error creating selling item", 400));
   }
 });
 

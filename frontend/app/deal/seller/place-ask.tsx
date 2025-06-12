@@ -16,15 +16,19 @@ import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { useGetMyPaymentMethods } from "@/hooks/react-query/usePaymentMethodMutation";
 import { useShippingAddress } from "@/hooks/useShippingAddress";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { COLORS } from "@/constants";
+import AdminHeader from "@/components/AdminHeader";
+import { useCreateSellingOffer } from "@/hooks/react-query/useSellerOfferMutation";
+import { useListCreation } from "@/context/ListCreationContext";
 
 const { width } = Dimensions.get("window");
 
 const expirationOptions = ["3 Days", "7 Days", "14 Days", "30 Days"];
 
-const OfferPlace = () => {
+const PlaceAsk = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
-
+  const [loading, setLoading] = useState(false);
   // Mock data (replace with real params/data as needed)
   const productName = params.productName || "Air Jordan";
   const productSubtitle = "Air Jordan 1 Low OG Travis Scott Medium Olive";
@@ -39,93 +43,106 @@ const OfferPlace = () => {
   } else if (Array.isArray(params.variations)) {
     variations = params.variations;
   }
+  const attributeName = variations.find(
+    (variation: any) => variation.optionName === selectedSize || size
+  )?.attributeId.name;
 
   const attribute = params.attribute || null;
-
-  const [selectedSize, setSelectedSize] = useState(size);
+  const { images } = useListCreation();
+  const [selectedSize, setSelectedSize] = useState<string>("");
   const condition = "New";
   const box = "Original (Good)";
   const [offer, setOffer] = useState("");
   const [expiration, setExpiration] = useState("30 Days");
   const [payment, setPayment] = useState("Visa ending in **34");
-  const [address, setAddress] = useState("2342 Ratchaphruek 34 Rd");
+  const [payoutInfo, setPayoutInfo] = useState<boolean>(false);
   const [showExpirationSheet, setShowExpirationSheet] = useState(false);
-  const [showPaymentSheet, setShowPaymentSheet] = useState(false);
-  const [showAddressSheet, setShowAddressSheet] = useState(false);
   const [showSizeSheet, setShowSizeSheet] = useState(false);
   const expirationSheetRef = useRef<BottomSheet>(null);
-  const paymentSheetRef = useRef<BottomSheet>(null);
-  const addressSheetRef = useRef<BottomSheet>(null);
   const sizeSheetRef = useRef<BottomSheet>(null);
   // Payment methods
   const { data: methods = [], isLoading: loadingMethods } =
     useGetMyPaymentMethods();
   // Addresses
-  const { getMyShippingAddress } = useShippingAddress();
-  const [addresses, setAddresses] = useState([]);
-  const [selectedAddress, setSelectedAddress] = useState(null);
-  const [loadingAddresses, setLoadingAddresses] = useState(false);
-  useEffect(() => {
-    (async () => {
-      setLoadingAddresses(true);
-      try {
-        const res = await getMyShippingAddress();
-        const addresses = res.shipping || res;
-        setAddresses(addresses);
-        setSelectedAddress(
-          addresses.find((address: any) => address.isDefault) ||
-            addresses[0] ||
-            null
-        );
-      } catch {
-        setAddresses([]);
-      }
-      setLoadingAddresses(false);
-    })();
-  }, []);
+  const createSellingOffer = useCreateSellingOffer();
+  const formattedImages = formatImagesForFormData(images);
+  function formatImagesForFormData(
+    images: string[]
+  ): { uri: string; name: string; type: string }[] {
+    return images.filter(Boolean).map((uri) => {
+      // Extract file extension
+      const uriParts = uri.split(".");
+      const ext = uriParts[uriParts.length - 1];
+      // Extract file name
+      const nameParts = uri.split("/");
+      const name = nameParts[nameParts.length - 1] || `image.${ext}`;
+      // Guess type
+      const type = `image/${ext === "jpg" ? "jpeg" : ext}`;
+      return { uri, name, type };
+    });
+  }
+  const handleSubmitAsk = async () => {
+    try {
+      console.log("sizeId", params.sizeId);
 
-  const handleGoCheckout = () => {
-    router.push({
-      pathname: "/deal/checkout",
-      params: {
-        size: selectedSize,
-        attribute:
-          attribute?.name ||
+      setLoading(true);
+      const payload = {
+        type: "Ask",
+        productId: params.productId as string,
+        itemCondition: condition,
+        packaging: box,
+        sizeName: `${selectedSize || size} ${attributeName}`,
+        sizeId:
           variations.find(
             (variation: any) => variation.optionName === selectedSize
-          )?.attributeId.name,
-        payment: payment,
-        address: selectedAddress,
-        expiration: expiration,
-        offeredPrice: offer,
-        packaging: box,
-        itemCondition: condition,
-        ...params,
-      },
-    });
+          )?._id || (params.sizeId as string),
+        sellingPrice: Number(offer),
+        earnings: Number(offer * 0.91),
+        sellingCommission: Number(offer * 0.04),
+        sellingFee: Number(offer * 0.03),
+        validUntil: new Date(Date.now() + Number(expiration) * 1000),
+        paymentMethodId: payment._id,
+        images: formattedImages,
+      };
+      const data = await createSellingOffer.mutateAsync(payload);
+
+      router.replace({
+        pathname: "/deal/seller/ask-confirmation",
+        params: {
+          askId: data._id,
+          data: JSON.stringify(data),
+        } as any,
+      });
+    } catch (err: any) {
+      console.log("err", err);
+      alert(err?.message || "Ask failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const insets = useSafeAreaInsets();
   return (
     <View style={styles.container}>
-      <View style={{ paddingTop: insets.top - 40 }} />
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={28} color="#fff" />
-          </TouchableOpacity>
-          <View style={{ flex: 1, alignItems: "center", marginRight: 28 }}>
+      <AdminHeader
+        onBack={() => router.back()}
+        backgroundColor="black"
+        borderHide
+        center={
+          <View style={{ flex: 1, alignItems: "center" }}>
             <Text style={styles.title}>{productName}</Text>
             <Text style={styles.subtitle}>{productSubtitle}</Text>
           </View>
-        </View>
+        }
+      />
+
+      {/* <View style={{ paddingTop: insets.top - 40 }} /> */}
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         {/* Offer Input */}
         <View style={styles.offerInputSection}>
           <View style={styles.offerInputRow}>
-            <Text style={styles.currency}>THB</Text>
             <TextInput
-              style={styles.offerInput}
+              style={[styles.offerInput]}
               value={
                 offer !== undefined && offer !== null && offer !== ""
                   ? Number(offer).toLocaleString("th-TH")
@@ -135,21 +152,27 @@ const OfferPlace = () => {
                 const numeric = text.replace(/[^0-9]/g, "");
                 setOffer(numeric ? Number(numeric) : "");
               }}
-              placeholder=""
+              placeholder="THB"
               placeholderTextColor="#888"
               keyboardType="numeric"
             />
           </View>
-          <Text style={styles.placeOfferLabel}>Place your offer</Text>
+          <Text
+            style={[
+              styles.placeOfferLabel,
+              { color: offer ? COLORS.brandGreen : "#888", fontWeight: "bold" },
+            ]}
+          >
+            {offer ? `Sell now at ${offer} Baht` : "Place your ask"}
+          </Text>
         </View>
         {/* Pricing Options */}
-        <Text style={styles.pricingOptionsLabel}>Pricing Options</Text>
         <View style={styles.pricingOptionsRow}>
           <TouchableOpacity
             onPress={() => setOffer(14595)}
             style={styles.priceOptionBox}
           >
-            <Text style={styles.priceOptionLabel}>Highest Offer</Text>
+            <Text style={styles.priceOptionLabel}>Last Sale</Text>
             <Text style={styles.priceOptionValue}>14,595 Baht</Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -163,7 +186,7 @@ const OfferPlace = () => {
             onPress={() => setOffer(21800)}
             style={styles.priceOptionBox}
           >
-            <Text style={styles.priceOptionLabel}>Buy Now</Text>
+            <Text style={styles.priceOptionLabel}>Sell Now</Text>
             <Text style={styles.priceOptionValue}>21,800 Baht</Text>
           </TouchableOpacity>
         </View>
@@ -172,11 +195,7 @@ const OfferPlace = () => {
           <View style={{ flex: 1 }}>
             <TouchableOpacity onPress={() => setShowSizeSheet(true)}>
               <Text style={styles.infoText}>
-                Size: {selectedSize}{" "}
-                {attribute?.name ||
-                  variations.find(
-                    (variation: any) => variation.optionName === selectedSize
-                  )?.attributeId.name}
+                Size: {`${selectedSize || size} ${attributeName}`}
                 <Ionicons name="pencil" size={14} color="#fff" />
               </Text>
             </TouchableOpacity>
@@ -202,65 +221,271 @@ const OfferPlace = () => {
             <Text style={styles.editBtnText}>Edit&gt;</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.infoRow}>
-          <Ionicons
-            name="card-outline"
-            size={22}
-            color="#fff"
-            style={{ marginRight: 10 }}
-          />
-          <Text style={styles.infoRowText}>
-            {payment.paymentType === "card"
-              ? `${
-                  payment.name || "Card"
-                } ending in **${payment.cardNumber?.slice(-4)}`
-              : `${
-                  payment.bank || "Bank"
-                } ending in *${payment.accountNumber?.slice(-3)}`}
-          </Text>
-          <TouchableOpacity
-            style={styles.editBtn}
-            onPress={() => setShowPaymentSheet(true)}
+        <View style={{ marginHorizontal: 16 }}>
+          <View>
+            <Text style={styles.infoRowText}>Payout Method</Text>
+          </View>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
           >
-            <Text style={styles.editBtnText}>Edit&gt;</Text>
-          </TouchableOpacity>
+            <ScrollView horizontal>
+              {methods.map((method) => (
+                <TouchableOpacity
+                  key={method.id}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    paddingVertical: 14,
+                    borderBottomColor: "#333",
+                    position: "relative",
+                    marginRight: 16,
+                  }}
+                  onPress={() => {
+                    setPayment(method);
+                  }}
+                >
+                  <FontAwesome
+                    name="credit-card-alt"
+                    size={100}
+                    color={"#333"}
+                    style={{ marginRight: 8 }}
+                  />
+
+                  <Text
+                    style={{
+                      color: "#fff",
+                      fontSize: 10,
+                      position: "absolute",
+                      bottom: 50,
+                      left: 10,
+                    }}
+                  >
+                    {method.paymentType === "card"
+                      ? `${
+                          method.name || "Card"
+                        } ending in **${method.cardNumber?.slice(-4)}`
+                      : `${
+                          method.bank || "Bank"
+                        }  *${method.accountNumber?.slice(-3)}`}
+                  </Text>
+                  <Ionicons
+                    name={
+                      method.id === payment.id
+                        ? "checkmark-circle-outline"
+                        : "radio-button-off-outline"
+                    }
+                    size={20}
+                    color={
+                      method.id === payment.id ? COLORS.brandColor : "#fff"
+                    }
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                      left: 50,
+                    }}
+                  />
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={{
+                  paddingVertical: 16,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+                onPress={() => {
+                  router.push("/user/add-payment-method");
+                }}
+              >
+                <Text
+                  style={{
+                    color: "#fff",
+                    fontSize: 16,
+                  }}
+                >
+                  <Ionicons name="add-outline" size={70} color="#fff" />
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
         </View>
-        <View style={styles.infoRow}>
-          <Ionicons
-            name="home-outline"
-            size={22}
-            color="#fff"
-            style={{ marginRight: 10 }}
-          />
-          <Text style={styles.infoRowText}>
-            {`${selectedAddress?.name} ${selectedAddress?.street} ${selectedAddress?.street2} ${selectedAddress?.subDistrict} ${selectedAddress?.district} ${selectedAddress?.province} ${selectedAddress?.postalCode} ${selectedAddress?.phone}`}
-          </Text>
-          <TouchableOpacity
-            style={styles.editBtn}
-            onPress={() => setShowAddressSheet(true)}
-          >
-            <Text style={styles.editBtnText}>Edit&gt;</Text>
-          </TouchableOpacity>
-        </View>
+
         {/* Spacer */}
         <View style={{ flex: 1 }} />
-        {/* Action Buttons */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={styles.cancelBtn}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.cancelBtnText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.placeOfferBtn}
-            disabled={!offer}
-            onPress={handleGoCheckout}
-          >
-            <Text style={styles.placeOfferBtnText}>Place Offer</Text>
-          </TouchableOpacity>
+        <View style={{ position: "relative" }}>
+          {payoutInfo && (
+            <TouchableOpacity
+              style={{ position: "absolute", right: 10, top: 20, zIndex: 1000 }}
+              onPress={() => setPayoutInfo(!payoutInfo)}
+            >
+              <Ionicons
+                name={!payoutInfo ? "add-outline" : "remove-circle-outline"}
+                size={24}
+                color="#999"
+              />
+            </TouchableOpacity>
+          )}
+
+          {!payoutInfo && (
+            <View
+              style={[
+                {
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginHorizontal: 15,
+                  borderTopWidth: 1,
+                  borderColor: "#666",
+                  paddingTop: 40,
+                },
+              ]}
+            >
+              <Text style={styles.infoRowText}>Earnings</Text>
+
+              <Text
+                style={[
+                  styles.placeOfferBtnText,
+                  { fontSize: 15, marginEnd: 20 },
+                ]}
+              >
+                {offer
+                  ? Number(offer * 0.91).toLocaleString("th-TH") + " Baht"
+                  : "Place your ask"}
+              </Text>
+              <TouchableOpacity
+                style={{
+                  marginLeft: "auto",
+                  marginTop: -4,
+                }}
+                onPress={() => setPayoutInfo(!payoutInfo)}
+              >
+                <Ionicons
+                  name={!payoutInfo ? "add-outline" : "remove-outline"}
+                  size={24}
+                  color="#999"
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+          {payoutInfo && (
+            <>
+              <View
+                style={[
+                  {
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    marginHorizontal: 16,
+                    borderTopWidth: 1,
+                    borderColor: "#666",
+                    paddingTop: 40,
+                    marginTop: 10,
+                  },
+                ]}
+              >
+                <Text style={{ color: "#e9e9e9", fontSize: 15 }}>
+                  Selling Price
+                </Text>
+
+                <Text
+                  style={[
+                    styles.placeOfferBtnText,
+                    { fontSize: 15, color: "#e9e9e9" },
+                  ]}
+                >
+                  {offer
+                    ? Number(offer).toLocaleString("th-TH") + " Baht"
+                    : "Place your ask"}
+                </Text>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginHorizontal: 16,
+                  paddingTop: 10,
+                }}
+              >
+                <Text style={{ color: "#888", fontSize: 14 }}>
+                  Commision Fee (4.0 %)
+                </Text>
+
+                <Text
+                  style={[
+                    styles.placeOfferBtnText,
+                    { fontSize: 14, color: "#888" },
+                  ]}
+                >
+                  {offer
+                    ? Number(offer * 0.04).toLocaleString("th-TH") + " Baht"
+                    : "0 Baht"}
+                </Text>
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginHorizontal: 16,
+                  paddingTop: 10,
+                }}
+              >
+                <Text style={{ color: "#888", fontSize: 14 }}>
+                  Transaction Fee (3.0 %)
+                </Text>
+
+                <Text
+                  style={[
+                    styles.placeOfferBtnText,
+                    { fontSize: 14, color: "#888" },
+                  ]}
+                >
+                  {offer
+                    ? Number(offer * 0.03).toLocaleString("th-TH") + " Baht"
+                    : "0 Baht"}
+                </Text>
+              </View>
+              <View
+                style={[
+                  {
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    marginHorizontal: 15,
+                    paddingTop: 10,
+                  },
+                ]}
+              >
+                <Text style={styles.infoRowText}>Earnings</Text>
+
+                <Text style={[styles.placeOfferBtnText, { fontSize: 15 }]}>
+                  {offer
+                    ? Number(offer * 0.91).toLocaleString("th-TH") + " Baht"
+                    : "Place your ask"}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
       </ScrollView>
+      {/* Action Buttons */}
+      <View style={styles.actionRow}>
+        <TouchableOpacity
+          style={styles.cancelBtn}
+          onPress={() => router.back()}
+        >
+          <Text style={styles.cancelBtnText}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.placeOfferBtn,
+            { backgroundColor: offer ? COLORS.brandDarkColor : "#222" },
+          ]}
+          disabled={!offer}
+          onPress={handleSubmitAsk}
+        >
+          <Text style={styles.placeOfferBtnText}>Place Ask</Text>
+        </TouchableOpacity>
+      </View>
       {/* Offer Expiration BottomSheet */}
       <BottomSheet
         ref={expirationSheetRef}
@@ -349,12 +574,14 @@ const OfferPlace = () => {
                       marginBottom: 16,
                       borderWidth: 2,
                       borderColor:
-                        selectedSize === variation._id ? "#fff" : "#888",
+                        selectedSize === variation.optionName ? "red" : "#888",
                       borderRadius: 8,
                       paddingVertical: 16,
                       alignItems: "center",
                       backgroundColor:
-                        selectedSize === variation._id ? "#222" : "transparent",
+                        selectedSize === variation.optionName
+                          ? "#222"
+                          : "transparent",
                     }}
                     onPress={() => {
                       setSelectedSize(variation.optionName);
@@ -368,12 +595,7 @@ const OfferPlace = () => {
                         fontSize: 16,
                       }}
                     >
-                      {variation.optionName}{" "}
-                      {attribute?.name ||
-                        variations.find(
-                          (variation: any) =>
-                            variation.optionName === selectedSize
-                        )?.attributeId.name}
+                      {variation.optionName} {attributeName}
                     </Text>
                     <Text style={{ color: "#fff", fontSize: 14, marginTop: 4 }}>
                       {variation.retailPrice} Baht
@@ -384,149 +606,6 @@ const OfferPlace = () => {
           </>
         </BottomSheetView>
       </BottomSheet>
-      {/* Payment Method BottomSheet */}
-      <BottomSheet
-        ref={paymentSheetRef}
-        index={showPaymentSheet ? 0 : -1}
-        snapPoints={["50%"]}
-        enablePanDownToClose={true}
-        onClose={() => setShowPaymentSheet(false)}
-        backgroundStyle={{ backgroundColor: "#222" }}
-        handleIndicatorStyle={{ backgroundColor: "#fff" }}
-      >
-        <BottomSheetView style={{ padding: 20 }}>
-          <Text
-            style={{
-              color: "#fff",
-              fontWeight: "bold",
-              fontSize: 18,
-              marginBottom: 16,
-            }}
-          >
-            Payment Method
-          </Text>
-          {methods.map((method) => (
-            <TouchableOpacity
-              key={method.id}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 14,
-                borderBottomWidth: 1,
-                borderBottomColor: "#333",
-              }}
-              onPress={() => {
-                setPayment(method);
-                paymentSheetRef.current?.close();
-              }}
-            >
-              {method.paymentType === "card" ? (
-                <FontAwesome
-                  name="credit-card"
-                  size={24}
-                  color={"#fff"}
-                  style={{ marginRight: 8 }}
-                />
-              ) : (
-                <MaterialIcons
-                  name="account-balance"
-                  size={24}
-                  color={"#fff"}
-                  style={{ marginRight: 8 }}
-                />
-              )}
-              <Text style={{ color: "#fff", fontSize: 16 }}>
-                {method.paymentType === "card"
-                  ? `${
-                      method.name || "Card"
-                    } ending in **${method.cardNumber?.slice(-4)}`
-                  : `${
-                      method.bank || "Bank"
-                    } ending in *${method.accountNumber?.slice(-3)}`}
-              </Text>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity
-            style={{ paddingVertical: 16 }}
-            onPress={() => {
-              router.push("/user/add-payment-method");
-            }}
-          >
-            <Text
-              style={{
-                color: "#fff",
-                fontSize: 16,
-                textDecorationLine: "underline",
-              }}
-            >
-              Add New Payment Method
-            </Text>
-          </TouchableOpacity>
-        </BottomSheetView>
-      </BottomSheet>
-      {/* Address BottomSheet */}
-      <BottomSheet
-        ref={addressSheetRef}
-        index={showAddressSheet ? 0 : -1}
-        snapPoints={["50%"]}
-        enablePanDownToClose={true}
-        onClose={() => setShowAddressSheet(false)}
-        backgroundStyle={{ backgroundColor: "#222" }}
-        handleIndicatorStyle={{ backgroundColor: "#fff" }}
-      >
-        <BottomSheetView style={{ padding: 20 }}>
-          <Text
-            style={{
-              color: "#fff",
-              fontWeight: "bold",
-              fontSize: 18,
-              marginBottom: 16,
-            }}
-          >
-            Shipping Address
-          </Text>
-          {loadingAddresses ? (
-            <Text style={{ color: "#fff", fontSize: 16 }}>
-              <ActivityIndicator />
-            </Text>
-          ) : (
-            addresses?.map((addr: any) => (
-              <TouchableOpacity
-                key={addr.id}
-                style={{
-                  paddingVertical: 14,
-                  borderBottomWidth: 1,
-                  borderBottomColor: "#333",
-                }}
-                onPress={() => {
-                  setAddress(addr);
-                  addressSheetRef.current?.close();
-                }}
-              >
-                <Text style={{ color: "#fff", fontSize: 16 }}>
-                  {`${addr.name} ${addr.street} ${addr.street2} ${addr.subDistrict} ${addr.district} ${addr.province} ${addr.postalCode} ${addr.phone}`}
-                </Text>
-              </TouchableOpacity>
-            ))
-          )}
-          <TouchableOpacity
-            style={{ paddingVertical: 16 }}
-            onPress={() => {
-              router.push("/user/shipping-address");
-            }}
-          >
-            <Text
-              style={{
-                color: "#fff",
-                fontSize: 16,
-                textDecorationLine: "underline",
-              }}
-            >
-              Add New Address
-            </Text>
-          </TouchableOpacity>
-        </BottomSheetView>
-      </BottomSheet>
     </View>
   );
 };
@@ -534,8 +613,7 @@ const OfferPlace = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#111",
-    paddingTop: 40,
+    backgroundColor: "#000",
     paddingHorizontal: 0,
   },
   headerRow: {
@@ -595,27 +673,28 @@ const styles = StyleSheet.create({
   pricingOptionsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginHorizontal: 16,
+    marginHorizontal: 10,
     marginBottom: 18,
   },
   priceOptionBox: {
     borderWidth: 2,
     borderColor: "#fff",
-    borderRadius: 8,
+    borderRadius: 0,
     paddingVertical: 12,
     paddingHorizontal: 16,
     alignItems: "center",
-    width: (width - 64) / 3,
+    width: (width - 34) / 3,
   },
   priceOptionLabel: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 12,
     marginBottom: 4,
   },
   priceOptionValue: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
+    textAlign: "center",
   },
   productInfoRow: {
     flexDirection: "row",
@@ -672,7 +751,6 @@ const styles = StyleSheet.create({
   },
   placeOfferBtn: {
     backgroundColor: "#222",
-    borderRadius: 6,
     paddingVertical: 14,
     paddingHorizontal: 32,
     opacity: 1,
@@ -684,4 +762,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OfferPlace;
+export default PlaceAsk;

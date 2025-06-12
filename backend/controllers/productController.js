@@ -83,7 +83,11 @@ exports.getProductById = catchAsyncErrors(async (req, res, next) => {
     .populate("category")
     .populate("brand")
     .populate("indicator")
-    .populate("attributeId")
+    .populate("attribute")
+    .populate("bidding")
+    .populate("selling")
+    .populate("transactions")
+    .populate("wishlist")
     .populate({
       path: "variations",
       populate: {

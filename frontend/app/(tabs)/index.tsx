@@ -51,6 +51,7 @@ interface Product {
   dateCreated: string;
   image_full_url?: string;
   product_type?: string;
+  images?: any[];
 }
 
 interface Section {
@@ -88,6 +89,7 @@ interface ProductCardProps {
   price: string;
   image: ImageSourcePropType;
   productId: string;
+  sectionType?: string;
 }
 
 type SectionType = {
@@ -383,14 +385,15 @@ export default function HomeScreen() {
           {products.slice(0, 5).map((product: any, index: number) => (
             <View key={product._id}>
               <ProductCard
+                sectionType="row"
                 index={index + 1}
                 brand={product.brand?.name || ""}
                 name={product.name}
                 price={product.retailPrice ? `${product.retailPrice} Baht` : ""}
                 productId={product._id}
                 image={
-                  product.image_full_url
-                    ? { uri: `${baseUrl}${product.image_full_url}` }
+                  product.images[0]?.file_full_url
+                    ? { uri: `${baseUrl}${product.images[0]?.file_full_url}` }
                     : require("@/assets/images/bg_8.png")
                 }
               />
@@ -419,14 +422,15 @@ export default function HomeScreen() {
           {products.slice(0, 5).map((product: any, index: number) => (
             <View key={product._id}>
               <ProductCard
+                sectionType="row"
                 index={index + 1}
                 brand={product.brand?.name || ""}
                 name={product.name}
                 price={product.retailPrice ? `${product.retailPrice} Baht` : ""}
                 productId={product._id}
                 image={
-                  product.image_full_url
-                    ? { uri: `${baseUrl}${product.image_full_url}` }
+                  product.images[0]?.file_full_url
+                    ? { uri: `${baseUrl}${product.images[0]?.file_full_url}` }
                     : require("@/assets/images/bg_8.png")
                 }
               />
@@ -456,14 +460,15 @@ export default function HomeScreen() {
           {products.slice(0, 5).map((product: any, index: number) => (
             <View key={product._id}>
               <ProductCard
+                sectionType="row"
                 index={index + 1}
                 brand={product.brand?.name || ""}
                 name={product.name}
                 price={product.retailPrice ? `${product.retailPrice} Baht` : ""}
                 productId={product._id}
                 image={
-                  product.image_full_url
-                    ? { uri: `${baseUrl}${product.image_full_url}` }
+                  product.images[0]?.file_full_url
+                    ? { uri: `${baseUrl}${product.images[0]?.file_full_url}` }
                     : require("@/assets/images/bg_8.png")
                 }
               />
@@ -507,12 +512,15 @@ export default function HomeScreen() {
     price,
     image,
     productId,
+    sectionType,
   }) => (
     <TouchableOpacity
       onPress={() => router.push(`/product/${productId}`)}
       style={styles.productCard}
     >
-      {index && <Text style={styles.productIndex}>{index}</Text>}
+      {sectionType !== "row" && index && (
+        <Text style={styles.productIndex}>{index}</Text>
+      )}
       <Image source={image} style={styles.productImage} />
       <View style={styles.productInfo}>
         <Text style={styles.productBrand}>{brand}</Text>
@@ -797,9 +805,9 @@ export default function HomeScreen() {
                                       </Text>
                                       <Image
                                         source={
-                                          product.image_full_url
+                                          product.images[0].file_full_url
                                             ? {
-                                                uri: `${baseUrl}${product.image_full_url}`,
+                                                uri: `${baseUrl}${product.images[0].file_full_url}`,
                                               }
                                             : require("@/assets/images/bg_8.png")
                                         }
@@ -833,9 +841,9 @@ export default function HomeScreen() {
                               </Text>
                               <Image
                                 source={
-                                  product.image_full_url
+                                  product.images[0]?.file_fill_url
                                     ? {
-                                        uri: `${baseUrl}${product.image_full_url}`,
+                                        uri: `${baseUrl}${product.images[0].file_full_url}`,
                                       }
                                     : require("@/assets/images/bg_8.png")
                                 }
@@ -868,9 +876,9 @@ export default function HomeScreen() {
                     >
                       <Image
                         source={
-                          item.image_full_url
+                          item.images[0]?.file_full_url
                             ? {
-                                uri: `${baseUrl}${item.image_full_url}`,
+                                uri: `${baseUrl}${item.images[0]?.file_full_url}`,
                               }
                             : require("@/assets/images/bg_8.png")
                         }
@@ -948,8 +956,8 @@ export default function HomeScreen() {
                 >
                   <Image
                     source={{
-                      uri: item.image_full_url
-                        ? `${baseUrl}${item.image_full_url}`
+                      uri: item.images[0]?.file_full_url
+                        ? `${baseUrl}${item.images[0].file_full_url}`
                         : `https://via.placeholder.com/170x120`,
                     }}
                     style={styles.imageOnlyStyle}

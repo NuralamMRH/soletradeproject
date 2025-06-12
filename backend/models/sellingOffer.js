@@ -9,6 +9,7 @@ const sellingSchema = mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
+    required: true,
   },
   buyerId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -30,6 +31,9 @@ const sellingSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "AttributeOption",
     required: true,
+  },
+  sizeName: {
+    type: String,
   },
   sellingPrice: {
     type: Number,
@@ -66,11 +70,16 @@ const sellingSchema = mongoose.Schema({
     type: Date,
     default: null,
   },
-  images: [
-    {
-      type: String,
-    },
-  ],
+  paymentMethodId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "PaymentMethod",
+  },
+  shippingAddressId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "ShippingAddress",
+  },
+
+  images: [],
 });
 
 sellingSchema.virtual("id").get(function () {

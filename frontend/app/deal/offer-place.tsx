@@ -16,10 +16,27 @@ import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { useGetMyPaymentMethods } from "@/hooks/react-query/usePaymentMethodMutation";
 import { useShippingAddress } from "@/hooks/useShippingAddress";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
+import { COLORS } from "@/constants";
+import Price from "@/utils/Price";
 
 const { width } = Dimensions.get("window");
 
 const expirationOptions = ["3 Days", "7 Days", "14 Days", "30 Days"];
+
+// Address type for selectedAddress
+interface Address {
+  id: string;
+  name: string;
+  street: string;
+  street2?: string;
+  subDistrict?: string;
+  district?: string;
+  province?: string;
+  postalCode?: string;
+  phone?: string;
+  isDefault?: boolean;
+}
 
 const OfferPlace = () => {
   const router = useRouter();
@@ -27,8 +44,8 @@ const OfferPlace = () => {
 
   // Mock data (replace with real params/data as needed)
   const productName = params.productName || "Air Jordan";
-  const productSubtitle = "Air Jordan 1 Low OG Travis Scott Medium Olive";
-  const size = params.size || "6.5";
+  const productSubtitle = `${params.productName} ${params.brand} ${params.colorway}`;
+
   let variations: any[] = [];
   if (typeof params.variations === "string") {
     try {
@@ -40,15 +57,107 @@ const OfferPlace = () => {
     variations = params.variations;
   }
 
-  const attribute = params.attribute || null;
+  const size = params.size || "";
+  const [selectedSize, setSelectedSize] = useState("");
+  const sizeId = selectedSize
+    ? variations.find(
+        (variation: any) => variation.optionName === selectedSize || size
+      )?.attributeId._id
+    : params.sizeId;
 
-  const [selectedSize, setSelectedSize] = useState(size);
-  const condition = "New";
-  const box = "Original (Good)";
-  const [offer, setOffer] = useState("");
+  const { data: methods = [], isLoading: loadingMethods } =
+    useGetMyPaymentMethods();
+
+  // For attributeName, check if params.attribute is an object
+  const attributeName =
+    typeof params.attribute === "object" &&
+    params.attribute !== null &&
+    "name" in params.attribute
+      ? (params.attribute as any).name
+      : variations.find(
+          (variation: any) => variation.optionName === selectedSize || size
+        )?.attributeId.name;
+
+  // For selectedSellerAsk, always parse if string
+  const selectedSellerAskObj = (() => {
+    if (!params.selectedSellerAsk) return undefined;
+    if (typeof params.selectedSellerAsk === "string") {
+      try {
+        return JSON.parse(params.selectedSellerAsk);
+      } catch {
+        return undefined;
+      }
+    }
+    if (Array.isArray(params.selectedSellerAsk)) {
+      try {
+        return JSON.parse(params.selectedSellerAsk[0]);
+      } catch {
+        return undefined;
+      }
+    }
+    return params.selectedSellerAsk;
+  })();
+
+  const [buyNowItem, setBuyNowItem] = useState<any>(
+    selectedSellerAskObj || null
+  );
+
+  const condition = selectedSellerAskObj?.itemCondition || "New";
+  const box = selectedSellerAskObj?.packaging || "Original (Good)";
+
+  const bidding = params?.bidding
+    ? JSON.parse(params?.bidding as any)
+    : undefined;
+
+  const selling = params?.selling
+    ? JSON.parse(params?.selling as any)
+    : undefined;
+
+  // Robust size-based price functions
+  function getSizeHighestPrice(sizeId: string): number | null {
+    if (!bidding || !Array.isArray(bidding)) return null;
+    const filtered = bidding.filter((bid: any) => bid.sizeId === sizeId);
+    if (filtered.length === 0) return null;
+    return Math.max(...filtered.map((bid: any) => Number(bid.offeredPrice)));
+  }
+
+  function getSizeLowestPrice(sizeId: string): number | null {
+    if (!selling || !Array.isArray(selling)) return null;
+    const filtered = selling.filter((ask: any) => ask.sizeId === sizeId);
+    if (filtered.length === 0) return null;
+    return Math.min(...filtered.map((ask: any) => Number(ask.sellingPrice)));
+  }
+
+  function getLowestAskItem(sizeId: string): any | null {
+    if (!selling || !Array.isArray(selling)) return null;
+    const lowestPrice = getSizeLowestPrice(sizeId);
+    if (lowestPrice === null) return null;
+    return selling.find(
+      (ask: any) =>
+        ask.sizeId === sizeId && Number(ask.sellingPrice) === lowestPrice
+    );
+  }
+
+  function getAverageBidPrice(sizeId: string): number | null {
+    if (!bidding || !Array.isArray(bidding)) return null;
+    const filtered = bidding.filter((bid: any) => bid.sizeId === sizeId);
+    if (filtered.length === 0) return null;
+    const sum = filtered.reduce(
+      (acc: number, bid: any) => acc + Number(bid.offeredPrice),
+      0
+    );
+    return Math.round(sum / filtered.length);
+  }
+
+  const [offer, setOffer] = useState(selectedSellerAskObj?.sellingPrice || "");
   const [expiration, setExpiration] = useState("30 Days");
-  const [payment, setPayment] = useState("Visa ending in **34");
-  const [address, setAddress] = useState("2342 Ratchaphruek 34 Rd");
+
+  const [payment, setPayment] = useState(
+    methods.find(
+      (method: any) => method.section === "buying" && method.isDefault
+    ) || null
+  );
+
   const [showExpirationSheet, setShowExpirationSheet] = useState(false);
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
   const [showAddressSheet, setShowAddressSheet] = useState(false);
@@ -58,12 +167,11 @@ const OfferPlace = () => {
   const addressSheetRef = useRef<BottomSheet>(null);
   const sizeSheetRef = useRef<BottomSheet>(null);
   // Payment methods
-  const { data: methods = [], isLoading: loadingMethods } =
-    useGetMyPaymentMethods();
+
   // Addresses
   const { getMyShippingAddress } = useShippingAddress();
-  const [addresses, setAddresses] = useState([]);
-  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
   useEffect(() => {
     (async () => {
@@ -85,17 +193,48 @@ const OfferPlace = () => {
   }, []);
 
   const handleGoCheckout = () => {
+    if (!payment) {
+      Toast.show({
+        text1: "Please select a payment method",
+        type: "error",
+      });
+      return;
+    }
+
+    if (!selectedAddress) {
+      Toast.show({
+        text1: "Please select a shipping address",
+        type: "error",
+      });
+      return;
+    }
+
+    if (!offer) {
+      Toast.show({
+        text1: "Please enter an offer price",
+        type: "error",
+      });
+      return;
+    }
+
+    if (offer < selectedSellerAskObj?.sellingPrice) {
+      Toast.show({
+        text1: "Offer price must be higher than the selling price",
+        type: "error",
+      });
+      return;
+    }
+
     router.push({
       pathname: "/deal/checkout",
       params: {
-        size: selectedSize,
-        attribute:
-          attribute?.name ||
-          variations.find(
-            (variation: any) => variation.optionName === selectedSize
-          )?.attributeId.name,
-        payment: payment,
-        address: selectedAddress,
+        sizeName: selectedSize ? selectedSize : size,
+        attributeName: attributeName,
+        payment: JSON.stringify(payment),
+        address: selectedAddress ? JSON.stringify(selectedAddress) : undefined,
+        selectedSellerAsk: selectedSellerAskObj,
+        buyNowItem: JSON.stringify(buyNowItem),
+        newSizeId: sizeId,
         expiration: expiration,
         offeredPrice: offer,
         packaging: box,
@@ -106,6 +245,10 @@ const OfferPlace = () => {
   };
 
   const insets = useSafeAreaInsets();
+
+  // For image uri, ensure it's a string
+  const imageUri = Array.isArray(params.image) ? params.image[0] : params.image;
+
   return (
     <View style={styles.container}>
       <View style={{ paddingTop: insets.top - 40 }} />
@@ -123,60 +266,75 @@ const OfferPlace = () => {
         {/* Offer Input */}
         <View style={styles.offerInputSection}>
           <View style={styles.offerInputRow}>
-            <Text style={styles.currency}>THB</Text>
             <TextInput
               style={styles.offerInput}
-              value={
-                offer !== undefined && offer !== null && offer !== ""
-                  ? Number(offer).toLocaleString("th-TH")
-                  : ""
-              }
+              value={offer !== "" ? Number(offer).toLocaleString("th-TH") : ""}
               onChangeText={(text) => {
                 const numeric = text.replace(/[^0-9]/g, "");
                 setOffer(numeric ? Number(numeric) : "");
               }}
-              placeholder=""
+              placeholder="THB"
               placeholderTextColor="#888"
               keyboardType="numeric"
+              editable={selectedSellerAskObj ? false : true}
             />
           </View>
           <Text style={styles.placeOfferLabel}>Place your offer</Text>
         </View>
         {/* Pricing Options */}
-        <Text style={styles.pricingOptionsLabel}>Pricing Options</Text>
-        <View style={styles.pricingOptionsRow}>
-          <TouchableOpacity
-            onPress={() => setOffer(14595)}
-            style={styles.priceOptionBox}
-          >
-            <Text style={styles.priceOptionLabel}>Highest Offer</Text>
-            <Text style={styles.priceOptionValue}>14,595 Baht</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setOffer(20000)}
-            style={styles.priceOptionBox}
-          >
-            <Text style={styles.priceOptionLabel}>Suggested</Text>
-            <Text style={styles.priceOptionValue}>20,000 Baht</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setOffer(21800)}
-            style={styles.priceOptionBox}
-          >
-            <Text style={styles.priceOptionLabel}>Buy Now</Text>
-            <Text style={styles.priceOptionValue}>21,800 Baht</Text>
-          </TouchableOpacity>
-        </View>
+        {!selectedSellerAskObj && (
+          <>
+            <Text style={styles.pricingOptionsLabel}>Pricing Options</Text>
+            <View style={styles.pricingOptionsRow}>
+              <TouchableOpacity
+                onPress={() => setOffer(getSizeHighestPrice(sizeId) || 0)}
+                style={styles.priceOptionBox}
+              >
+                <Text style={styles.priceOptionLabel}>Highest Offer</Text>
+                <Text style={styles.priceOptionValue}>
+                  <Price
+                    price={getSizeHighestPrice(sizeId) || 0}
+                    currency="THB"
+                  />
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setOffer(getAverageBidPrice(sizeId) || 0)}
+                style={styles.priceOptionBox}
+              >
+                <Text style={styles.priceOptionLabel}>Suggested</Text>
+                <Text style={styles.priceOptionValue}>
+                  <Price
+                    price={getAverageBidPrice(sizeId) || 0}
+                    currency="THB"
+                  />
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setBuyNowItem(getLowestAskItem(sizeId));
+                  setOffer(getLowestAskItem(sizeId)?.sellingPrice || 0);
+                }}
+                style={styles.priceOptionBox}
+              >
+                <Text style={styles.priceOptionLabel}>Buy Now</Text>
+                <Text style={styles.priceOptionValue}>
+                  <Price
+                    price={getLowestAskItem(sizeId)?.sellingPrice || 0}
+                    currency="THB"
+                  />
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+
         {/* Product Info Row */}
         <View style={styles.productInfoRow}>
           <View style={{ flex: 1 }}>
             <TouchableOpacity onPress={() => setShowSizeSheet(true)}>
               <Text style={styles.infoText}>
-                Size: {selectedSize}{" "}
-                {attribute?.name ||
-                  variations.find(
-                    (variation: any) => variation.optionName === selectedSize
-                  )?.attributeId.name}
+                Size: {selectedSize || size} {attributeName}
                 <Ionicons name="pencil" size={14} color="#fff" />
               </Text>
             </TouchableOpacity>
@@ -184,7 +342,12 @@ const OfferPlace = () => {
             <Text style={styles.infoText}>Condition: {condition}</Text>
             <Text style={styles.infoText}>Box: {box}</Text>
           </View>
-          <Image source={{ uri: params.image }} style={styles.productImage} />
+          <Image
+            source={
+              typeof imageUri === "string" ? { uri: imageUri } : undefined
+            }
+            style={styles.productImage}
+          />
         </View>
         {/* Expiration, Payment, Address */}
         <View style={styles.infoRow}>
@@ -210,13 +373,13 @@ const OfferPlace = () => {
             style={{ marginRight: 10 }}
           />
           <Text style={styles.infoRowText}>
-            {payment.paymentType === "card"
+            {payment?.paymentType === "card"
               ? `${
-                  payment.name || "Card"
-                } ending in **${payment.cardNumber?.slice(-4)}`
+                  payment?.name || "Card"
+                } ending in **${payment?.cardNumber?.slice(-4)}`
               : `${
-                  payment.bank || "Bank"
-                } ending in *${payment.accountNumber?.slice(-3)}`}
+                  payment?.bank || "Bank"
+                } ending in *${payment?.accountNumber?.slice(-3)}`}
           </Text>
           <TouchableOpacity
             style={styles.editBtn}
@@ -233,7 +396,15 @@ const OfferPlace = () => {
             style={{ marginRight: 10 }}
           />
           <Text style={styles.infoRowText}>
-            {`${selectedAddress?.name} ${selectedAddress?.street} ${selectedAddress?.street2} ${selectedAddress?.subDistrict} ${selectedAddress?.district} ${selectedAddress?.province} ${selectedAddress?.postalCode} ${selectedAddress?.phone}`}
+            {selectedAddress
+              ? `${selectedAddress.name} ${selectedAddress.street} ${
+                  selectedAddress.street2 || ""
+                } ${selectedAddress.subDistrict || ""} ${
+                  selectedAddress.district || ""
+                } ${selectedAddress.province || ""} ${
+                  selectedAddress.postalCode || ""
+                } ${selectedAddress.phone || ""}`
+              : "No address selected"}
           </Text>
           <TouchableOpacity
             style={styles.editBtn}
@@ -253,11 +424,20 @@ const OfferPlace = () => {
             <Text style={styles.cancelBtnText}>Cancel</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.placeOfferBtn}
+            style={[
+              styles.placeOfferBtn,
+              {
+                backgroundColor: selectedSellerAskObj
+                  ? COLORS.brandGreen
+                  : COLORS.brandRed,
+              },
+            ]}
             disabled={!offer}
             onPress={handleGoCheckout}
           >
-            <Text style={styles.placeOfferBtnText}>Place Offer</Text>
+            <Text style={styles.placeOfferBtnText}>
+              {selectedSellerAskObj ? "Buy Now" : "Place Offer"}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -349,12 +529,14 @@ const OfferPlace = () => {
                       marginBottom: 16,
                       borderWidth: 2,
                       borderColor:
-                        selectedSize === variation._id ? "#fff" : "#888",
+                        selectedSize === variation.optionName ? "red" : "#888",
                       borderRadius: 8,
                       paddingVertical: 16,
                       alignItems: "center",
                       backgroundColor:
-                        selectedSize === variation._id ? "#222" : "transparent",
+                        selectedSize === variation.optionName
+                          ? "#222"
+                          : "transparent",
                     }}
                     onPress={() => {
                       setSelectedSize(variation.optionName);
@@ -368,12 +550,7 @@ const OfferPlace = () => {
                         fontSize: 16,
                       }}
                     >
-                      {variation.optionName}{" "}
-                      {attribute?.name ||
-                        variations.find(
-                          (variation: any) =>
-                            variation.optionName === selectedSize
-                        )?.attributeId.name}
+                      {variation.optionName} {attributeName}
                     </Text>
                     <Text style={{ color: "#fff", fontSize: 14, marginTop: 4 }}>
                       {variation.retailPrice} Baht
@@ -405,47 +582,49 @@ const OfferPlace = () => {
           >
             Payment Method
           </Text>
-          {methods.map((method) => (
-            <TouchableOpacity
-              key={method.id}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 14,
-                borderBottomWidth: 1,
-                borderBottomColor: "#333",
-              }}
-              onPress={() => {
-                setPayment(method);
-                paymentSheetRef.current?.close();
-              }}
-            >
-              {method.paymentType === "card" ? (
-                <FontAwesome
-                  name="credit-card"
-                  size={24}
-                  color={"#fff"}
-                  style={{ marginRight: 8 }}
-                />
-              ) : (
-                <MaterialIcons
-                  name="account-balance"
-                  size={24}
-                  color={"#fff"}
-                  style={{ marginRight: 8 }}
-                />
-              )}
-              <Text style={{ color: "#fff", fontSize: 16 }}>
-                {method.paymentType === "card"
-                  ? `${
-                      method.name || "Card"
-                    } ending in **${method.cardNumber?.slice(-4)}`
-                  : `${
-                      method.bank || "Bank"
-                    } ending in *${method.accountNumber?.slice(-3)}`}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {methods
+            .filter((method: any) => method.section === "buying")
+            .map((method) => (
+              <TouchableOpacity
+                key={method.id}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 14,
+                  borderBottomWidth: 1,
+                  borderBottomColor: "#333",
+                }}
+                onPress={() => {
+                  setPayment(method);
+                  paymentSheetRef.current?.close();
+                }}
+              >
+                {method?.paymentType === "card" ? (
+                  <FontAwesome
+                    name="credit-card"
+                    size={24}
+                    color={"#fff"}
+                    style={{ marginRight: 8 }}
+                  />
+                ) : (
+                  <MaterialIcons
+                    name="account-balance"
+                    size={24}
+                    color={"#fff"}
+                    style={{ marginRight: 8 }}
+                  />
+                )}
+                <Text style={{ color: "#fff", fontSize: 16 }}>
+                  {method?.paymentType === "card"
+                    ? `${
+                        method.name || "Card"
+                      } ending in **${method.cardNumber?.slice(-4)}`
+                    : `${
+                        method.bank || "Bank"
+                      } ending in *${method.accountNumber?.slice(-3)}`}
+                </Text>
+              </TouchableOpacity>
+            ))}
           <TouchableOpacity
             style={{ paddingVertical: 16 }}
             onPress={() => {
@@ -499,7 +678,7 @@ const OfferPlace = () => {
                   borderBottomColor: "#333",
                 }}
                 onPress={() => {
-                  setAddress(addr);
+                  setSelectedAddress(addr);
                   addressSheetRef.current?.close();
                 }}
               >
@@ -601,20 +780,19 @@ const styles = StyleSheet.create({
   priceOptionBox: {
     borderWidth: 2,
     borderColor: "#fff",
-    borderRadius: 8,
+    borderRadius: 0,
     paddingVertical: 12,
-    paddingHorizontal: 16,
     alignItems: "center",
-    width: (width - 64) / 3,
+    width: (width - 42) / 3,
   },
   priceOptionLabel: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 12,
     marginBottom: 4,
   },
   priceOptionValue: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
   },
   productInfoRow: {
@@ -672,7 +850,6 @@ const styles = StyleSheet.create({
   },
   placeOfferBtn: {
     backgroundColor: "#222",
-    borderRadius: 6,
     paddingVertical: 14,
     paddingHorizontal: 32,
     opacity: 1,

@@ -250,28 +250,24 @@ productSchema.virtual("bidding", {
   ref: "BiddingOffer",
   localField: "_id",
   foreignField: "productId",
-  justOne: true,
 });
 
 productSchema.virtual("selling", {
   ref: "SellingOffer",
   localField: "_id",
   foreignField: "productId",
-  justOne: true,
 });
 
 productSchema.virtual("transactions", {
   ref: "Transaction",
   localField: "_id",
   foreignField: "productId",
-  justOne: true,
 });
 
 productSchema.virtual("wishlist", {
   ref: "Wishlist",
   localField: "_id",
   foreignField: "productId",
-  justOne: true,
 });
 
 // Add any existing indexes

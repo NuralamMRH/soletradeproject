@@ -8,7 +8,6 @@ const biddingOfferSchema = mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["Active", "Sold", "Banned"],
     default: "Active",
   },
   userId: {
@@ -64,7 +63,6 @@ const biddingOfferSchema = mongoose.Schema({
   },
   paymentStatus: {
     type: String,
-    enum: ["Pending", "Paid"],
     default: "Pending",
   },
   paymentDate: {

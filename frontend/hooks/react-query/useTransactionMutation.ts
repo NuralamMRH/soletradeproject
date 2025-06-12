@@ -103,7 +103,7 @@ export const useCreateTransaction = () => {
           text1: "Success",
           text2: "Transaction created",
         });
-        return data.biddingOffer;
+        return data.transaction;
       } catch (error: any) {
         Toast.show({
           type: "error",

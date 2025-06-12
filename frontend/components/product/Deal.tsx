@@ -36,6 +36,7 @@ import {
 import { LineChart } from "react-native-chart-kit";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import AdminHeader from "../AdminHeader";
+import SellerAsk from "./SellerAsk";
 
 const { width } = Dimensions.get("window");
 
@@ -54,19 +55,29 @@ interface ProductCardProps {
   price: string;
   image: any;
   productId: string;
+  selling: any;
+  buying: any;
+  images: any;
+  attribute: any;
+  variations: any;
+  wishlist: any;
+  transactions: any;
 }
 
 const Deal = ({ product }: { product: any }) => {
   const router = useRouter();
-  const dispatch = useDispatch();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
+  const [modalVisibleSellerAsk, setModalVisibleSellerAsk] = useState(false);
   const [zoomIndex, setZoomIndex] = useState(0);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const scaleAnimSell = useRef(new Animated.Value(1)).current;
   const [bottomSheetType, setBottomSheetType] = useState<"buy" | "sell">("buy");
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedSellerAsk, setSelectedSellerAsk] = useState<any>(null);
+  const [selectedBuyerOffer, setSelectedBuyerOffer] = useState<any>(null);
+
   const [activeTab, setActiveTab] = useState<
     "buyNow" | "placeOffer" | "sellNow" | "placeAsk"
   >("buyNow");
@@ -74,6 +85,32 @@ const Deal = ({ product }: { product: any }) => {
   const { mutate: addToWishlist } = useAddToWishlist();
   const { mutate: removeFromWishlist } = useRemoveFromWishlist();
   const { data: wishlists, isLoading: wishlistsLoading } = useWishlists();
+
+  const highestPrice = Math.max(
+    ...product.bidding.map((bid: any) => bid.offeredPrice.toFixed(0))
+  );
+
+  const lowestPrice = Math.min(
+    ...product.selling.map((ask: any) => ask.sellingPrice.toFixed(0))
+  );
+
+  function getSizeHighestPrice(size: string) {
+    return Math.max(
+      ...product.bidding
+        .filter((bid: any) => bid.sizeId === size)
+        .map((bid: any) => bid.offeredPrice.toFixed(0))
+    );
+  }
+
+  function getSizeLowestPrice(size: string) {
+    return Math.min(
+      ...product.selling
+        .filter((ask: any) => ask.sizeId === size)
+        .map((ask: any) => ask.sellingPrice.toFixed(0))
+    );
+  }
+
+
 
   const { products: relatedProducts, loading: relatedProductsLoading } =
     useProducts({
@@ -92,8 +129,6 @@ const Deal = ({ product }: { product: any }) => {
     });
 
   const insets = useSafeAreaInsets();
-
-  console.log("product.variations", product.variations);
 
   const handleAddToWishlist = (productId: string) => {
     console.log("productId", productId);
@@ -121,6 +156,8 @@ const Deal = ({ product }: { product: any }) => {
     setBottomSheetType(type);
     setSelectedSize(null);
     setActiveTab("buyNow");
+    setSelectedSellerAsk(null);
+    setSelectedBuyerOffer(null);
     bottomSheetRef.current?.expand();
     if (type === "buy") {
       // Animate button
@@ -168,11 +205,14 @@ const Deal = ({ product }: { product: any }) => {
         offerType: activeTab,
         productId: product._id,
         productName: product.name,
+        subtitle: product.description,
         brand: product.brand?.name,
         sizeId: selectedSize,
+        selectedSellerAsk: JSON.stringify(selectedSellerAsk) || null,
+        selectedBuyerOffer: JSON.stringify(selectedBuyerOffer) || null,
         size: product.variations.find(
           (variation: any) => variation._id === selectedSize
-        )?.size,
+        )?.optionName,
         variations: JSON.stringify(product.variations) || [],
         retailPrice: product.retailPrice,
         image: `${baseUrl}${product.images[0].file_full_url}`,
@@ -182,15 +222,18 @@ const Deal = ({ product }: { product: any }) => {
         categoryId: product.categoryId || "",
         subCategoryId: product.subCategoryId || "",
         attribute: product.attribute || null,
-        bidding: product.bidding || null,
-        selling: product.selling || null,
-        transactions: product.transactions || null,
+        bidding: JSON.stringify(product.bidding) || null,
+        selling: JSON.stringify(product.selling) || null,
+        transactions: JSON.stringify(product.transactions) || null,
+        highestPrice: getSizeHighestPrice(selectedSize || ""),
+        lowestPrice: getSizeLowestPrice(selectedSize || ""),
         // Add more params as needed
       },
     });
   };
 
   const handleGoToPlaceAsk = () => {
+    console.log("selectedSize", selectedSize);
     router.push({
       pathname: "/deal/seller/product-condition",
       params: {
@@ -201,7 +244,7 @@ const Deal = ({ product }: { product: any }) => {
         sizeId: selectedSize,
         size: product.variations.find(
           (variation: any) => variation._id === selectedSize
-        )?.size,
+        )?.optionName,
         variations: JSON.stringify(product.variations) || [],
         retailPrice: product.retailPrice,
         image: `${baseUrl}${product.images[0].file_full_url}`,
@@ -378,6 +421,12 @@ const Deal = ({ product }: { product: any }) => {
     { label: "ALL", value: "ALL" as ChartRange },
   ];
   const tabOptions: TabType[] = ["Sales", "Asks", "Bids"];
+
+  // console.log("product", product);
+  console.log("product.selling", product.selling);
+  console.log("product.bidding", product.bidding);
+
+  const [zoomImages, setZoomImages] = useState<any[]>([]);
 
   return (
     <>
@@ -834,7 +883,11 @@ const Deal = ({ product }: { product: any }) => {
                           activeTab === "placeOffer" ? "#a00" : "transparent",
                         marginBottom: -2,
                       }}
-                      onPress={() => setActiveTab("placeOffer")}
+                      onPress={() => {
+                        setActiveTab("placeOffer");
+                        setSelectedSellerAsk(null);
+                        setSelectedBuyerOffer(null);
+                      }}
                     >
                       <Text
                         style={{
@@ -850,114 +903,21 @@ const Deal = ({ product }: { product: any }) => {
                   {/* Tab Content */}
                   {activeTab === "buyNow" ? (
                     <>
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: 24,
-                        }}
-                      >
-                        <View>
-                          <Text
-                            style={{
-                              color: "#fff",
-                              fontSize: 22,
-                              fontWeight: "bold",
+                      {product?.selling.length > 0 &&
+                        product.selling.map((sel: any) => (
+                          <SellerAsk
+                            key={sel._id}
+                            sel={sel}
+                            modalVisible={modalVisibleSellerAsk}
+                            setModalVisible={setModalVisibleSellerAsk}
+                            zoomIndex={zoomIndex}
+                            setZoomIndex={setZoomIndex}
+                            onPress={() => {
+                              setSelectedSellerAsk(sel);
+                              handleGoToOfferPlace();
                             }}
-                          >
-                            16,800 Baht
-                          </Text>
-                          <Text
-                            style={{
-                              color: "#fff",
-                              fontSize: 14,
-                              marginTop: 2,
-                            }}
-                          >
-                            Lowest Price / Brand New
-                          </Text>
-                          <Text
-                            style={{
-                              color: "#aaa",
-                              fontSize: 12,
-                              marginTop: 2,
-                            }}
-                          >
-                            3-5 days / verified before shipping
-                          </Text>
-                        </View>
-                        <TouchableOpacity
-                          style={{
-                            borderWidth: 2,
-                            borderColor: "#fff",
-                            borderRadius: 4,
-                            paddingVertical: 6,
-                            paddingHorizontal: 18,
-                          }}
-                        >
-                          <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                            Select
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                      <View
-                        style={{
-                          height: 1,
-                          backgroundColor: "#888",
-                          marginBottom: 24,
-                        }}
-                      />
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <View>
-                          <Text
-                            style={{
-                              color: "#fff",
-                              fontSize: 22,
-                              fontWeight: "bold",
-                            }}
-                          >
-                            20,000 Baht
-                          </Text>
-                          <Text
-                            style={{
-                              color: "#fff",
-                              fontSize: 14,
-                              marginTop: 2,
-                            }}
-                          >
-                            Brand New / Box with Defect
-                          </Text>
-                          <Text
-                            style={{
-                              color: "#aaa",
-                              fontSize: 12,
-                              marginTop: 2,
-                            }}
-                          >
-                            3-5 days / verified before shipping
-                          </Text>
-                        </View>
-                        <TouchableOpacity
-                          style={{
-                            borderWidth: 2,
-                            borderColor: "#fff",
-                            borderRadius: 4,
-                            paddingVertical: 6,
-                            paddingHorizontal: 18,
-                          }}
-                        >
-                          <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                            Select
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
+                          />
+                        ))}
                     </>
                   ) : (
                     <>

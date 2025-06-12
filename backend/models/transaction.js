@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const transactionSchema = mongoose.Schema({
+  type: { type: String, required: true }, // Offer, BuyNow, etc.
   productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",
@@ -9,12 +10,10 @@ const transactionSchema = mongoose.Schema({
   buyerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: true,
   },
   sellerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: true,
   },
   biddingOfferId: { type: mongoose.Schema.Types.ObjectId, ref: "BiddingOffer" }, // optional
   sellingItemId: { type: mongoose.Schema.Types.ObjectId, ref: "SellingItem" }, // optional

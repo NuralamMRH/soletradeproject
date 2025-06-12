@@ -56,6 +56,33 @@ export const useMySellingOffers = () => {
   });
 };
 
+export const useSellingOfferById = (id: string) => {
+  const { isAuthenticated } = useAuth();
+
+  return useQuery({
+    queryKey: ["sellingOffer", id],
+    queryFn: async () => {
+      if (!isAuthenticated) {
+        return null;
+      }
+      try {
+        const { data } = await MainApi.get(`/api/v1/selling/${id}`);
+        console.log("data", data);
+        return data;
+      } catch (error: any) {
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2:
+            error.response?.data?.message || "Failed to fetch selling offers",
+        });
+        return null;
+      }
+    },
+    enabled: !!id && isAuthenticated,
+  });
+};
+
 // Get selling offer by product ID
 export const useSellingOfferByProduct = (productId: object) => {
   const { isAuthenticated } = useAuth();
@@ -180,13 +207,15 @@ export const useCreateSellingOffer = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       Toast.show({ type: "success", text1: "Selling offer created" });
-      return res.data.sellingOffer;
+
+      return res.data.sellingItem;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sellingOffers"] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.log("Error", error);
+      alert(error?.message || "Ask failed. Please try again.");
     },
   });
 };
@@ -204,7 +233,8 @@ export const useUpdateSellingOffer = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       Toast.show({ type: "success", text1: "Selling offer updated" });
-      return res.data.sellingOffer;
+      console.log("Res", res);
+      return res.data.sellingItem;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -220,8 +250,7 @@ export const useDeleteSellingOffer = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const res = await MainApi.delete(`/api/v1/selling/${id}`);
-      console.log("Res", res);
-      return res.data.sellingOffer;
+      return res.data.sellingItem;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sellingOffers"] });

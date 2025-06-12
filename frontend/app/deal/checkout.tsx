@@ -19,6 +19,8 @@ import { useCreateOrder } from "@/hooks/react-query/useOrderMutation";
 import { useShippingAddress } from "@/hooks/useShippingAddress";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAddToBiddingOffer } from "@/hooks/react-query/useBuyerOfferMutation";
+import { useAuth } from "@/hooks/useAuth";
+import { useCreateTransaction } from "@/hooks/react-query/useTransactionMutation";
 
 const SHIPPING_OPTIONS = [
   { key: "standard", label: "Standard", price: 100, icon: "local-shipping" },
@@ -28,13 +30,9 @@ const SHIPPING_OPTIONS = [
 export default function Checkout() {
   const params = useLocalSearchParams();
   const {
-    payment,
-    address,
     expiration,
     offeredPrice,
     productName,
-    productSubtitle,
-    productImage,
     sizeId,
     packaging,
     itemCondition,
@@ -42,8 +40,13 @@ export default function Checkout() {
     productId,
   } = params;
 
+  const { user, isAuthenticated } = useAuth();
   // Calculate subtotal from items
   const subtotal = Number(offeredPrice);
+
+  const payment = JSON.parse(params.payment as string);
+  const address = JSON.parse(params.address as string);
+  const buyNowItem = JSON.parse(params.buyNowItem as string);
 
   // Payment methods
   const { data: methods = [], isLoading: loadingMethods } =
@@ -56,8 +59,8 @@ export default function Checkout() {
   // Selected
   const [selectedShipping, setSelectedShipping] = useState(SHIPPING_OPTIONS[0]);
   const [deliverySystem, setDeliverySystem] = useState("");
-  const [selectedPayment, setSelectedPayment] = useState<any>(null);
-  const [selectedAddress, setSelectedAddress] = useState<any>(null);
+  const [selectedPayment, setSelectedPayment] = useState<any>(payment || null);
+  const [selectedAddress, setSelectedAddress] = useState<any>(address || null);
   const [discount, setDiscount] = useState(0);
 
   // Bottom sheets
@@ -79,17 +82,19 @@ export default function Checkout() {
         const res = await getMyShippingAddress();
         const addresses = res.shipping || res;
         setAddresses(addresses);
-        setSelectedAddress(
-          addresses.find((address: any) => address.isDefault) ||
-            addresses[0] ||
-            null
-        );
+        if (!address) {
+          setSelectedAddress(
+            addresses.find((address: any) => address.isDefault) ||
+              addresses[0] ||
+              null
+          );
+        }
       } catch {
         setAddresses([]);
       }
       setLoadingAddresses(false);
     })();
-  }, []);
+  }, [address]);
 
   // Set default payment method
   useEffect(() => {
@@ -100,6 +105,9 @@ export default function Checkout() {
 
   const { mutate: addToBiddingOffer, isPending: isAddingToBiddingOffer } =
     useAddToBiddingOffer();
+
+  const { mutate: createTransaction, isPending: isCreatingTransaction } =
+    useCreateTransaction();
 
   // Swipe logic
   const panResponder = PanResponder.create({
@@ -128,13 +136,14 @@ export default function Checkout() {
             return;
           }
           const payload = {
-            type: "Offer",
+            type: params.offerType,
             productId: productId as string,
             itemCondition: itemCondition,
             packaging: packaging,
-            sizeId: sizeId as string,
+            sizeId: params.newSizeId || (sizeId as string),
             offeredPrice: Number(offeredPrice),
             totalPrice: Number(total),
+            price: Number(total),
             deliverySystem: deliverySystem,
             validUntil: new Date(Date.now() + Number(expiration) * 1000),
             shippingAddressId: selectedAddress.id || selectedAddress._id,
@@ -142,17 +151,45 @@ export default function Checkout() {
             discount,
             paymentStatus: "Paid",
             shippingStatus: "Ongoing",
+            buyerId: user?.id,
+            sellerId: buyNowItem.userId,
+            sellingItemId: buyNowItem.id,
+            status: "Pending",
+            createdAt: new Date(),
           };
+
+          let biddingOfferId: string | null = null;
+
           addToBiddingOffer(payload, {
             onSuccess: (data: any) => {
               setSwiped(false);
               swipeX.setValue(0);
-              router.replace({
-                pathname: "/deal/offer-confirmation",
-                params: {
-                  offerId: data.id,
-                } as any,
-              });
+
+              if (params.offerType === "buyNow") {
+                biddingOfferId = data.id;
+                const transactionPayload = {
+                  ...payload,
+                  biddingOfferId,
+                  type: "buyNow",
+                };
+                createTransaction(transactionPayload, {
+                  onSuccess: (data: any) => {
+                    router.replace({
+                      pathname: "/deal/offer-confirmation",
+                      params: {
+                        offerId: biddingOfferId,
+                      } as any,
+                    });
+                  },
+                });
+              } else {
+                router.replace({
+                  pathname: "/deal/offer-confirmation",
+                  params: {
+                    offerId: biddingOfferId,
+                  } as any,
+                });
+              }
             },
             onError: (err: any) => {
               setSwiped(false);
@@ -196,44 +233,46 @@ export default function Checkout() {
           </TouchableOpacity>
         </View>
         <ScrollView style={styles.paymentMethodsList}>
-          {methods.map((method: any) => (
-            <TouchableOpacity
-              key={method._id || method.id}
-              style={styles.paymentMethodItem}
-              onPress={() => {
-                setSelectedPayment(method);
-                paymentSheetRef.current?.close();
-              }}
-            >
-              <View style={styles.paymentMethodLeft}>
-                {method.paymentType === "card" ? (
-                  <FontAwesome
-                    name="credit-card"
-                    size={24}
-                    color={COLORS.white}
-                    style={{ marginRight: 8 }}
-                  />
-                ) : (
-                  <MaterialIcons
-                    name="account-balance"
-                    size={24}
-                    color={COLORS.white}
-                    style={{ marginRight: 8 }}
-                  />
-                )}
-                <Text style={styles.paymentMethodText}>
-                  {method.paymentType === "card"
-                    ? `${
-                        method.name || "Card"
-                      } ending in **${method.cardNumber?.slice(-4)}`
-                    : `${
-                        method.bank || "Bank"
-                      } ending in *${method.accountNumber?.slice(-3)}`}
-                  {method.isDefault ? " (Default)" : ""}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          {methods
+            .filter((method: any) => method.section === "buying")
+            .map((method: any) => (
+              <TouchableOpacity
+                key={method._id || method.id}
+                style={styles.paymentMethodItem}
+                onPress={() => {
+                  setSelectedPayment(method);
+                  paymentSheetRef.current?.close();
+                }}
+              >
+                <View style={styles.paymentMethodLeft}>
+                  {method.paymentType === "card" ? (
+                    <FontAwesome
+                      name="credit-card"
+                      size={24}
+                      color={COLORS.white}
+                      style={{ marginRight: 8 }}
+                    />
+                  ) : (
+                    <MaterialIcons
+                      name="account-balance"
+                      size={24}
+                      color={COLORS.white}
+                      style={{ marginRight: 8 }}
+                    />
+                  )}
+                  <Text style={styles.paymentMethodText}>
+                    {method.paymentType === "card"
+                      ? `${
+                          method.name || "Card"
+                        } ending in **${method.cardNumber?.slice(-4)}`
+                      : `${
+                          method.bank || "Bank"
+                        } ending in *${method.accountNumber?.slice(-3)}`}
+                    {method.isDefault ? " (Default)" : ""}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
           <TouchableOpacity
             style={styles.addPaymentButton}
             onPress={() => {
@@ -360,7 +399,9 @@ export default function Checkout() {
             <View style={{ flex: 1 }}>
               <Text style={styles.productMeta}>
                 {params.size
-                  ? `Size: ${params.size} ${params.attribute}\n`
+                  ? `Size: ${params.sizeName || params.size} ${
+                      params.attributeName
+                    }\n`
                   : ""}
                 {itemCondition ? `Condition: ${itemCondition}\n` : ""}
                 {packaging ? `Equipment: ${packaging}` : ""}

@@ -11,16 +11,11 @@ exports.getAllBiddingOffers = catchAsyncErrors(async (req, res, next) => {
       select: "name richDescription image",
     })
     .populate({
-      path: "sellerOffer",
-      select: "-bidderOffer -productId",
-    })
-    .populate({
       path: "user",
       select: "-password",
     })
-    .populate("shippingLocation")
     .populate({
-      path: "selectedAttributeId",
+      path: "size",
       select: "optionName",
       populate: {
         path: "attributeId",
@@ -53,16 +48,11 @@ exports.getBiddingOfferById = catchAsyncErrors(async (req, res, next) => {
       select: "name richDescription image",
     })
     .populate({
-      path: "sellerOffer",
-      select: "-bidderOffer -productId",
-    })
-    .populate({
       path: "user",
       select: "-passwordHash",
     })
-    .populate("shippingLocation")
     .populate({
-      path: "selectedAttributeId",
+      path: "size",
       select: "optionName",
       populate: {
         path: "attributeId",
@@ -162,9 +152,8 @@ exports.getUserBiddingOffers = catchAsyncErrors(async (req, res, next) => {
       path: "user",
       select: "-passwordHash",
     })
-    .populate("shippingLocation")
     .populate({
-      path: "selectedAttributeId",
+      path: "size",
       select: "optionName",
       populate: {
         path: "attributeId",
@@ -195,9 +184,8 @@ exports.getProductBiddingOffers = catchAsyncErrors(async (req, res, next) => {
       path: "user",
       select: "-passwordHash",
     })
-    .populate("shippingLocation")
     .populate({
-      path: "selectedAttributeId",
+      path: "sizeId",
       select: "optionName",
       populate: {
         path: "attributeId",
@@ -224,12 +212,12 @@ exports.getProductBiddingOffersByAttribute = catchAsyncErrors(
 
     const productOfferList = await BiddingOffer.find({
       productId,
-      selectedAttributeId,
+      sizeId: selectedAttributeId,
     })
       .populate("user", "name")
       .populate("productId", "name")
       .populate({
-        path: "selectedAttributeId",
+        path: "size",
         select: "optionName",
         populate: {
           path: "attributeId",
@@ -257,12 +245,12 @@ exports.getProductBiddingOffersByAttribute = catchAsyncErrors(
 exports.getAttributeOptionBiddingOffers = catchAsyncErrors(
   async (req, res, next) => {
     const productOfferList = await BiddingOffer.find({
-      selectedAttributeId: req.params.selectedAttributeId,
+      sizeId: req.params.selectedAttributeId,
     })
       .populate("user", "name")
       .populate("productId", "name")
       .populate({
-        path: "selectedAttributeId",
+        path: "size",
         select: "optionName",
         populate: {
           path: "attributeId",

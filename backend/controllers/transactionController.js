@@ -38,18 +38,24 @@ exports.getTransactionById = catchAsyncErrors(async (req, res, next) => {
 
 // Create new transaction
 exports.createTransaction = catchAsyncErrors(async (req, res, next) => {
-  const transaction = new Transaction({
-    userId: req.user.id,
-    ...req.body,
-  });
-  const savedTransaction = await transaction.save();
-  if (!savedTransaction) {
-    return next(new ErrorHandler("Error creating transaction", 400));
+  try {
+    console.log("Transaction payload", req.body);
+    const transaction = new Transaction({
+      userId: req.user.id,
+      ...req.body,
+    });
+    const savedTransaction = await transaction.save();
+    if (!savedTransaction) {
+      return next(new ErrorHandler("Error creating transaction", 400));
+    }
+    res.status(201).json({
+      success: true,
+      transaction: savedTransaction,
+    });
+  } catch (error) {
+    console.log(error);
+    return next(new ErrorHandler(error.message, 400));
   }
-  res.status(201).json({
-    success: true,
-    transaction: savedTransaction,
-  });
 });
 
 // Update transaction

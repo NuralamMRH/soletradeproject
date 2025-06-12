@@ -12,7 +12,7 @@ import { useListCreation } from "@/context/ListCreationContext";
 import AdminHeader from "@/components/AdminHeader";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
-import { SIZES } from "@/constants";
+import { COLORS, SIZES } from "@/constants";
 
 const imageLabels = [
   "Outer Exterior",
@@ -42,14 +42,17 @@ export default function ProductCondition() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const attribute = params.attribute as any;
-  const size = params.size || "6.5";
+  const size = params.size as string;
   const [tab, setTab] = useState<"product" | "box">("product");
   const [selectedCondition, setSelectedCondition] = useState<string | null>(
     null
   );
+  const [selectedBoxCondition, setSelectedBoxCondition] = useState<
+    string | null
+  >(null);
 
   const [showSizeSheet, setShowSizeSheet] = useState(false);
-  const [selectedSize, setSelectedSize] = useState<string>(size as string);
+  const [selectedSize, setSelectedSize] = useState<string>("");
 
   const { images } = useListCreation();
 
@@ -66,10 +69,36 @@ export default function ProductCondition() {
     variations = params.variations;
   }
 
+  const attributeName = !params.attribute?.name
+    ? variations.find(
+        (variation: any) => variation.optionName === selectedSize || size
+      )?.attributeId.name
+    : params.attribute?.name;
   // When a condition is selected, switch to box tab
   const handleSelectCondition = (condition: string) => {
     setSelectedCondition(condition);
-    setTab("box");
+  };
+  // When a condition is selected, switch to box tab
+  const handleSelectBoxCondition = (condition: string) => {
+    setSelectedBoxCondition(condition);
+    router.push({
+      pathname: "/deal/seller/place-ask",
+      params: {
+        attribute: attribute,
+        size: selectedSize || size,
+        sizeId: selectedSize
+          ? variations.find(
+              (variation: any) => variation.optionName === selectedSize
+            )?._id
+          : (params.sizeId as string),
+        variations: variations,
+        boxCondition: condition,
+        productCondition: selectedCondition,
+        image: params.image,
+        images: images,
+        ...params,
+      },
+    });
   };
 
   return (
@@ -94,11 +123,7 @@ export default function ProductCondition() {
       <View style={{ padding: 16 }}>
         <TouchableOpacity onPress={() => setShowSizeSheet(true)}>
           <Text style={{ color: "#fff", marginTop: 8 }}>
-            Size: {selectedSize}{" "}
-            {params.attribute?.name ||
-              variations.find(
-                (variation: any) => variation.optionName === selectedSize
-              )?.attributeId.name}
+            Size: {`${selectedSize || size} ${attributeName}`}
             <Ionicons name="pencil" size={14} color="#fff" />
           </Text>
         </TouchableOpacity>
@@ -133,73 +158,105 @@ export default function ProductCondition() {
 
       {/* Product Condition List */}
       {tab === "product" && (
-        <View style={{ flex: 1, padding: 16 }}>
-          <Text style={{ color: "#fff", fontSize: 18, marginBottom: 16 }}>
-            Select Product Condition
-          </Text>
-          {["New", "Used", "New with Defects"].map((cond) => (
-            <TouchableOpacity
-              key={cond}
-              style={[
-                styles.conditionOption,
-                selectedCondition === cond && { borderColor: "#c00" },
-              ]}
-              onPress={() => handleSelectCondition(cond)}
-            >
-              <Text style={{ color: "#fff", fontSize: 16 }}>{cond}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <>
+          {!selectedCondition && (
+            <View style={{ flex: 1, padding: 16 }}>
+              <Text style={{ color: "#fff", fontSize: 18, marginBottom: 16 }}>
+                Select Product Condition
+              </Text>
+              {["New", "Used", "New with Defects"].map((cond) => (
+                <TouchableOpacity
+                  key={cond}
+                  style={[
+                    styles.conditionOption,
+                    selectedCondition === cond && { borderColor: "#c00" },
+                  ]}
+                  onPress={() => handleSelectCondition(cond)}
+                >
+                  <Text style={{ color: "#fff", fontSize: 16 }}>{cond}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          {selectedCondition && (
+            <ScrollView contentContainerStyle={styles.gridContainer}>
+              <Text style={{ color: "#fff", fontSize: 18, marginBottom: 16 }}>
+                Upload Images
+              </Text>
+              <View style={styles.grid}>
+                {imageLabels.map((label, idx) => (
+                  <View key={label} style={styles.gridItem}>
+                    <TouchableOpacity
+                      style={[
+                        styles.imageBlock,
+                        images[idx]
+                          ? { borderColor: "#c00" }
+                          : { borderColor: "#fff" },
+                      ]}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/capture-image",
+                          params: { slot: idx },
+                        })
+                      }
+                    >
+                      <Image
+                        source={
+                          images[idx]
+                            ? { uri: images[idx] }
+                            : imagePlaceholders[idx]
+                        }
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          borderRadius: 8,
+                        }}
+                      />
+                    </TouchableOpacity>
+                    <Text style={styles.imageLabel}>{label}</Text>
+                  </View>
+                ))}
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.nextBtn,
+                  images.every(Boolean)
+                    ? { backgroundColor: "#444" }
+                    : { backgroundColor: "#222" },
+                ]}
+                disabled={!images.every(Boolean)}
+                onPress={() => {
+                  setTab("box");
+                }}
+              >
+                <Text style={{ color: "#fff", fontSize: 16 }}>Next</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          )}
+        </>
       )}
 
       {/* Box Condition Image Grid */}
       {tab === "box" && (
-        <ScrollView contentContainerStyle={styles.gridContainer}>
+        <View style={{ flex: 1, padding: 16 }}>
           <Text style={{ color: "#fff", fontSize: 18, marginBottom: 16 }}>
-            Upload Images
+            Select Product Condition
           </Text>
-          <View style={styles.grid}>
-            {imageLabels.map((label, idx) => (
-              <View key={label} style={styles.gridItem}>
-                <TouchableOpacity
-                  style={[
-                    styles.imageBlock,
-                    images[idx]
-                      ? { borderColor: "#c00" }
-                      : { borderColor: "#fff" },
-                  ]}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/capture-image",
-                      params: { slot: idx },
-                    })
-                  }
-                >
-                  <Image
-                    source={
-                      images[idx]
-                        ? { uri: images[idx] }
-                        : imagePlaceholders[idx]
-                    }
-                    style={{ width: "100%", height: "100%", borderRadius: 8 }}
-                  />
-                </TouchableOpacity>
-                <Text style={styles.imageLabel}>{label}</Text>
-              </View>
-            ))}
-          </View>
-          <TouchableOpacity
-            style={[
-              styles.nextBtn,
-              images.every(Boolean)
-                ? { backgroundColor: "#444" }
-                : { backgroundColor: "#222" },
-            ]}
-            disabled={!images.every(Boolean)}
-          >
-            <Text style={{ color: "#fff", fontSize: 16 }}>Next</Text>
-          </TouchableOpacity>
-        </ScrollView>
+          {["Good Condition", "Damaged Condition", "Missing Box"].map(
+            (cond) => (
+              <TouchableOpacity
+                key={cond}
+                style={[
+                  styles.conditionOption,
+                  selectedBoxCondition === cond && { borderColor: "#c00" },
+                ]}
+                onPress={() => handleSelectBoxCondition(cond)}
+              >
+                <Text style={{ color: "#fff", fontSize: 16 }}>{cond}</Text>
+              </TouchableOpacity>
+            )
+          )}
+        </View>
       )}
 
       {/* Size BottomSheet */}
@@ -251,12 +308,14 @@ export default function ProductCondition() {
                       marginBottom: 16,
                       borderWidth: 2,
                       borderColor:
-                        selectedSize === variation._id ? "#fff" : "#888",
+                        selectedSize === variation.optionName ? "red" : "#888",
                       borderRadius: 8,
                       paddingVertical: 16,
                       alignItems: "center",
                       backgroundColor:
-                        selectedSize === variation._id ? "#222" : "transparent",
+                        selectedSize === variation.optionName
+                          ? "#222"
+                          : "transparent",
                     }}
                     onPress={() => {
                       setSelectedSize(variation.optionName);
@@ -270,12 +329,7 @@ export default function ProductCondition() {
                         fontSize: 16,
                       }}
                     >
-                      {variation.optionName}{" "}
-                      {attribute?.name ||
-                        variations.find(
-                          (variation: any) =>
-                            variation.optionName === selectedSize
-                        )?.attributeId.name}
+                      {variation.optionName} {attributeName}
                     </Text>
                     <Text style={{ color: "#fff", fontSize: 14, marginTop: 4 }}>
                       {variation.retailPrice} Baht
@@ -296,10 +350,10 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: "center",
     borderBottomWidth: 2,
-    borderColor: "transparent",
+    borderColor: COLORS.grayTie,
   },
   activeTab: {
-    borderColor: "#fff",
+    borderColor: COLORS.brandRed,
   },
   conditionOption: {
     borderWidth: 1,
@@ -340,11 +394,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   nextBtn: {
+    width: SIZES.width - 32,
     marginTop: 24,
     padding: 16,
     borderRadius: 8,
     alignItems: "center",
-    width: 200,
     alignSelf: "center",
   },
 });
