@@ -35,6 +35,8 @@ const SellerAsk = ({
   const [showImages, setShowImages] = useState(false);
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+
+  console.log("sel ", sel);
   return (
     <View style={{ marginBottom: 24 }}>
       <View
@@ -62,7 +64,9 @@ const SellerAsk = ({
               marginTop: 2,
             }}
           >
-            {`Lowest Price / ${sel.condition || "Brand New"}`}
+            {`Lowest Price / ${sel.condition || "Brand New"} ${
+              sel.sizeId ? `Size: ${sel.sizeId.optionName}` : ""
+            }`}
           </Text>
           <Text
             style={{

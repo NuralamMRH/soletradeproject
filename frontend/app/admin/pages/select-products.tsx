@@ -33,6 +33,9 @@ interface Product {
 const SelectProducts: React.FC = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const [productType, setProductType] = useState<
+    "deal" | "auction" | "essential"
+  >((params.productType as "deal" | "auction" | "essential") || "deal");
   let initialSelectedProducts: Product[] = [];
   if (params.selectedProducts && typeof params.selectedProducts === "string") {
     try {
@@ -48,7 +51,10 @@ const SelectProducts: React.FC = () => {
       : []
   );
   const [showGroupedResults, setShowGroupedResults] = useState(false);
-  const [filter, setFilter] = useState({ keyword: searchQuery });
+  const [filter, setFilter] = useState({
+    keyword: searchQuery,
+    product_type: productType,
+  });
   const {
     products: searchResults,
     loading: isLoading,
@@ -61,7 +67,6 @@ const SelectProducts: React.FC = () => {
   const handleSearch = useCallback(
     debounce((text: string) => {
       setSearchQuery(text);
-      setFilter({ keyword: text });
       setShowGroupedResults(!!text.length);
     }, 500),
     []
@@ -114,7 +119,6 @@ const SelectProducts: React.FC = () => {
             : undefined,
         }}
         style={styles.itemImage}
-        resizeMode="cover"
       />
       <View style={styles.itemInfo}>
         <Text style={styles.modelText} numberOfLines={2}>

@@ -33,6 +33,8 @@ import {
   useWishlists,
 } from "@/hooks/react-query/useWishlistMutation";
 import { useSocket } from "@/context/SocketContext";
+import Price from "@/utils/Price";
+import { useSelector } from "react-redux";
 
 interface HomeFeedButton {
   _id: string;
@@ -86,7 +88,7 @@ interface ProductCardProps {
   index?: number;
   brand: string;
   name: string;
-  price: string;
+  price: number;
   image: ImageSourcePropType;
   productId: string;
   sectionType?: string;
@@ -156,6 +158,10 @@ export default function HomeScreen() {
     },
   });
 
+  const { products: allProducts } = useProducts({
+    filter: {},
+  });
+
   const { brands, loading: brandsLoading, error: brandsError } = useBrands();
   const {
     categories,
@@ -197,9 +203,24 @@ export default function HomeScreen() {
   }, [fetchAppContent, refetchSections]);
 
   const [sortOffset, setSortOffset] = useState(0);
+  const cartCount = useSelector(
+    (state: any) => state.product.checkout.totalItems
+  );
 
   // On reload, increment sortOffset
-  const handleReload = () => setSortOffset((prev) => prev + 1);
+
+  const lowestPrice = (productId: string) => {
+    const product = allProducts.find((p: any) => p._id === productId);
+    if (
+      !product ||
+      !Array.isArray(product.selling) ||
+      product.selling.length === 0
+    ) {
+      return null; // or return a default value like 0 or "N/A"
+    }
+    const prices = product.selling.map((ask: any) => Number(ask.sellingPrice));
+    return Math.min(...prices);
+  };
 
   const handleAddToWishlist = (productId: string) => {
     console.log("productId", productId);
@@ -258,12 +279,17 @@ export default function HomeScreen() {
                   color={"black"}
                 />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.cartButton}>
-                <Ionicons name="cart-outline" size={24} color="#333" />
-                <View style={styles.cartBadge}>
-                  <Text style={styles.cartBadgeText}>2</Text>
-                </View>
-              </TouchableOpacity>
+              {cartCount > 0 && (
+                <TouchableOpacity
+                  onPress={() => router.push("/essentials/cart")}
+                  style={styles.cartButton}
+                >
+                  <Ionicons name="cart-outline" size={24} color="#333" />
+                  <View style={styles.cartBadge}>
+                    <Text style={styles.cartBadgeText}>{cartCount}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -389,7 +415,7 @@ export default function HomeScreen() {
                 index={index + 1}
                 brand={product.brand?.name || ""}
                 name={product.name}
-                price={product.retailPrice ? `${product.retailPrice} Baht` : ""}
+                price={lowestPrice(product._id)}
                 productId={product._id}
                 image={
                   product.images[0]?.file_full_url
@@ -426,7 +452,7 @@ export default function HomeScreen() {
                 index={index + 1}
                 brand={product.brand?.name || ""}
                 name={product.name}
-                price={product.retailPrice ? `${product.retailPrice} Baht` : ""}
+                price={lowestPrice(product._id)}
                 productId={product._id}
                 image={
                   product.images[0]?.file_full_url
@@ -464,7 +490,7 @@ export default function HomeScreen() {
                 index={index + 1}
                 brand={product.brand?.name || ""}
                 name={product.name}
-                price={product.retailPrice ? `${product.retailPrice} Baht` : ""}
+                price={lowestPrice(product._id)}
                 productId={product._id}
                 image={
                   product.images[0]?.file_full_url
@@ -494,7 +520,11 @@ export default function HomeScreen() {
         >
           {brands.map((brand: any) => {
             return (
-              <TouchableOpacity key={brand._id} style={styles.brandButton}>
+              <TouchableOpacity
+                onPress={() => router.push(`/brand/${brand._id}`)}
+                key={brand._id}
+                style={styles.brandButton}
+              >
                 <Text style={styles.brandButtonText}>{brand?.name}</Text>
               </TouchableOpacity>
             );
@@ -529,31 +559,37 @@ export default function HomeScreen() {
         </Text>
         {price && (
           <View>
-            <Text style={styles.productPrice}>{price}</Text>
+            <Text style={styles.productPrice}>
+              <Price price={price || 0} currency="THB" />
+            </Text>
             <Text style={styles.lowestAsk}>Lowest Ask</Text>
           </View>
         )}
       </View>
-      <TouchableOpacity
-        onPress={() =>
-          wishlists?.some((wishlist: any) => wishlist?.productId === productId)
-            ? handleRemoveFromWishlist(productId)
-            : handleAddToWishlist(productId)
-        }
-        style={styles.favoriteButton}
-      >
-        <Ionicons
-          name={
+      {isAuthenticated && (
+        <TouchableOpacity
+          onPress={() =>
             wishlists?.some(
               (wishlist: any) => wishlist?.productId === productId
             )
-              ? "bookmark"
-              : "bookmark-outline"
+              ? handleRemoveFromWishlist(productId)
+              : handleAddToWishlist(productId)
           }
-          size={20}
-          color="#000"
-        />
-      </TouchableOpacity>
+          style={styles.favoriteButton}
+        >
+          <Ionicons
+            name={
+              wishlists?.some(
+                (wishlist: any) => wishlist?.productId === productId
+              )
+                ? "bookmark"
+                : "bookmark-outline"
+            }
+            size={20}
+            color="#000"
+          />
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 
@@ -565,30 +601,12 @@ export default function HomeScreen() {
     { type: "NEW_ITEMS", id: "new-items" },
     // Dynamic sections from API will be added here
     ...(homeFeedSections || [])
-      .filter((section) => {
+      .filter((section, index) => {
         // Skip if section is not active
         if (!section.isActive) return false;
-
-        // Skip if section has no content based on variable_source
-        if (
-          section.variable_source === "products" &&
-          (!section.products || section.products.length === 0)
-        )
-          return false;
-        if (
-          section.variable_source === "categories" &&
-          (!section.categories || section.categories.length === 0)
-        )
-          return false;
-        if (
-          section.variable_source === "brands" &&
-          (!section.brands || section.brands.length === 0)
-        )
-          return false;
-
         return true;
       })
-      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .sort((a, b) => (b.order || 0) - (a.order || 0))
       .map((section) => ({
         type: "DYNAMIC_SECTION",
         id: section._id,
@@ -686,7 +704,22 @@ export default function HomeScreen() {
 
     const items = processItems(section);
 
-    console.log("name: ", name);
+    // if (
+    //   section.variable_source === "products" &&
+    //   (!section.products || section.products.length === 0)
+    // )
+    //   return false;
+    // if (
+    //   section.variable_source === "categories" &&
+    //   (!section.categories || section.categories.length === 0)
+    // )
+    //   return false;
+    // if (
+    //   section.variable_source === "brands" &&
+    //   (!section.brands || section.brands.length === 0)
+    // )
+    //   return false;
+
     // console.log("display_type: ", display_type);
 
     function buildColumns(
@@ -737,20 +770,36 @@ export default function HomeScreen() {
       column_names
     );
 
+    // if (section.variable_source === "categories") {
+    //   return null;
+    // }
+    // if (section.variable_source === "brands") {
+    //   return null;
+    // }
+    // if (section.display_type === "brands") {
+    //   return null;
+    // }
+
+    // if (section.display_type === "hot-items") {
+    //   console.log("hot items", section);
+    // }
     return (
       <View style={styles.productSectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{name}</Text>
-          <TouchableOpacity>
-            <Text style={styles.viewMoreText}>View More &gt;</Text>
-          </TouchableOpacity>
-        </View>
+        {isActive && section.variable_source === "products" && (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{name}</Text>
+            <TouchableOpacity>
+              <Text style={styles.viewMoreText}>View More &gt;</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Display Style 3: Column-based layout */}
 
         {isActive &&
           display_style === 3 &&
-          (display_type === "product" || display_type === "new-items") && (
+          (display_type === "product" || display_type === "new-items") &&
+          section.variable_source === "products" && (
             <View style={{ position: "relative" }}>
               <View
                 style={{
@@ -860,7 +909,8 @@ export default function HomeScreen() {
 
         {/* Display Style 1: Products with details */}
         {display_style === 1 &&
-          (display_type === "product" || display_type === "new-items") && (
+          (display_type === "product" || display_type === "new-items") &&
+          section.variable_source === "products" && (
             <View>
               {items
                 .slice(0, items_per_column || 5)
@@ -901,7 +951,241 @@ export default function HomeScreen() {
                           {item.description || "No description"}
                         </Text>
                         <Text style={{ fontSize: 14, color: COLORS.gray }}>
-                          {item.retailPrice ? `${item.retailPrice} Baht` : ""}
+                          <Price
+                            price={
+                              Number(lowestPrice(item._id)) ||
+                              item.retailPrice ||
+                              0
+                            }
+                            currency="THB"
+                          />
+                        </Text>
+                        <Text style={{ fontSize: 14, color: COLORS.gray }}>
+                          Lowest Ask
+                        </Text>
+                      </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={24}
+                        color="#999"
+                        style={{ marginLeft: "auto" }}
+                      />
+                    </TouchableOpacity>
+                    <Image
+                      source={require("@/assets/images/icons/divider.png")}
+                      style={{
+                        flex: 1,
+                        width: SIZES.width,
+                        height: 40,
+                        objectFit: "contain",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    />
+                  </View>
+                ))}
+            </View>
+          )}
+
+        {display_style === 1 && display_type === "brand" && (
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 10,
+              paddingHorizontal: 10,
+            }}
+          >
+            {section.brands?.map((brand: any) => {
+              return (
+                <TouchableOpacity
+                  onPress={() => router.push(`/brand/${brand._id}`)}
+                  key={brand._id}
+                  style={styles.brandButton}
+                >
+                  <Text style={styles.brandButtonText}>{brand?.name}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        {display_style === 1 && display_type === "category" && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryScrollContainer}
+          >
+            {section.categories?.length > 0 &&
+              section.categories.map((item: any, index: number) => (
+                <TouchableOpacity
+                  key={item._id}
+                  style={[styles.categoryCard, { marginLeft: 15 }]}
+                  onPress={() => router.push(`/category/${item.id}`)}
+                >
+                  <Image
+                    source={
+                      item.image_full_url
+                        ? { uri: `${baseUrl}${item.image_full_url}` }
+                        : require("@/assets/images/bg_8.png")
+                    }
+                    style={styles.categoryImage}
+                  />
+                  <Text style={styles.categoryName}>{item.name}</Text>
+                </TouchableOpacity>
+              ))}
+          </ScrollView>
+        )}
+
+        {display_style === 2 &&
+          display_type === "hot-items" &&
+          section.variable_source === "products" &&
+          section.categories?.length > 0 && (
+            <View>
+              {products
+                .filter((product: any) =>
+                  section.categories.some(
+                    (c: any) =>
+                      c._id === product.categoryId ||
+                      c._id === product.category?._id
+                  )
+                )
+                .slice(0, items_per_column || 5)
+                .map((item: any, index: number) => (
+                  <View key={item._id || index}>
+                    <TouchableOpacity
+                      key={item._id || index}
+                      style={[
+                        styles.popularItem,
+                        { paddingHorizontal: 20, gap: 20 },
+                      ]}
+                      onPress={() => router.push(`/product/${item._id}`)}
+                    >
+                      <Image
+                        source={
+                          item.images[0]?.file_full_url
+                            ? {
+                                uri: `${baseUrl}${item.images[0]?.file_full_url}`,
+                              }
+                            : require("@/assets/images/bg_8.png")
+                        }
+                        style={styles.popularItemImage}
+                      />
+                      <View>
+                        <Text style={{ fontSize: 16, fontWeight: "bold" }}>
+                          {item.name}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            color: COLORS.gray,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            maxWidth: "80%",
+                            height: 20,
+                          }}
+                        >
+                          {item.description || "No description"}
+                        </Text>
+                        <Text style={{ fontSize: 14, color: COLORS.gray }}>
+                          <Price
+                            price={
+                              Number(lowestPrice(item._id)) ||
+                              item.retailPrice ||
+                              0
+                            }
+                            currency="THB"
+                          />
+                        </Text>
+                        <Text style={{ fontSize: 14, color: COLORS.gray }}>
+                          Lowest Ask
+                        </Text>
+                      </View>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={24}
+                        color="#999"
+                        style={{ marginLeft: "auto" }}
+                      />
+                    </TouchableOpacity>
+                    <Image
+                      source={require("@/assets/images/icons/divider.png")}
+                      style={{
+                        flex: 1,
+                        width: SIZES.width,
+                        height: 40,
+                        objectFit: "contain",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    />
+                  </View>
+                ))}
+            </View>
+          )}
+
+        {display_style === 1 &&
+          display_type === "most-popular" &&
+          section.mode === "auto" &&
+          section.variable_source === "products" && (
+            <View>
+              {products
+                .sort((a: any, b: any) =>
+                  section.autoCriteria?.sortBy === "newest"
+                    ? new Date(b.dateCreated).getTime() -
+                      new Date(a.dateCreated).getTime()
+                    : section.autoCriteria?.sortBy === "price-asc"
+                    ? a.retailPrice - b.retailPrice
+                    : section.autoCriteria?.sortBy === "price-desc"
+                    ? b.retailPrice - a.retailPrice
+                    : b.numViews - a.numViews
+                )
+                .slice(0, items_per_column || 5)
+                .map((item: any, index: number) => (
+                  <View key={item._id || index}>
+                    <TouchableOpacity
+                      key={item._id || index}
+                      style={[
+                        styles.popularItem,
+                        { paddingHorizontal: 20, gap: 20 },
+                      ]}
+                      onPress={() => router.push(`/product/${item._id}`)}
+                    >
+                      <Image
+                        source={
+                          item.images[0]?.file_full_url
+                            ? {
+                                uri: `${baseUrl}${item.images[0]?.file_full_url}`,
+                              }
+                            : require("@/assets/images/bg_8.png")
+                        }
+                        style={styles.popularItemImage}
+                      />
+                      <View>
+                        <Text style={{ fontSize: 16, fontWeight: "bold" }}>
+                          {item.name}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            color: COLORS.gray,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            maxWidth: "80%",
+                            height: 20,
+                          }}
+                        >
+                          {item.description || "No description"}
+                        </Text>
+                        <Text style={{ fontSize: 14, color: COLORS.gray }}>
+                          <Price
+                            price={
+                              Number(lowestPrice(item._id)) ||
+                              item.retailPrice ||
+                              0
+                            }
+                            currency="THB"
+                          />
                         </Text>
                         <Text style={{ fontSize: 14, color: COLORS.gray }}>
                           Lowest Ask
@@ -932,7 +1216,8 @@ export default function HomeScreen() {
 
         {/* Display Style 2: Image-only grid */}
         {display_style === 2 &&
-          (display_type === "product" || display_type === "new-items") && (
+          (display_type === "product" || display_type === "new-items") &&
+          section.variable_source === "products" && (
             <View
               style={{
                 flexDirection: "row",
@@ -1293,7 +1578,7 @@ const styles = StyleSheet.create({
   },
   favoriteButton: {
     position: "absolute",
-    top: 10,
+    bottom: 15,
     right: 10,
     // backgroundColor: "rgba(255, 255, 255, 0.8)",
     borderRadius: 15,

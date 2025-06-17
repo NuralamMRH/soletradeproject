@@ -58,7 +58,7 @@ export default function Checkout() {
 
   // Selected
   const [selectedShipping, setSelectedShipping] = useState(SHIPPING_OPTIONS[0]);
-  const [deliverySystem, setDeliverySystem] = useState("");
+  const [deliverySystem, setDeliverySystem] = useState("Delivery");
   const [selectedPayment, setSelectedPayment] = useState<any>(payment || null);
   const [selectedAddress, setSelectedAddress] = useState<any>(address || null);
   const [discount, setDiscount] = useState(0);
@@ -113,12 +113,18 @@ export default function Checkout() {
   const panResponder = PanResponder.create({
     onMoveShouldSetPanResponder: (_, gesture) =>
       !isAddingToBiddingOffer && gesture.dx > 10,
-    onPanResponderMove: Animated.event([null, { dx: swipeX }], {
-      useNativeDriver: false,
-    }),
+    onPanResponderMove: (_, gesture) => {
+      if (gesture.dx < 0) {
+        swipeX.setValue(0);
+      } else if (gesture.dx > SWIPE_WIDTH - 48) {
+        swipeX.setValue(SWIPE_WIDTH - 48);
+      } else {
+        swipeX.setValue(gesture.dx);
+      }
+    },
     onPanResponderRelease: (_, gesture) => {
       if (isAddingToBiddingOffer) return;
-      if (gesture.dx > SWIPE_WIDTH * 0.6) {
+      if (gesture.dx > SWIPE_WIDTH * 0.3) {
         Animated.timing(swipeX, {
           toValue: SWIPE_WIDTH - 48,
           duration: 200,
@@ -136,11 +142,13 @@ export default function Checkout() {
             return;
           }
           const payload = {
-            type: params.offerType,
+            type: buyNowItem.id ? "buyNow" : params.offerType,
             productId: productId as string,
+            productImage: params.image,
             itemCondition: itemCondition,
             packaging: packaging,
             sizeId: params.newSizeId || (sizeId as string),
+            sizeName: `${params.sizeName} ${params.attributeName}`,
             offeredPrice: Number(offeredPrice),
             totalPrice: Number(total),
             price: Number(total),
@@ -152,32 +160,35 @@ export default function Checkout() {
             paymentStatus: "Paid",
             shippingStatus: "Ongoing",
             buyerId: user?.id,
-            sellerId: buyNowItem.userId,
-            sellingItemId: buyNowItem.id,
+            sellerId: buyNowItem.userId || null,
+            sellingItemId: buyNowItem.id || null,
             status: "Pending",
             createdAt: new Date(),
           };
 
           let biddingOfferId: string | null = null;
+          let offerData: any = null;
 
           addToBiddingOffer(payload, {
             onSuccess: (data: any) => {
               setSwiped(false);
               swipeX.setValue(0);
+              offerData = data;
 
-              if (params.offerType === "buyNow") {
+              if (buyNowItem.id) {
                 biddingOfferId = data.id;
                 const transactionPayload = {
                   ...payload,
                   biddingOfferId,
-                  type: "buyNow",
+                  type: buyNowItem.id ? "buyNow" : params.offerType,
                 };
                 createTransaction(transactionPayload, {
                   onSuccess: (data: any) => {
                     router.replace({
                       pathname: "/deal/offer-confirmation",
                       params: {
-                        offerId: biddingOfferId,
+                        offer: JSON.stringify(offerData),
+                        transaction: JSON.stringify(data),
                       } as any,
                     });
                   },
@@ -186,7 +197,8 @@ export default function Checkout() {
                 router.replace({
                   pathname: "/deal/offer-confirmation",
                   params: {
-                    offerId: biddingOfferId,
+                    offer: JSON.stringify(offerData),
+                    transaction: JSON.stringify(null),
                   } as any,
                 });
               }
@@ -564,7 +576,7 @@ export default function Checkout() {
         </View>
       </ScrollView>
       {/* Swipe to Pay */}
-      <View style={styles.swipeContainer}>
+      <View style={styles.swipeContainer} {...panResponder.panHandlers}>
         <Animated.View
           style={[
             styles.swipeButton,
@@ -573,7 +585,6 @@ export default function Checkout() {
               opacity: swiped || isAddingToBiddingOffer ? 0.5 : 1,
             },
           ]}
-          {...panResponder.panHandlers}
         >
           {isAddingToBiddingOffer ? (
             <Text style={{ color: COLORS.white, fontWeight: "bold" }}>...</Text>

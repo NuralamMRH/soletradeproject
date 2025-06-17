@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   View,
   Text,
@@ -17,15 +23,12 @@ import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { baseUrl } from "@/api/MainApi";
 import { useProducts } from "@/hooks/useProducts";
-import { StatusBar } from "expo-status-bar";
-import { useDispatch, useSelector } from "react-redux";
-import { addToCart } from "@/Redux/slices/product";
+import Price from "@/utils/Price";
 import { Share } from "react-native";
 import SwiperFlatList from "react-native-swiper-flatlist";
 import * as Linking from "expo-linking";
 import { Image as ExpoImage } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Price from "@/utils/Price";
 import { COLORS, SIZES } from "@/constants";
 import Colors from "@/constants/Colors";
 import {
@@ -34,9 +37,15 @@ import {
   useWishlists,
 } from "@/hooks/react-query/useWishlistMutation";
 import { LineChart } from "react-native-chart-kit";
-import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import BottomSheet, {
+  BottomSheetFlatList,
+  BottomSheetFooter,
+  BottomSheetScrollView,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
 import AdminHeader from "../AdminHeader";
 import SellerAsk from "./SellerAsk";
+import LottieView from "lottie-react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -77,6 +86,8 @@ const Deal = ({ product }: { product: any }) => {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedSellerAsk, setSelectedSellerAsk] = useState<any>(null);
   const [selectedBuyerOffer, setSelectedBuyerOffer] = useState<any>(null);
+  const [highestOffer, setHighestOffer] = useState<any>(null);
+  const [lowestAsk, setLowestAsk] = useState<any>(null);
 
   const [activeTab, setActiveTab] = useState<
     "buyNow" | "placeOffer" | "sellNow" | "placeAsk"
@@ -94,23 +105,45 @@ const Deal = ({ product }: { product: any }) => {
     ...product.selling.map((ask: any) => ask.sellingPrice.toFixed(0))
   );
 
-  function getSizeHighestPrice(size: string) {
-    return Math.max(
-      ...product.bidding
-        .filter((bid: any) => bid.sizeId === size)
-        .map((bid: any) => bid.offeredPrice.toFixed(0))
-    );
+  function getSizeHighestPrice(size: any) {
+    const filtered = product.bidding
+      .filter((bid: any) => bid.sizeId.id === size)
+      .map((bid: any) => bid.offeredPrice.toFixed(0));
+    if (filtered.length === 0) return 0;
+    return Math.max(...filtered);
   }
 
   function getSizeLowestPrice(size: string) {
-    return Math.min(
-      ...product.selling
-        .filter((ask: any) => ask.sizeId === size)
-        .map((ask: any) => ask.sellingPrice.toFixed(0))
+    const filtered = product.selling
+      .filter((ask: any) => ask.sizeId.id === size)
+      .map((ask: any) => ask.sellingPrice.toFixed(0));
+    if (filtered.length === 0) return 0;
+    return Math.min(...filtered);
+  }
+
+  function getHighestOfferItem(size: string): any | null {
+    if (!product.bidding || !Array.isArray(product.bidding)) return null;
+    const highestPrice = getSizeHighestPrice(size);
+    if (highestPrice === null) return null;
+    return product.bidding.find(
+      (bid: any) =>
+        bid.sizeId.id === size && Number(bid.offeredPrice) === highestPrice
     );
   }
 
-
+  function getLowestAskItem(size: string): any | null {
+    if (!product.selling || !Array.isArray(product.selling)) return null;
+    const lowestPrice = getSizeLowestPrice(size);
+    if (lowestPrice === null) return null;
+    return product.selling.find(
+      (ask: any) =>
+        ask.sizeId.id === size && Number(ask.sellingPrice) === lowestPrice
+    );
+  }
+  useEffect(() => {
+    setHighestOffer(getHighestOfferItem(selectedSize || ""));
+    console.log("highestOffer", highestOffer);
+  }, [selectedSize]);
 
   const { products: relatedProducts, loading: relatedProductsLoading } =
     useProducts({
@@ -151,6 +184,8 @@ const Deal = ({ product }: { product: any }) => {
       bottomSheetRef.current?.close();
     }, 0);
   };
+
+  const snapPoints = useMemo(() => ["60%"], []);
 
   const handleButtonClicked = (type: "buy" | "sell") => {
     setBottomSheetType(type);
@@ -198,7 +233,7 @@ const Deal = ({ product }: { product: any }) => {
     }
   };
 
-  const handleGoToOfferPlace = () => {
+  const handleGoToOfferPlace = (offer: any) => {
     router.push({
       pathname: "/deal/offer-place",
       params: {
@@ -208,8 +243,8 @@ const Deal = ({ product }: { product: any }) => {
         subtitle: product.description,
         brand: product.brand?.name,
         sizeId: selectedSize,
-        selectedSellerAsk: JSON.stringify(selectedSellerAsk) || null,
-        selectedBuyerOffer: JSON.stringify(selectedBuyerOffer) || null,
+        selectedSellerAsk: JSON.stringify(selectedSellerAsk || offer) || null,
+
         size: product.variations.find(
           (variation: any) => variation._id === selectedSize
         )?.optionName,
@@ -221,7 +256,7 @@ const Deal = ({ product }: { product: any }) => {
         brandId: product.brandId || "",
         categoryId: product.categoryId || "",
         subCategoryId: product.subCategoryId || "",
-        attribute: product.attribute || null,
+        attribute: JSON.stringify(product.attribute) || null,
         bidding: JSON.stringify(product.bidding) || null,
         selling: JSON.stringify(product.selling) || null,
         transactions: JSON.stringify(product.transactions) || null,
@@ -232,8 +267,7 @@ const Deal = ({ product }: { product: any }) => {
     });
   };
 
-  const handleGoToPlaceAsk = () => {
-    console.log("selectedSize", selectedSize);
+  const handleGoToPlaceAsk = (ask: any) => {
     router.push({
       pathname: "/deal/seller/product-condition",
       params: {
@@ -253,10 +287,13 @@ const Deal = ({ product }: { product: any }) => {
         brandId: product.brandId || "",
         categoryId: product.categoryId || "",
         subCategoryId: product.subCategoryId || "",
-        attribute: product.attribute || null,
-        bidding: product.bidding || null,
-        selling: product.selling || null,
-        transactions: product.transactions || null,
+        attribute: JSON.stringify(product.attribute) || null,
+        bidding: JSON.stringify(product.bidding) || null,
+        selling: JSON.stringify(product.selling) || null,
+        transactions: JSON.stringify(product.transactions) || null,
+        highestPrice: getSizeHighestPrice(selectedSize || ""),
+        lowestPrice: getSizeLowestPrice(selectedSize || ""),
+        selectedBuyerOffer: JSON.stringify(selectedBuyerOffer || ask) || null,
         // Add more params as needed
       },
     });
@@ -423,11 +460,19 @@ const Deal = ({ product }: { product: any }) => {
   const tabOptions: TabType[] = ["Sales", "Asks", "Bids"];
 
   // console.log("product", product);
-  console.log("product.selling", product.selling);
-  console.log("product.bidding", product.bidding);
+  // console.log("product.selling", product.selling);
+  // console.log("product.bidding", product.bidding);
 
-  const [zoomImages, setZoomImages] = useState<any[]>([]);
-
+  // const renderFooter = useCallback(
+  //   (props) => (
+  //     <BottomSheetFooter {...props} bottomInset={24}>
+  //       <View style={styles.footerContainer}>
+  //         <Text style={{ color: "#fff" }}>Footer</Text>
+  //       </View>
+  //     </BottomSheetFooter>
+  //   ),
+  //   []
+  // );
   return (
     <>
       <AdminHeader
@@ -485,7 +530,9 @@ const Deal = ({ product }: { product: any }) => {
                 <Text style={styles.buyLabelExact}>BUY</Text>
               </View>
               <View style={styles.buttonRightExact}>
-                <Text style={styles.buyPriceExact}>8,400 Baht</Text>
+                <Text style={styles.buyPriceExact}>
+                  <Price price={lowestPrice} currency="THB" />
+                </Text>
                 <Text style={styles.buySubExact}>Lowest Ask</Text>
               </View>
             </TouchableOpacity>
@@ -508,7 +555,9 @@ const Deal = ({ product }: { product: any }) => {
                 <Text style={styles.sellLabelExact}>SELL</Text>
               </View>
               <View style={styles.buttonRightExact}>
-                <Text style={styles.sellPriceExact}>12,400 Baht</Text>
+                <Text style={styles.sellPriceExact}>
+                  <Price price={highestPrice} currency="THB" />
+                </Text>
                 <Text style={styles.sellSubExact}>Highest Offer</Text>
               </View>
             </TouchableOpacity>
@@ -761,13 +810,20 @@ const Deal = ({ product }: { product: any }) => {
       <BottomSheet
         ref={bottomSheetRef}
         index={-1}
-        snapPoints={["60%"]}
+        snapPoints={snapPoints}
         onClose={handleCloseBottomSheet}
         enablePanDownToClose={true}
         backgroundStyle={{ backgroundColor: "#000", borderRadius: 0 }}
         handleIndicatorStyle={{ backgroundColor: "white" }}
       >
-        <BottomSheetView style={{ flex: 1, padding: 20 }}>
+        <BottomSheetView
+          style={{
+            flex: 1,
+            padding: 20,
+            maxHeight: 600,
+            overflowY: "scroll",
+          }}
+        >
           {/* Size Selection Grid */}
           {!selectedSize ? (
             <>
@@ -832,7 +888,29 @@ const Deal = ({ product }: { product: any }) => {
                       {product.attribute?.name || variation.attributeId.name}
                     </Text>
                     <Text style={{ color: "#fff", fontSize: 14, marginTop: 4 }}>
-                      14,800 Baht
+                      {bottomSheetType === "buy" ? (
+                        <>
+                          {getSizeLowestPrice(variation._id) === 0 ? (
+                            "N/A"
+                          ) : (
+                            <Price
+                              price={getSizeLowestPrice(variation._id) || 0}
+                              currency="THB"
+                            />
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {getSizeHighestPrice(variation._id) === 0 ? (
+                            "N/A"
+                          ) : (
+                            <Price
+                              price={getSizeHighestPrice(variation._id) || 0}
+                              currency="THB"
+                            />
+                          )}
+                        </>
+                      )}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -903,8 +981,11 @@ const Deal = ({ product }: { product: any }) => {
                   {/* Tab Content */}
                   {activeTab === "buyNow" ? (
                     <>
-                      {product?.selling.length > 0 &&
-                        product.selling.map((sel: any) => (
+                      <FlatList
+                        data={product?.selling.filter(
+                          (sel: any) => sel.sizeId.id === selectedSize
+                        )}
+                        renderItem={({ item: sel }: { item: any }) => (
                           <SellerAsk
                             key={sel._id}
                             sel={sel}
@@ -914,10 +995,31 @@ const Deal = ({ product }: { product: any }) => {
                             setZoomIndex={setZoomIndex}
                             onPress={() => {
                               setSelectedSellerAsk(sel);
-                              handleGoToOfferPlace();
+                              handleGoToOfferPlace(sel);
                             }}
                           />
-                        ))}
+                        )}
+                        ListEmptyComponent={
+                          <View
+                            style={{
+                              flex: 1,
+                              justifyContent: "center",
+                              alignItems: "center",
+                            }}
+                          >
+                            <LottieView
+                              source={require("@/assets/animation/shoes-animation.json")}
+                              autoPlay
+                              loop
+                              style={{
+                                width: SIZES.width * 0.6,
+                                height: SIZES.width * 0.6,
+                                marginBottom: 24,
+                              }}
+                            />
+                          </View>
+                        }
+                      />
                     </>
                   ) : (
                     <>
@@ -929,12 +1031,66 @@ const Deal = ({ product }: { product: any }) => {
                           marginBottom: 24,
                         }}
                       >
-                        <Text style={{ color: "#fff", fontSize: 18 }}>
-                          Highest Bid
-                        </Text>
-                        <Text style={{ color: "#fff", fontSize: 18 }}>
-                          14,595 Baht
-                        </Text>
+                        <View>
+                          <View style={{ flexDirection: "row", gap: 10 }}>
+                            <Text style={{ color: "#fff", fontSize: 18 }}>
+                              Highest Bid
+                            </Text>
+                            <Text style={{ color: "#fff", fontSize: 18 }}>
+                              {getHighestOfferItem(selectedSize || "")
+                                ?.offeredPrice === 0 ||
+                              getHighestOfferItem(selectedSize || "")
+                                ?.offeredPrice === undefined ? (
+                                "N/A"
+                              ) : (
+                                <Price
+                                  price={
+                                    getHighestOfferItem(selectedSize || "")
+                                      ?.offeredPrice || 0
+                                  }
+                                  currency="THB"
+                                />
+                              )}
+                            </Text>
+                          </View>
+
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Text style={{ color: "#fff", fontSize: 18 }}>
+                              Last Sale
+                            </Text>
+                            <Text style={{ color: "#fff", fontSize: 18 }}>
+                              {product.transactions?.filter(
+                                (trans: any) =>
+                                  trans?.sizeId?.id === selectedSize ||
+                                  trans?.biddingOfferId?.sizeId?.id ===
+                                    selectedSize ||
+                                  trans?.biddingOfferId?.sizeId ===
+                                    selectedSize ||
+                                  trans?.sellingItemId?.sizeId === selectedSize
+                              ).length > 0
+                                ? product.transactions
+                                    .filter(
+                                      (trans: any) =>
+                                        trans?.sizeId?.id === selectedSize ||
+                                        trans?.biddingOfferId?.sizeId?.id ===
+                                          selectedSize ||
+                                        trans?.biddingOfferId?.sizeId ===
+                                          selectedSize ||
+                                        trans?.sellingItemId?.sizeId ===
+                                          selectedSize
+                                    )[0]
+                                    .price.toLocaleString() + " Baht"
+                                : " N/A"}{" "}
+                            </Text>
+                          </View>
+                        </View>
+
                         <TouchableOpacity
                           style={{
                             borderWidth: 2,
@@ -943,26 +1099,12 @@ const Deal = ({ product }: { product: any }) => {
                             paddingVertical: 6,
                             paddingHorizontal: 18,
                           }}
-                          onPress={handleGoToOfferPlace}
+                          onPress={() => handleGoToOfferPlace(null)}
                         >
                           <Text style={{ color: "#fff", fontWeight: "bold" }}>
                             Offer
                           </Text>
                         </TouchableOpacity>
-                      </View>
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Text style={{ color: "#fff", fontSize: 18 }}>
-                          Last Sale
-                        </Text>
-                        <Text style={{ color: "#fff", fontSize: 18 }}>
-                          18,900 Baht
-                        </Text>
                       </View>
                     </>
                   )}
@@ -972,7 +1114,10 @@ const Deal = ({ product }: { product: any }) => {
                     onPress={() => setSelectedSize(null)}
                   >
                     <Text
-                      style={{ color: "#fff", textDecorationLine: "underline" }}
+                      style={{
+                        color: "#fff",
+                        textDecorationLine: "underline",
+                      }}
                     >
                       Change Size
                     </Text>
@@ -1037,57 +1182,104 @@ const Deal = ({ product }: { product: any }) => {
                   {/* Tab Content */}
                   {activeTab === "sellNow" ? (
                     <View style={{ marginTop: 24 }}>
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: 16,
-                        }}
-                      >
-                        <View>
-                          <Text
-                            style={{
-                              color: "#fff",
-                              fontSize: 22,
-                              fontWeight: "bold",
-                            }}
-                          >
-                            12,400 Baht
-                          </Text>
-                          <Text
-                            style={{
-                              color: "#fff",
-                              fontSize: 15,
-                              marginTop: 2,
-                            }}
-                          >
-                            Sell Now / Highest Offer
-                          </Text>
-                          <Text
-                            style={{
-                              color: "#888",
-                              fontSize: 13,
-                              marginTop: 2,
-                            }}
-                          >
-                            Sell to the highest offer price instantly.
-                          </Text>
-                        </View>
-                        <TouchableOpacity
+                      {getHighestOfferItem(selectedSize || "")?.offeredPrice ===
+                        0 ||
+                      getHighestOfferItem(selectedSize || "")?.offeredPrice ===
+                        undefined ? (
+                        <View
                           style={{
-                            borderWidth: 2,
-                            borderColor: "#fff",
-                            borderRadius: 4,
-                            paddingVertical: 6,
-                            paddingHorizontal: 18,
+                            flex: 1,
+                            justifyContent: "center",
+                            alignItems: "center",
                           }}
                         >
-                          <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                            Select
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
+                          <LottieView
+                            source={require("@/assets/animation/shoes-animation.json")}
+                            autoPlay
+                            loop
+                            style={{
+                              width: SIZES.width * 0.6,
+                              height: SIZES.width * 0.6,
+                              marginBottom: 24,
+                            }}
+                          />
+                        </View>
+                      ) : (
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: 16,
+                          }}
+                        >
+                          <View>
+                            <Text
+                              style={{
+                                color: "#fff",
+                                fontSize: 22,
+                                fontWeight: "bold",
+                              }}
+                            >
+                              <Price
+                                price={
+                                  getHighestOfferItem(selectedSize || "")
+                                    ?.offeredPrice || 0
+                                }
+                                currency="THB"
+                              />
+                            </Text>
+                            <Text
+                              style={{
+                                color: "#fff",
+                                fontSize: 15,
+                                marginTop: 2,
+                              }}
+                            >
+                              Sell Now / Highest Offer
+                            </Text>
+                            <Text
+                              style={{
+                                color: "#888",
+                                fontSize: 13,
+                                marginTop: 2,
+                              }}
+                            >
+                              Sell to the highest offer price instantly.
+                            </Text>
+                          </View>
+                          <TouchableOpacity
+                            style={{
+                              borderWidth: 2,
+                              borderColor:
+                                getHighestOfferItem(selectedSize || "")
+                                  ?.offeredPrice === 0 ||
+                                getHighestOfferItem(selectedSize || "")
+                                  ?.offeredPrice === undefined
+                                  ? "#888"
+                                  : "#fff",
+                              borderRadius: 4,
+                              paddingVertical: 6,
+                              paddingHorizontal: 18,
+                            }}
+                            onPress={() =>
+                              handleGoToPlaceAsk(
+                                getHighestOfferItem(selectedSize || "")
+                              )
+                            }
+                            disabled={
+                              getHighestOfferItem(selectedSize || "")
+                                ?.offeredPrice === 0 ||
+                              getHighestOfferItem(selectedSize || "")
+                                ?.offeredPrice === undefined
+                            }
+                          >
+                            <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                              Select
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
                     </View>
                   ) : (
                     <View style={{ marginTop: 24 }}>
@@ -1103,7 +1295,13 @@ const Deal = ({ product }: { product: any }) => {
                           Highest Bid
                         </Text>
                         <Text style={{ color: "#fff", fontSize: 18 }}>
-                          12,400 Baht
+                          <Price
+                            price={
+                              getHighestOfferItem(selectedSize || "")
+                                ?.offeredPrice || product.retailPrice
+                            }
+                            currency="THB"
+                          />
                         </Text>
                         <TouchableOpacity
                           style={{
@@ -1113,7 +1311,7 @@ const Deal = ({ product }: { product: any }) => {
                             paddingVertical: 6,
                             paddingHorizontal: 18,
                           }}
-                          onPress={handleGoToPlaceAsk}
+                          onPress={() => handleGoToPlaceAsk(null)}
                         >
                           <Text style={{ color: "#fff", fontWeight: "bold" }}>
                             Offer
@@ -1142,7 +1340,10 @@ const Deal = ({ product }: { product: any }) => {
                     onPress={() => setSelectedSize(null)}
                   >
                     <Text
-                      style={{ color: "#fff", textDecorationLine: "underline" }}
+                      style={{
+                        color: "#fff",
+                        textDecorationLine: "underline",
+                      }}
                     >
                       Change Size
                     </Text>

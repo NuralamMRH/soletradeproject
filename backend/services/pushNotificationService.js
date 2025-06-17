@@ -164,7 +164,7 @@ const handleTriggerCalenderNotifications = async () => {
         $lte: today,
       },
     });
-    console.log("Today", today);
+    // console.log("Today", today);
 
     // console.log("Calender products", products.length);
 

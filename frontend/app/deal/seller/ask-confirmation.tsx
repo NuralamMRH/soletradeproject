@@ -7,6 +7,7 @@ import {
   ScrollView,
   Share,
   Platform,
+  StatusBar,
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,16 +19,20 @@ import { useSellingOfferById } from "@/hooks/react-query/useSellerOfferMutation"
 
 type Params = {
   askId: string;
+  transaction: string;
+  data: string;
 };
 
 const AskConfirmation = () => {
   const paramsRaw = useLocalSearchParams();
   const params: Params = {
     askId: paramsRaw.askId as string,
+    transaction: paramsRaw.transaction as string,
+    data: paramsRaw.data as string,
   };
-  const askId = params.askId;
-  console.log("askId", askId);
-  const sellingOffer = JSON.parse(paramsRaw.data as string);
+  const transaction = JSON.parse(params.transaction);
+  const sellingOffer = JSON.parse(params.data);
+
   const animationRef = useRef<any>(null);
 
   // Get current date for order date
@@ -47,7 +52,6 @@ const AskConfirmation = () => {
   });
 
   useEffect(() => {
-    console.log("sellingOffer", sellingOffer);
     // Play animation when component mounts
     if (animationRef.current) {
       setTimeout(() => {
@@ -59,8 +63,12 @@ const AskConfirmation = () => {
   const handleDownloadReceipt = async () => {
     try {
       await Share.share({
-        title: `Ask Receipt - ${sellingOffer?.id}`,
-        message: `Your ask ${sellingOffer?.id} has been confirmed! Thank you for shopping with SoleTrade.`,
+        title: `${transaction ? "SellNow" : "Ask"} Receipt - ${
+          sellingOffer?.id
+        }`,
+        message: `Your ${transaction ? "SellNow" : "Ask"} ${
+          sellingOffer?.id
+        } has been confirmed! Thank you for shopping with SoleTrade.`,
       });
     } catch (error) {
       console.error("Error sharing receipt:", error);
@@ -79,6 +87,7 @@ const AskConfirmation = () => {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar backgroundColor="#000" barStyle="light-content" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.animationContainer}>
           <LottieView
@@ -90,29 +99,32 @@ const AskConfirmation = () => {
           />
         </View>
 
-        <Text style={styles.title}>Ask Confirmed!</Text>
+        <Text style={styles.title}>
+          {transaction ? "Sell Now" : "Ask"} Confirmed!
+        </Text>
         <Text style={styles.subtitle}>
-          Your ask has been placed successfully
+          Your {transaction ? "SellNow" : "Ask"} has been placed successfully
         </Text>
 
         <View style={styles.orderInfoContainer}>
           <View style={styles.orderInfoRow}>
-            <Text style={styles.orderInfoLabel}>Ask Number</Text>
+            <Text style={styles.orderInfoLabel}>
+              {transaction ? "Sell Now" : "Ask"}
+            </Text>
             <Text style={styles.orderInfoValue}>{sellingOffer?.id}</Text>
           </View>
 
           <View style={styles.orderInfoRow}>
-            <Text style={styles.orderInfoLabel}>Ask Date</Text>
+            <Text style={styles.orderInfoLabel}>
+              {transaction ? "SellNow" : "Ask"} Date
+            </Text>
             <Text style={styles.orderInfoValue}>
-              {sellingOffer?.sellingAt
-                ? new Date(sellingOffer?.sellingAt).toLocaleDateString(
-                    "en-US",
-                    {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    }
-                  )
+              {transaction
+                ? new Date(transaction?.createdAt).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
                 : "N/A"}
             </Text>
           </View>
@@ -142,9 +154,8 @@ const AskConfirmation = () => {
               <Text style={{ color: "#333", fontSize: 15 }}>Selling Price</Text>
 
               <Text style={[{ fontSize: 15, color: "#333" }]}>
-                {sellingOffer?.sellingPrice
-                  ? Number(sellingOffer?.sellingPrice).toLocaleString("th-TH") +
-                    " Baht"
+                {transaction?.price
+                  ? Number(transaction?.price).toLocaleString("th-TH") + " Baht"
                   : ""}
               </Text>
             </View>
@@ -161,10 +172,9 @@ const AskConfirmation = () => {
               </Text>
 
               <Text style={[{ fontSize: 14, color: "#888" }]}>
-                {sellingOffer?.sellingPrice
-                  ? Number(sellingOffer?.sellingPrice * 0.04).toLocaleString(
-                      "th-TH"
-                    ) + " Baht"
+                {transaction?.price
+                  ? Number(transaction?.price * 0.04).toLocaleString("th-TH") +
+                    " Baht"
                   : "0 Baht"}
               </Text>
             </View>
@@ -181,10 +191,9 @@ const AskConfirmation = () => {
               </Text>
 
               <Text style={[{ fontSize: 14, color: "#888" }]}>
-                {sellingOffer?.sellingPrice
-                  ? Number(sellingOffer?.sellingPrice * 0.03).toLocaleString(
-                      "th-TH"
-                    ) + " Baht"
+                {transaction?.price
+                  ? Number(transaction?.price * 0.03).toLocaleString("th-TH") +
+                    " Baht"
                   : "0 Baht"}
               </Text>
             </View>
@@ -198,13 +207,12 @@ const AskConfirmation = () => {
                 },
               ]}
             >
-              <Text style={{ color: "#000", fontSize: 15 }}>Earnings</Text>
+              <Text style={{ color: "#fff", fontSize: 15 }}>Earnings</Text>
 
-              <Text style={{ fontSize: 15, color: "#000" }}>
-                {sellingOffer?.sellingPrice
-                  ? Number(sellingOffer?.sellingPrice * 0.91).toLocaleString(
-                      "th-TH"
-                    ) + " Baht"
+              <Text style={{ fontSize: 15, color: "#fff" }}>
+                {transaction?.price
+                  ? Number(transaction?.price * 0.91).toLocaleString("th-TH") +
+                    " Baht"
                   : "0 Baht"}
               </Text>
             </View>
@@ -223,7 +231,9 @@ const AskConfirmation = () => {
           style={styles.viewOrderButton}
           onPress={handleViewOrderDetails}
         >
-          <Text style={styles.viewOrderButtonText}>View Offer Details</Text>
+          <Text style={styles.viewOrderButtonText}>
+            View {transaction ? "SellNow" : "Ask"} Details
+          </Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -240,7 +250,7 @@ const AskConfirmation = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: "#000",
   },
   scrollContent: {
     flexGrow: 1,
@@ -262,17 +272,17 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 10,
-    color: Colors.black,
+    color: Colors.white,
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.darkGray,
+    color: "#888",
     marginBottom: 30,
     textAlign: "center",
   },
   orderInfoContainer: {
     width: "100%",
-    backgroundColor: Colors.backgroundGray,
+    backgroundColor: "rgba(36, 36, 36, 0.66)",
     borderRadius: 12,
     padding: 20,
     marginBottom: 30,
@@ -284,21 +294,21 @@ const styles = StyleSheet.create({
   },
   orderInfoLabel: {
     fontSize: 14,
-    color: Colors.darkGray,
+    color: "#fff",
   },
   orderInfoValue: {
     fontSize: 14,
     fontWeight: "500",
-    color: Colors.black,
+    color: "rgba(214, 211, 211, 0.66)",
   },
   totalAmount: {
     fontSize: 18,
     fontWeight: "bold",
-    color: Colors.black,
+    color: "rgba(214, 211, 211, 0.66)",
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: "#888",
     marginVertical: 16,
   },
   downloadButton: {
@@ -324,11 +334,11 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: Colors.lightGray,
+    borderColor: "#888",
     borderRadius: 8,
   },
   viewOrderButtonText: {
-    color: Colors.black,
+    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -337,13 +347,13 @@ const styles = StyleSheet.create({
     bottom: 20,
     left: 20,
     right: 20,
-    backgroundColor: Colors.black,
+    backgroundColor: "#fff",
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: "center",
   },
   mainAppButtonText: {
-    color: Colors.white,
+    color: "#000",
     fontSize: 16,
     fontWeight: "bold",
   },

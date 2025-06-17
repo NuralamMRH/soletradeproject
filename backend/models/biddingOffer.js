@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const biddingOfferSchema = mongoose.Schema({
   type: {
     type: String,
-    default: "Offer",
+    default: "placeOffer",
     required: true,
   },
   status: {
@@ -24,6 +24,10 @@ const biddingOfferSchema = mongoose.Schema({
     ref: "Product",
     required: true,
   },
+  productImage: {
+    type: String,
+    default: "",
+  },
   itemCondition: {
     type: String,
     enum: ["New", "Used", "New with Defects"],
@@ -37,6 +41,9 @@ const biddingOfferSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "AttributeOption",
     required: true,
+  },
+  sizeName: {
+    type: String,
   },
   offeredPrice: {
     type: Number,

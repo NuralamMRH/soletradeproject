@@ -7,6 +7,7 @@ import {
   ScrollView,
   Share,
   Platform,
+  Image,
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +21,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useOrderById } from "@/hooks/react-query/useOrderMutation";
 import Price from "@/utils/Price";
 import { useBiddingOfferById } from "@/hooks/react-query/useBuyerOfferMutation";
+import { StatusBar } from "react-native";
+import { useTransactionById } from "@/hooks/react-query/useTransactionMutation";
+import { SIZES } from "@/constants";
 
 type Params = {
   orderId: string;
@@ -32,12 +36,22 @@ const EssentialOrderConfirmation = () => {
   };
   const orderId = params.orderId;
   const animationRef = useRef<any>(null);
+  const offerData = JSON.parse(paramsRaw.offer as string);
+  const transactionData = JSON.parse(paramsRaw.transaction as string);
 
   const {
     data: biddingOffer,
     isLoading: isBiddingOfferLoading,
     isError: isBiddingOfferError,
   } = useBiddingOfferById(orderId as string);
+
+  const {
+    data: transaction,
+    isLoading: isTransactionLoading,
+    isError: isTransactionError,
+  } = useTransactionById(transactionData?.id as any);
+
+  console.log("transaction", transaction);
 
   // Get current date for order date
   const orderDate = new Date().toLocaleDateString("en-US", {
@@ -87,6 +101,7 @@ const EssentialOrderConfirmation = () => {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar backgroundColor="#000" barStyle="light-content" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.animationContainer}>
           <LottieView
@@ -98,41 +113,85 @@ const EssentialOrderConfirmation = () => {
           />
         </View>
 
-        <Text style={styles.title}>Offer Confirmed!</Text>
+        <Text style={styles.title}>
+          {transactionData ? "Order Confirmed!" : "Offer Confirmed!"}
+        </Text>
         <Text style={styles.subtitle}>
-          Your offer has been placed successfully
+          {transactionData
+            ? "Your order has been placed successfully"
+            : "Your offer has been placed successfully"}
         </Text>
 
         <View style={styles.orderInfoContainer}>
-          <View style={styles.orderInfoRow}>
-            <Text style={styles.orderInfoLabel}>Offer Number</Text>
-            <Text style={styles.orderInfoValue}>{biddingOffer?.id}</Text>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Image
+              source={{
+                uri: transactionData?.productImage || offerData?.productImage,
+              }}
+              style={styles.productImage}
+            />
           </View>
 
+          <View>
+            <Text
+              style={{ color: Colors.white, fontSize: 16, fontWeight: "bold" }}
+            >
+              {transactionData?.product?.name || ""}
+            </Text>
+          </View>
+          <View>
+            <Text
+              style={{ color: Colors.white, fontSize: 16, fontWeight: "bold" }}
+            >
+              {transactionData?.sizeName || offerData?.sizeName}
+            </Text>
+          </View>
+          <View>
+            <Text style={styles.orderInfoLabel}>
+              {transactionData?.sizeName || offerData?.sizeName}
+            </Text>
+          </View>
+          <View style={styles.divider} />
+
           <View style={styles.orderInfoRow}>
-            <Text style={styles.orderInfoLabel}>Order Date</Text>
+            <Text style={styles.orderInfoLabel}>
+              {transactionData ? "Order Id" : "Offer Id"}
+            </Text>
             <Text style={styles.orderInfoValue}>
-              {biddingOffer?.createdAt
-                ? new Date(biddingOffer?.createdAt).toLocaleDateString(
-                    "en-US",
-                    {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    }
-                  )
-                : "N/A"}
+              {transactionData ? transactionData?.id : offerData?.id}
+            </Text>
+          </View>
+          <View style={styles.orderInfoRow}>
+            <Text style={styles.orderInfoLabel}>
+              {transactionData ? "Price" : "Offered Price"}
+            </Text>
+            <Text style={styles.orderInfoValue}>
+              <Price
+                price={
+                  transactionData
+                    ? transactionData?.price
+                    : offerData?.offeredPrice
+                }
+                currency="THB"
+              />
             </Text>
           </View>
 
           <View style={styles.orderInfoRow}>
-            <Text style={styles.orderInfoLabel}>Estimated Delivery</Text>
+            <Text style={styles.orderInfoLabel}>
+              {transactionData ? "Order Date" : "Offer Date"}
+            </Text>
             <Text style={styles.orderInfoValue}>
-              {biddingOffer?.createdAt
-                ? new Date(
-                    new Date(biddingOffer?.createdAt).getTime() +
-                      3 * 24 * 60 * 60 * 1000
-                  ).toLocaleDateString("en-US", {
+              {transactionData
+                ? transactionData?.createdAt
+                : offerData?.createdAt
+                ? new Date(offerData?.createdAt).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
@@ -144,42 +203,130 @@ const EssentialOrderConfirmation = () => {
           <View style={styles.orderInfoRow}>
             <Text style={styles.orderInfoLabel}>Payment Method</Text>
             <Text style={styles.orderInfoValue}>
-              {biddingOffer?.paymentMethod?.name} ending in{" "}
-              {biddingOffer?.paymentMethod?.cardNumber?.slice(-4)}
-            </Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.orderInfoRow}>
-            <Text style={styles.orderInfoLabel}>Total Amount</Text>
-            <Text style={styles.totalAmount}>
-              <Price price={biddingOffer?.totalPrice} currency="THB" />
+              {transactionData
+                ? transactionData?.paymentMethodId?.name
+                : offerData?.paymentMethodId?.name}
+              ending in{" "}
+              {transactionData
+                ? transactionData?.paymentMethodId?.cardNumber?.slice(-4)
+                : offerData?.paymentMethodId?.cardNumber?.slice(-4)}
             </Text>
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.downloadButton}
-          onPress={handleDownloadReceipt}
+        <View
+          style={{
+            flexDirection: "row",
+            gap: 10,
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 30,
+          }}
         >
-          <Ionicons name="download-outline" size={20} color={Colors.white} />
-          <Text style={styles.downloadButtonText}>Download E-Receipt</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.viewOrderButton}
-          onPress={handleViewOrderDetails}
-        >
-          <Text style={styles.viewOrderButtonText}>View Offer Details</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleDownloadReceipt}
+            style={{
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: "#fff",
+                padding: 10,
+                borderRadius: 50,
+                width: SIZES.width / 4 - 50,
+                height: SIZES.width / 4 - 50,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 10,
+              }}
+            >
+              <Ionicons
+                name="download-outline"
+                size={20}
+                color={Colors.black}
+              />
+            </View>
+            <Text style={{ color: Colors.white, fontSize: 12 }}>Download</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleDownloadReceipt}
+            style={{
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: "#fff",
+                padding: 10,
+                borderRadius: 50,
+                width: SIZES.width / 4 - 50,
+                height: SIZES.width / 4 - 50,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 10,
+              }}
+            >
+              <Ionicons name="share-outline" size={20} color={Colors.black} />
+            </View>
+            <Text style={{ color: Colors.white, fontSize: 12 }}>Share</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleDownloadReceipt}
+            style={{
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: "#fff",
+                padding: 10,
+                borderRadius: 50,
+                width: SIZES.width / 4 - 50,
+                height: SIZES.width / 4 - 50,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 10,
+              }}
+            >
+              <Ionicons name="grid-outline" size={20} color={Colors.black} />
+            </View>
+            <Text style={{ color: Colors.white, fontSize: 12 }}>Grid</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleDownloadReceipt}
+            style={{
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: "#fff",
+                padding: 10,
+                borderRadius: 50,
+                width: SIZES.width / 4 - 50,
+                height: SIZES.width / 4 - 50,
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: 10,
+              }}
+            >
+              <Ionicons name="list-outline" size={20} color={Colors.black} />
+            </View>
+            <Text style={{ color: Colors.white, fontSize: 12 }}>List</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       <TouchableOpacity
         style={styles.mainAppButton}
         onPress={handleGoToMainApp}
       >
-        <Text style={styles.mainAppButtonText}>Go to Home</Text>
+        <Text style={styles.mainAppButtonText}>Dismiss</Text>
       </TouchableOpacity>
     </View>
   );
@@ -188,7 +335,7 @@ const EssentialOrderConfirmation = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: "#000",
   },
   scrollContent: {
     flexGrow: 1,
@@ -210,18 +357,18 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 10,
-    color: Colors.black,
+    color: Colors.white,
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.darkGray,
+    color: "#888",
     marginBottom: 30,
     textAlign: "center",
   },
   orderInfoContainer: {
     width: "100%",
-    backgroundColor: Colors.backgroundGray,
-    borderRadius: 12,
+    backgroundColor: "rgba(36, 36, 36, 0.66)",
+    borderRadius: 0,
     padding: 20,
     marginBottom: 30,
   },
@@ -232,21 +379,21 @@ const styles = StyleSheet.create({
   },
   orderInfoLabel: {
     fontSize: 14,
-    color: Colors.darkGray,
+    color: "#fff",
   },
   orderInfoValue: {
     fontSize: 14,
     fontWeight: "500",
-    color: Colors.black,
+    color: "rgba(214, 211, 211, 0.66)",
   },
   totalAmount: {
     fontSize: 18,
     fontWeight: "bold",
-    color: Colors.black,
+    color: "rgba(214, 211, 211, 0.66)",
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: "#888",
     marginVertical: 16,
   },
   downloadButton: {
@@ -272,11 +419,11 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: Colors.lightGray,
+    borderColor: "#888",
     borderRadius: 8,
   },
   viewOrderButtonText: {
-    color: Colors.black,
+    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -285,15 +432,20 @@ const styles = StyleSheet.create({
     bottom: 20,
     left: 20,
     right: 20,
-    backgroundColor: Colors.black,
+    backgroundColor: "#333",
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: "center",
   },
   mainAppButtonText: {
-    color: Colors.white,
+    color: "#fff",
     fontSize: 16,
-    fontWeight: "bold",
+  },
+  productImage: {
+    width: SIZES.width * 0.5,
+    height: SIZES.width * 0.5,
+    objectFit: "cover",
+    overflow: "hidden",
   },
 });
 

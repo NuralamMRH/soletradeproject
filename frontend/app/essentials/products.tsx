@@ -18,6 +18,7 @@ import { router } from "expo-router";
 import AdminHeader from "@/components/AdminHeader";
 import { useProducts } from "@/hooks/useProducts";
 import { baseUrl } from "@/api/MainApi";
+import { useSelector } from "react-redux";
 
 const SoleEssentialsProducts = () => {
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
@@ -187,6 +188,10 @@ const SoleEssentialsProducts = () => {
     </View>
   );
 
+  const cartCount = useSelector(
+    (state: any) => state.product.checkout.totalItems
+  );
+
   // <StatusBar barStyle="dark-content" backgroundColor="#fff" />
   return (
     <View style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -227,8 +232,26 @@ const SoleEssentialsProducts = () => {
             <TouchableOpacity onPress={() => {}}>
               <Ionicons name="menu-outline" size={24} color="#000" />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => {}}>
-              <Ionicons name="cart-outline" size={24} color="#000" />
+            <TouchableOpacity onPress={() => router.push("/essentials/cart")}>
+              <Ionicons name="cart-outline" size={24} color="#333" />
+              <Text
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  right: 0,
+                  backgroundColor: "red",
+                  color: "#fff",
+                  borderRadius: 10,
+                  fontSize: 12,
+                  height: 15,
+                  width: 15,
+                  textAlign: "center",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                {cartCount}
+              </Text>
             </TouchableOpacity>
           </View>
         }

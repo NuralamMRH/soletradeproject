@@ -24,7 +24,9 @@ exports.getTransactionById = catchAsyncErrors(async (req, res, next) => {
     .populate("seller", "-passwordHash")
     .populate("product")
     .populate("biddingOffer")
-    .populate("sellingItem");
+    .populate("sellingItem")
+    .populate("paymentMethod")
+    .populate("shippingAddress");
 
   if (!transaction) {
     return next(new ErrorHandler("Transaction not found", 404));
@@ -48,6 +50,7 @@ exports.createTransaction = catchAsyncErrors(async (req, res, next) => {
     if (!savedTransaction) {
       return next(new ErrorHandler("Error creating transaction", 400));
     }
+
     res.status(201).json({
       success: true,
       transaction: savedTransaction,

@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { baseUrl } from "@/api/MainApi";
+import { SIZES } from "@/constants";
 
 const EssentialProductCard = ({ item }: { item: any }) => {
   return (
@@ -56,11 +57,7 @@ const styles = StyleSheet.create({
     margin: 8,
     borderRadius: 8,
     overflow: "hidden",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    width: SIZES.width * 0.3,
   },
   imageContainer: {
     height: 150,

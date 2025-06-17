@@ -13,6 +13,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useProduct } from "@/hooks/useProduct";
 import Essential from "@/components/product/Essential";
 import Deal from "@/components/product/Deal";
+import ContentLoader, { Rect } from "react-content-loader/native";
+import LottieView from "lottie-react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -50,7 +52,42 @@ export default function ProductDetailsScreen() {
   }, [id]);
 
   if (loading) {
-    return <Text>Loading...</Text>;
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#fff",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <LottieView
+          source={require("@/assets/animation/Animation - 1749724935003.json")}
+          autoPlay
+          loop
+          style={{ width: 120, height: 120, marginBottom: 24 }}
+        />
+        <ContentLoader
+          speed={1}
+          width={width - 32}
+          height={400}
+          viewBox={`0 0 ${width - 32} 400`}
+          backgroundColor="#f3f3f3"
+          foregroundColor="#ecebeb"
+        >
+          {/* Image area */}
+          <Rect x="0" y="0" rx="16" ry="16" width={width - 32} height="220" />
+          {/* Title */}
+          <Rect x="0" y="240" rx="6" ry="6" width="180" height="24" />
+          {/* Price */}
+          <Rect x="0" y="275" rx="6" ry="6" width="120" height="20" />
+          {/* Buy button */}
+          <Rect x="0" y="320" rx="10" ry="10" width="160" height="44" />
+          {/* Sell button */}
+          <Rect x="180" y="320" rx="10" ry="10" width="160" height="44" />
+        </ContentLoader>
+      </View>
+    );
   }
 
   if (error) {

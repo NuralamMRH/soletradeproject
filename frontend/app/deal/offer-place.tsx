@@ -59,11 +59,17 @@ const OfferPlace = () => {
 
   const size = params.size || "";
   const [selectedSize, setSelectedSize] = useState("");
-  const sizeId = selectedSize
-    ? variations.find(
-        (variation: any) => variation.optionName === selectedSize || size
-      )?.attributeId._id
-    : params.sizeId;
+  const [sizeId, setSizeId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSizeId(
+      selectedSize
+        ? variations.find(
+            (variation: any) => variation.optionName === selectedSize || size
+          )?.attributeId._id
+        : params.sizeId
+    );
+  }, [selectedSize, variations, size, params.sizeId]);
 
   const { data: methods = [], isLoading: loadingMethods } =
     useGetMyPaymentMethods();
@@ -102,6 +108,8 @@ const OfferPlace = () => {
     selectedSellerAskObj || null
   );
 
+  console.log("buyNowItem", buyNowItem);
+
   const condition = selectedSellerAskObj?.itemCondition || "New";
   const box = selectedSellerAskObj?.packaging || "Original (Good)";
 
@@ -116,14 +124,14 @@ const OfferPlace = () => {
   // Robust size-based price functions
   function getSizeHighestPrice(sizeId: string): number | null {
     if (!bidding || !Array.isArray(bidding)) return null;
-    const filtered = bidding.filter((bid: any) => bid.sizeId === sizeId);
+    const filtered = bidding.filter((bid: any) => bid.sizeId.id === sizeId);
     if (filtered.length === 0) return null;
     return Math.max(...filtered.map((bid: any) => Number(bid.offeredPrice)));
   }
 
   function getSizeLowestPrice(sizeId: string): number | null {
     if (!selling || !Array.isArray(selling)) return null;
-    const filtered = selling.filter((ask: any) => ask.sizeId === sizeId);
+    const filtered = selling.filter((ask: any) => ask.sizeId.id === sizeId);
     if (filtered.length === 0) return null;
     return Math.min(...filtered.map((ask: any) => Number(ask.sellingPrice)));
   }
@@ -134,13 +142,13 @@ const OfferPlace = () => {
     if (lowestPrice === null) return null;
     return selling.find(
       (ask: any) =>
-        ask.sizeId === sizeId && Number(ask.sellingPrice) === lowestPrice
+        ask.sizeId.id === sizeId && Number(ask.sellingPrice) === lowestPrice
     );
   }
 
   function getAverageBidPrice(sizeId: string): number | null {
     if (!bidding || !Array.isArray(bidding)) return null;
-    const filtered = bidding.filter((bid: any) => bid.sizeId === sizeId);
+    const filtered = bidding.filter((bid: any) => bid.sizeId.id === sizeId);
     if (filtered.length === 0) return null;
     const sum = filtered.reduce(
       (acc: number, bid: any) => acc + Number(bid.offeredPrice),
@@ -216,10 +224,9 @@ const OfferPlace = () => {
       });
       return;
     }
-
-    if (offer < selectedSellerAskObj?.sellingPrice) {
+    if (!expiration) {
       Toast.show({
-        text1: "Offer price must be higher than the selling price",
+        text1: "Please enter an expiration",
         type: "error",
       });
       return;
@@ -228,6 +235,7 @@ const OfferPlace = () => {
     router.push({
       pathname: "/deal/checkout",
       params: {
+        ...params,
         sizeName: selectedSize ? selectedSize : size,
         attributeName: attributeName,
         payment: JSON.stringify(payment),
@@ -239,7 +247,6 @@ const OfferPlace = () => {
         offeredPrice: offer,
         packaging: box,
         itemCondition: condition,
-        ...params,
       },
     });
   };
@@ -267,49 +274,61 @@ const OfferPlace = () => {
         <View style={styles.offerInputSection}>
           <View style={styles.offerInputRow}>
             <TextInput
-              style={styles.offerInput}
+              style={[styles.offerInput, { textAlign: "right" }]}
               value={offer !== "" ? Number(offer).toLocaleString("th-TH") : ""}
               onChangeText={(text) => {
+                setBuyNowItem("");
                 const numeric = text.replace(/[^0-9]/g, "");
                 setOffer(numeric ? Number(numeric) : "");
               }}
               placeholder="THB"
               placeholderTextColor="#888"
               keyboardType="numeric"
-              editable={selectedSellerAskObj ? false : true}
+              // editable={buyNowItem?.id ? false : true}
             />
           </View>
-          <Text style={styles.placeOfferLabel}>Place your offer</Text>
+          <Text
+            style={[
+              styles.placeOfferLabel,
+              { color: buyNowItem?.id ? COLORS.brandGreen : "#fff" },
+            ]}
+          >
+            {buyNowItem?.id ? "Buy at this price" : "Place your offer"}
+          </Text>
         </View>
         {/* Pricing Options */}
-        {!selectedSellerAskObj && (
-          <>
-            <Text style={styles.pricingOptionsLabel}>Pricing Options</Text>
-            <View style={styles.pricingOptionsRow}>
-              <TouchableOpacity
-                onPress={() => setOffer(getSizeHighestPrice(sizeId) || 0)}
-                style={styles.priceOptionBox}
-              >
-                <Text style={styles.priceOptionLabel}>Highest Offer</Text>
-                <Text style={styles.priceOptionValue}>
-                  <Price
-                    price={getSizeHighestPrice(sizeId) || 0}
-                    currency="THB"
-                  />
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setOffer(getAverageBidPrice(sizeId) || 0)}
-                style={styles.priceOptionBox}
-              >
-                <Text style={styles.priceOptionLabel}>Suggested</Text>
-                <Text style={styles.priceOptionValue}>
-                  <Price
-                    price={getAverageBidPrice(sizeId) || 0}
-                    currency="THB"
-                  />
-                </Text>
-              </TouchableOpacity>
+
+        <>
+          <Text style={styles.pricingOptionsLabel}>Pricing Options</Text>
+          <View style={styles.pricingOptionsRow}>
+            <TouchableOpacity
+              onPress={() => {
+                setBuyNowItem("");
+                setOffer(getSizeHighestPrice(sizeId) || 0);
+              }}
+              style={styles.priceOptionBox}
+            >
+              <Text style={styles.priceOptionLabel}>Highest Offer</Text>
+              <Text style={styles.priceOptionValue}>
+                <Price
+                  price={getSizeHighestPrice(sizeId) || 0}
+                  currency="THB"
+                />
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                setBuyNowItem("");
+                setOffer(getAverageBidPrice(sizeId) || 0);
+              }}
+              style={styles.priceOptionBox}
+            >
+              <Text style={styles.priceOptionLabel}>Suggested</Text>
+              <Text style={styles.priceOptionValue}>
+                <Price price={getAverageBidPrice(sizeId) || 0} currency="THB" />
+              </Text>
+            </TouchableOpacity>
+            {sizeId && getLowestAskItem(sizeId) && (
               <TouchableOpacity
                 onPress={() => {
                   setBuyNowItem(getLowestAskItem(sizeId));
@@ -325,9 +344,9 @@ const OfferPlace = () => {
                   />
                 </Text>
               </TouchableOpacity>
-            </View>
-          </>
-        )}
+            )}
+          </View>
+        </>
 
         {/* Product Info Row */}
         <View style={styles.productInfoRow}>
@@ -427,16 +446,16 @@ const OfferPlace = () => {
             style={[
               styles.placeOfferBtn,
               {
-                backgroundColor: selectedSellerAskObj
+                backgroundColor: buyNowItem?.id
                   ? COLORS.brandGreen
                   : COLORS.brandRed,
               },
             ]}
-            disabled={!offer}
+            disabled={!offer || !buyNowItem?.id}
             onPress={handleGoCheckout}
           >
             <Text style={styles.placeOfferBtnText}>
-              {selectedSellerAskObj ? "Buy Now" : "Place Offer"}
+              {buyNowItem?.id ? "Buy Now" : "Place Offer"}
             </Text>
           </TouchableOpacity>
         </View>

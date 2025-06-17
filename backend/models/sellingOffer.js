@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const sellingSchema = mongoose.Schema({
   type: {
     type: String,
-    default: "Ask",
+    default: "placeAsk",
     required: true,
   },
   userId: {
@@ -18,6 +18,10 @@ const sellingSchema = mongoose.Schema({
   productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",
+  },
+  productImage: {
+    type: String,
+    default: "",
   },
   itemCondition: {
     type: String,

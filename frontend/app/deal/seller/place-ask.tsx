@@ -20,6 +20,9 @@ import { COLORS } from "@/constants";
 import AdminHeader from "@/components/AdminHeader";
 import { useCreateSellingOffer } from "@/hooks/react-query/useSellerOfferMutation";
 import { useListCreation } from "@/context/ListCreationContext";
+import Price from "@/utils/Price";
+import { useAuth } from "@/hooks/useAuth";
+import { useCreateTransaction } from "@/hooks/react-query/useTransactionMutation";
 
 const { width } = Dimensions.get("window");
 
@@ -28,10 +31,11 @@ const expirationOptions = ["3 Days", "7 Days", "14 Days", "30 Days"];
 const PlaceAsk = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   // Mock data (replace with real params/data as needed)
   const productName = params.productName || "Air Jordan";
-  const productSubtitle = "Air Jordan 1 Low OG Travis Scott Medium Olive";
+  const productSubtitle = `${params.productName} ${params.brand} ${params.colorway}`;
   const size = params.size || "6.5";
   let variations: any[] = [];
   if (typeof params.variations === "string") {
@@ -47,12 +51,48 @@ const PlaceAsk = () => {
     (variation: any) => variation.optionName === selectedSize || size
   )?.attributeId.name;
 
-  const attribute = params.attribute || null;
   const { images } = useListCreation();
   const [selectedSize, setSelectedSize] = useState<string>("");
-  const condition = "New";
-  const box = "Original (Good)";
-  const [offer, setOffer] = useState("");
+  const [sizeId, setSizeId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSizeId(
+      selectedSize
+        ? variations.find(
+            (variation: any) => variation.optionName === selectedSize || size
+          )?.attributeId._id
+        : params.sizeId
+    );
+  }, [selectedSize, variations, size, params.sizeId]);
+
+  const selectedBuyerOfferObj = (() => {
+    if (!params.selectedBuyerOffer) return undefined;
+    if (typeof params.selectedBuyerOffer === "string") {
+      try {
+        return JSON.parse(params.selectedBuyerOffer);
+      } catch {
+        return undefined;
+      }
+    }
+    if (Array.isArray(params.selectedBuyerOffer)) {
+      try {
+        return JSON.parse(params.selectedBuyerOffer[0]);
+      } catch {
+        return undefined;
+      }
+    }
+    return params.selectedBuyerOffer;
+  })();
+
+  const [sellNowItem, setSellNowItem] = useState<any>(
+    selectedBuyerOfferObj || null
+  );
+
+  const [offer, setOffer] = useState(
+    sellNowItem?.offeredPrice ||
+      Number(getHighestOfferItem(selectedSize || "")?.offeredPrice) ||
+      ""
+  );
   const [expiration, setExpiration] = useState("30 Days");
   const [payment, setPayment] = useState("Visa ending in **34");
   const [payoutInfo, setPayoutInfo] = useState<boolean>(false);
@@ -60,11 +100,74 @@ const PlaceAsk = () => {
   const [showSizeSheet, setShowSizeSheet] = useState(false);
   const expirationSheetRef = useRef<BottomSheet>(null);
   const sizeSheetRef = useRef<BottomSheet>(null);
+
+  const condition = params?.productCondition || "New";
+  const box = params?.boxCondition || "Original (Good)";
+
+  const bidding = params?.bidding
+    ? JSON.parse(params?.bidding as any)
+    : undefined;
+
+  const selling = params?.selling
+    ? JSON.parse(params?.selling as any)
+    : undefined;
+  const transactions = params?.transactions
+    ? JSON.parse(params?.transactions as any)
+    : undefined;
+
+  // Robust size-based price functions
+  function getSizeHighestPrice(sizeId: string): number | null {
+    if (!bidding || !Array.isArray(bidding)) return null;
+    const filtered = bidding.filter((bid: any) => bid.sizeId.id === sizeId);
+    if (filtered.length === 0) return null;
+    return Math.max(...filtered.map((bid: any) => Number(bid.offeredPrice)));
+  }
+
+  function getSizeLowestPrice(sizeId: string): number | null {
+    if (!selling || !Array.isArray(selling)) return null;
+    const filtered = selling.filter((ask: any) => ask.sizeId.id === sizeId);
+    if (filtered.length === 0) return null;
+    return Math.min(...filtered.map((ask: any) => Number(ask.sellingPrice)));
+  }
+
+  function getLowestAskItem(sizeId: string): any | null {
+    if (!selling || !Array.isArray(selling)) return null;
+    const lowestPrice = getSizeLowestPrice(sizeId);
+    if (lowestPrice === null) return null;
+    return selling.find(
+      (ask: any) =>
+        ask.sizeId.id === sizeId && Number(ask.sellingPrice) === lowestPrice
+    );
+  }
+
+  function getHighestOfferItem(sizeId: string): any | null {
+    if (!bidding || !Array.isArray(bidding)) return null;
+    const highestPrice = getSizeHighestPrice(sizeId);
+    if (highestPrice === null) return null;
+    return bidding.find(
+      (bid: any) =>
+        bid.sizeId.id === sizeId && Number(bid.offeredPrice) === highestPrice
+    );
+  }
+
+  function getAverageSellPrice(sizeId: string): number | null {
+    if (!selling || !Array.isArray(selling)) return null;
+    const filtered = selling.filter((ask: any) => ask.sizeId.id === sizeId);
+    if (filtered.length === 0) return null;
+    const sum = filtered.reduce(
+      (acc: number, ask: any) => acc + Number(ask.sellingPrice),
+      0
+    );
+    return Math.round(sum / filtered.length);
+  }
+
   // Payment methods
   const { data: methods = [], isLoading: loadingMethods } =
     useGetMyPaymentMethods();
   // Addresses
   const createSellingOffer = useCreateSellingOffer();
+  const { mutate: createTransaction, isPending: isCreatingTransaction } =
+    useCreateTransaction();
   const formattedImages = formatImagesForFormData(images);
   function formatImagesForFormData(
     images: string[]
@@ -81,38 +184,66 @@ const PlaceAsk = () => {
       return { uri, name, type };
     });
   }
+
   const handleSubmitAsk = async () => {
     try {
-      console.log("sizeId", params.sizeId);
-
       setLoading(true);
       const payload = {
-        type: "Ask",
+        type: sellNowItem?.id ? "sellNow" : params.offerType,
         productId: params.productId as string,
+        productImage: params.image,
         itemCondition: condition,
         packaging: box,
         sizeName: `${selectedSize || size} ${attributeName}`,
-        sizeId:
-          variations.find(
-            (variation: any) => variation.optionName === selectedSize
-          )?._id || (params.sizeId as string),
+        sizeId: sizeId,
         sellingPrice: Number(offer),
-        earnings: Number(offer * 0.91),
-        sellingCommission: Number(offer * 0.04),
-        sellingFee: Number(offer * 0.03),
+        price: Number(offer),
+        earnings: Number(offer * 0.91) || 0,
+        sellingCommission: Number(offer * 0.04) || 0,
+        sellingFee: Number(offer * 0.03) || 0,
         validUntil: new Date(Date.now() + Number(expiration) * 1000),
         paymentMethodId: payment._id,
         images: formattedImages,
+        paymentStatus: "Paid",
+        shippingStatus: "Ongoing",
+        buyerId: sellNowItem?.userId || null,
+        sellerId: user?._id,
+        biddingOfferId: sellNowItem?.id || null,
+        status: "Pending",
+        createdAt: new Date(),
       };
-      const data = await createSellingOffer.mutateAsync(payload);
 
-      router.replace({
-        pathname: "/deal/seller/ask-confirmation",
-        params: {
-          askId: data._id,
-          data: JSON.stringify(data),
-        } as any,
-      });
+      let sellingOfferData: any;
+
+      const data = await createSellingOffer.mutateAsync(payload);
+      if (sellNowItem?.id) {
+        sellingOfferData = data;
+        const transactionPayload = {
+          ...payload,
+          sellingItemId: sellingOfferData._id,
+        };
+        createTransaction(transactionPayload, {
+          onSuccess: (data: any) => {
+            router.replace({
+              pathname: "/deal/seller/ask-confirmation",
+              params: {
+                askId: sellingOfferData._id,
+                data: JSON.stringify(sellingOfferData),
+                transaction: JSON.stringify(data),
+              } as any,
+            });
+          },
+        });
+      } else {
+        router.replace({
+          pathname: "/deal/seller/ask-confirmation",
+          params: {
+            askId: data._id,
+            data: JSON.stringify(data),
+            transaction: JSON.stringify(null),
+          } as any,
+        });
+      }
     } catch (err: any) {
       console.log("err", err);
       alert(err?.message || "Ask failed. Please try again.");
@@ -121,7 +252,6 @@ const PlaceAsk = () => {
     }
   };
 
-  const insets = useSafeAreaInsets();
   return (
     <View style={styles.container}>
       <AdminHeader
@@ -163,31 +293,77 @@ const PlaceAsk = () => {
               { color: offer ? COLORS.brandGreen : "#888", fontWeight: "bold" },
             ]}
           >
-            {offer ? `Sell now at ${offer} Baht` : "Place your ask"}
+            {sellNowItem?.id
+              ? `Sell now at ${offer} Baht`
+              : offer
+              ? `Place ask at ${offer} Baht`
+              : "Place your ask"}
           </Text>
         </View>
         {/* Pricing Options */}
         <View style={styles.pricingOptionsRow}>
+          {transactions.filter(
+            (trans: any) =>
+              trans?.sizeId?.id === sizeId ||
+              trans?.biddingOfferId?.sizeId === sizeId ||
+              trans?.biddingOfferId?.sizeId === sizeId ||
+              trans?.sellingItemId?.sizeId === sizeId
+          ).length > 0 ? (
+            <TouchableOpacity
+              onPress={() => {
+                setSellNowItem("");
+                setOffer(getHighestOfferItem(sizeId || "")?.offeredPrice || 0);
+              }}
+              style={styles.priceOptionBox}
+            >
+              <Text style={styles.priceOptionLabel}>Last Sale</Text>
+              <Text style={styles.priceOptionValue}>
+                <Price
+                  price={
+                    transactions.filter(
+                      (trans: any) =>
+                        trans?.sizeId?.id === sizeId ||
+                        trans?.biddingOfferId?.sizeId === sizeId ||
+                        trans?.biddingOfferId?.sizeId === sizeId ||
+                        trans?.sellingItemId?.sizeId === sizeId
+                    )[0]?.price || 0
+                  }
+                  currency="THB"
+                />
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <></>
+          )}
           <TouchableOpacity
-            onPress={() => setOffer(14595)}
-            style={styles.priceOptionBox}
-          >
-            <Text style={styles.priceOptionLabel}>Last Sale</Text>
-            <Text style={styles.priceOptionValue}>14,595 Baht</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setOffer(20000)}
+            onPress={() => {
+              setSellNowItem("");
+              setOffer(Number(getAverageSellPrice(sizeId || "")) || 0);
+            }}
             style={styles.priceOptionBox}
           >
             <Text style={styles.priceOptionLabel}>Suggested</Text>
-            <Text style={styles.priceOptionValue}>20,000 Baht</Text>
+            <Text style={styles.priceOptionValue}>
+              <Price
+                price={getAverageSellPrice(sizeId || "") || 0}
+                currency="THB"
+              />
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => setOffer(21800)}
+            onPress={() => {
+              setOffer(getHighestOfferItem(sizeId || "")?.offeredPrice || 0);
+              setSellNowItem(getHighestOfferItem(sizeId || "") || null);
+            }}
             style={styles.priceOptionBox}
           >
             <Text style={styles.priceOptionLabel}>Sell Now</Text>
-            <Text style={styles.priceOptionValue}>21,800 Baht</Text>
+            <Text style={styles.priceOptionValue}>
+              <Price
+                price={getHighestOfferItem(sizeId || "")?.offeredPrice || 0}
+                currency="THB"
+              />
+            </Text>
           </TouchableOpacity>
         </View>
         {/* Product Info Row */}
@@ -478,12 +654,20 @@ const PlaceAsk = () => {
         <TouchableOpacity
           style={[
             styles.placeOfferBtn,
-            { backgroundColor: offer ? COLORS.brandDarkColor : "#222" },
+            {
+              backgroundColor: sellNowItem?.id
+                ? COLORS.brandDarkColor
+                : offer
+                ? COLORS.brandGreen
+                : "#222",
+            },
           ]}
-          disabled={!offer}
+          disabled={!offer || !sellNowItem?.id}
           onPress={handleSubmitAsk}
         >
-          <Text style={styles.placeOfferBtnText}>Place Ask</Text>
+          <Text style={styles.placeOfferBtnText}>
+            {sellNowItem?.id ? "Sell Now" : "Place Ask"}
+          </Text>
         </TouchableOpacity>
       </View>
       {/* Offer Expiration BottomSheet */}

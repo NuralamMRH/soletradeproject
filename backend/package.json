@@ -24,7 +24,7 @@
     "expo-server-sdk": "^3.9.0",
     "express": "^4.18.2",
     "express-fileupload": "^1.5.1",
-    "express-jwt": "^6.1.2",
+    "express-jwt": "^8.5.1",
     "fs": "^0.0.1-security",
     "http": "^0.0.1-security",
     "jsonwebtoken": "^9.0.2",
@@ -44,7 +44,7 @@
     "validator": "^13.15.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7"
+    "nodemon": "^3.1.10"
   },
   "packageManager": "yarn@3.2.3+sha512.f26f951f67de0c6a33ee381e5ff364709c87e70eb5e65c694e4facde3512f1fa80b8679e6ba31ce7d340fbb46f08dd683af9457e240f25a204be7427940d767e"
 }

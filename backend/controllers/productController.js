@@ -14,6 +14,7 @@ const APIFeatures = require("../utils/apiFeatures");
 
 exports.getAllProducts = catchAsyncErrors(async (req, res, next) => {
   try {
+    console.log("req.query", req.query);
     // If count_only is true, optimize the query to only get the count
     const countOnly = req.query.count_only === "true";
 
@@ -84,9 +85,36 @@ exports.getProductById = catchAsyncErrors(async (req, res, next) => {
     .populate("brand")
     .populate("indicator")
     .populate("attribute")
-    .populate("bidding")
-    .populate("selling")
-    .populate("transactions")
+    .populate({
+      path: "bidding",
+      populate: {
+        path: "sizeId",
+        select: "optionName",
+        populate: {
+          path: "attributeId",
+          select: "name",
+        },
+      },
+    })
+    .populate({
+      path: "selling",
+      populate: {
+        path: "sizeId",
+        select: "optionName",
+        populate: {
+          path: "attributeId",
+          select: "name",
+        },
+      },
+    })
+    .populate({
+      path: "transactions",
+      populate: [
+        { path: "biddingOfferId" },
+        { path: "sellingItemId" },
+        { path: "productId" },
+      ],
+    })
     .populate("wishlist")
     .populate({
       path: "variations",

@@ -10,6 +10,7 @@ import {
   FlatList,
   ActivityIndicator,
   Image,
+  KeyboardAvoidingView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -33,6 +34,7 @@ import ColumnConfig from "@/components/admin/ColumnConfig";
 import { SIZES } from "@/constants";
 import { useListCreation } from "@/context/ListCreationContext";
 import { useProducts } from "@/hooks/useProducts";
+import { Platform } from "react-native";
 
 interface Section {
   _id?: string;
@@ -80,13 +82,28 @@ const AddNewHomeFeedSection: React.FC = () => {
       section = { ...defaultSection, ...JSON.parse(params.section) };
     } catch {}
   }
-  const [sectionName, setSectionName] = useState<string>("");
-  const [sectionDescription, setSectionDescription] = useState<string>("");
-  const [numberOfItems, setNumberOfItems] = useState<string>("");
-  const [displayStyle, setDisplayStyle] = useState<number>(1);
-  const [selectedBrands, setSelectedBrands] = useState<any[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<any[]>([]);
-  const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
+
+  console.log("section", section);
+
+  const [sectionName, setSectionName] = useState<string>(section.name || "");
+  const [sectionDescription, setSectionDescription] = useState<string>(
+    section.description || ""
+  );
+  const [numberOfItems, setNumberOfItems] = useState<string>(
+    section.number_of_items?.toString() || "10"
+  );
+  const [displayStyle, setDisplayStyle] = useState<number>(
+    section.display_style || 1
+  );
+  const [selectedBrands, setSelectedBrands] = useState<any[]>(
+    section.brands || []
+  );
+  const [selectedCategories, setSelectedCategories] = useState<any[]>(
+    section.categories || []
+  );
+  const [selectedProducts, setSelectedProducts] = useState<any[]>(
+    section.products || []
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [showCategorySheet, setShowCategorySheet] = useState(false);
   const [showBrandSheet, setShowBrandSheet] = useState(false);
@@ -123,35 +140,13 @@ const AddNewHomeFeedSection: React.FC = () => {
     [key: string]: string;
   }>({});
 
-  console.log(
-    "columns",
-    columns.map((col) => col.products)
-  );
+  const { clearAll } = useListCreation();
 
-  const [selectedColumnProducts, setSelectedColumnProducts] = useState<{
-    [key: string]: any[];
-  }>({});
+  // console.log(
+  //   "columns",
+  //   columns.map((col) => col.products)
+  // );
 
-  const [columnSections, setColumnSections] = useState<
-    {
-      sectionName: string;
-      mode: "auto" | "manual";
-      columnCount: number;
-      itemsPerColumn: number;
-      columns: { name: string; products: any[] }[];
-    }[]
-  >([
-    {
-      sectionName: "",
-      mode: "manual",
-      columnCount: 2,
-      itemsPerColumn: 3,
-      columns: [
-        { name: "", products: [] },
-        { name: "", products: [] },
-      ],
-    },
-  ]);
   const [displayType, setDisplayType] = useState<string>("brand");
 
   const { columnProducts, clearColumnProducts } = useListCreation();
@@ -207,9 +202,14 @@ const AddNewHomeFeedSection: React.FC = () => {
   }, [columnProducts]);
 
   const handleSelectProducts = (columnIdx?: number) => {
+    clearAll();
+
     router.push({
-      pathname: "/admin/pages/select-products",
+      pathname: "/search/search-results",
       params: {
+        title: "Select Products",
+        searchFor: "columnSelection",
+        filter: JSON.stringify({ product_type: "deal" }),
         colIdx: columnIdx,
         selectedProducts: JSON.stringify(
           columnIdx !== undefined && columnIdx !== null
@@ -631,485 +631,509 @@ const AddNewHomeFeedSection: React.FC = () => {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      {renderHeader()}
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
-        {/* Top-level section fields */}
-        <Text style={styles.label}>Section Name</Text>
-        <TextInput
-          value={sectionName}
-          onChangeText={setSectionName}
-          style={styles.input}
-          placeholder="Enter section name"
-        />
-        <Text style={styles.label}>Description</Text>
-        <TextInput
-          value={sectionDescription}
-          onChangeText={setSectionDescription}
-          style={styles.input}
-          placeholder="Enter description"
-        />
-        <Text style={styles.label}>Number of Items</Text>
-        <TextInput
-          value={numberOfItems}
-          onChangeText={setNumberOfItems}
-          style={styles.input}
-          placeholder="e.g. 15"
-          keyboardType="numeric"
-        />
-        {/* Display Type Selector */}
-        <Text style={styles.label}>Display Type</Text>
-        <View style={{ flexDirection: "row", marginBottom: 16 }}>
-          {["brand", "category", "product", "custom"].map((type) => (
-            <TouchableOpacity
-              key={type}
-              style={{
-                backgroundColor:
-                  displayType === type ? Colors.brandGray : "#eee",
-                padding: 10,
-                borderRadius: 8,
-                marginRight: 10,
-              }}
-              onPress={() => setDisplayType(type)}
-            >
-              <Text>{type.charAt(0).toUpperCase() + type.slice(1)}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        {/* Mode Selector */}
-        <Text style={styles.label}>Mode</Text>
-        <View style={{ flexDirection: "row", marginBottom: 16 }}>
-          {["manual", "auto"].map((m) => (
-            <TouchableOpacity
-              key={m}
-              style={{
-                backgroundColor: mode === m ? Colors.brandGray : "#eee",
-                padding: 10,
-                borderRadius: 8,
-                marginRight: 10,
-              }}
-              onPress={() => setMode(m as "auto" | "manual")}
-            >
-              <Text>{m.charAt(0).toUpperCase() + m.slice(1)}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        {/* Display Style Selector */}
-        <Text style={styles.label}>Display Style</Text>
-        <View style={{ flexDirection: "column", marginBottom: 16, gap: 10 }}>
-          {[1, 2, 3].map((styleNum) => (
-            <TouchableOpacity
-              key={styleNum}
-              style={{
-                backgroundColor:
-                  displayStyle === styleNum ? Colors.brandGray : "#eee",
-                padding: 10,
-                borderRadius: 8,
-                marginRight: 10,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-              onPress={() => setDisplayStyle(styleNum)}
-            >
-              <View
-                style={{ flexDirection: "row", gap: 10, alignItems: "center" }}
-              >
-                <Text style={{ fontSize: 20, fontWeight: "bold" }}>
-                  {styleNum}
-                </Text>
-
-                <Image
-                  source={displayStyleImages[styleNum]}
-                  style={{
-                    width: SIZES.width * 0.452,
-                    height: 100,
-                    borderRadius: 8,
-                    objectFit: "contain",
-                  }}
-                />
-              </View>
-
-              <View
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+    >
+      <View style={{ flex: 1, backgroundColor: "#fff" }}>
+        {renderHeader()}
+        <ScrollView contentContainerStyle={{ padding: 16 }}>
+          {/* Top-level section fields */}
+          <Text style={styles.label}>Section Name</Text>
+          <TextInput
+            value={sectionName}
+            onChangeText={setSectionName}
+            style={styles.input}
+            placeholder="Enter section name"
+          />
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+            value={sectionDescription}
+            onChangeText={setSectionDescription}
+            style={styles.input}
+            placeholder="Enter description"
+          />
+          <Text style={styles.label}>Number of Items</Text>
+          <TextInput
+            value={numberOfItems}
+            onChangeText={setNumberOfItems}
+            style={styles.input}
+            placeholder="e.g. 15"
+            keyboardType="numeric"
+          />
+          {/* Display Type Selector */}
+          <Text style={styles.label}>Display Type</Text>
+          <View style={{ flexDirection: "row", marginBottom: 16 }}>
+            {["brand", "category", "product", "custom"].map((type) => (
+              <TouchableOpacity
+                key={type}
                 style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: 6,
                   backgroundColor:
-                    displayStyle === styleNum ? "#fff" : Colors.brandGray,
-                  borderWidth: 1,
-                  borderColor: Colors.brandGray,
+                    displayType === type ? Colors.brandGray : "#eee",
+                  padding: 10,
+                  borderRadius: 8,
+                  marginRight: 10,
                 }}
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
-        {/* Section-level selectors for style 1 or 2 */}
-        {displayStyle !== 3 && (
-          <>
-            {displayType === "brand" && (
-              <>
-                <Text style={styles.label}>Select Brand</Text>
-                <TouchableOpacity
-                  style={styles.input}
-                  onPress={() => setShowBrandSheet(true)}
-                >
-                  <Text>
-                    {Array.isArray(selectedBrands) && selectedBrands.length > 0
-                      ? selectedBrands
-                          .map((b) => b?.name || "Unnamed")
-                          .join(", ")
-                      : "Select a brand"}
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Slected brands */}
-                <View
-                  style={{
-                    flexWrap: "wrap",
-                    flexDirection: "row",
-                    gap: 10,
-                  }}
-                >
-                  {selectedBrands.map((b) => (
-                    <View
-                      key={b._id}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginBottom: 10,
-                        backgroundColor: "#eee",
-                        padding: 10,
-                        borderRadius: 8,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Text>{b.name}</Text>
-                      <TouchableOpacity
-                        onPress={() => handleRemoveBrand(b._id)}
-                      >
-                        <Ionicons name="trash" size={20} color="#8B0000" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              </>
-            )}
-            {displayType === "category" && (
-              <>
-                <Text style={styles.label}>Select Category</Text>
-                <TouchableOpacity
-                  style={styles.input}
-                  onPress={() => setShowCategorySheet(true)}
-                >
-                  <Text>
-                    {Array.isArray(selectedCategories) &&
-                    selectedCategories.length > 0
-                      ? selectedCategories
-                          .map((c) => c?.name || "Unnamed")
-                          .join(", ")
-                      : "Select a category"}
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Slected categories */}
-                <View
-                  style={{
-                    flexWrap: "wrap",
-                    flexDirection: "row",
-                    gap: 10,
-                  }}
-                >
-                  {selectedCategories.map((c) => (
-                    <View
-                      key={c._id}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginBottom: 10,
-                        backgroundColor: "#eee",
-                        padding: 10,
-                        borderRadius: 8,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Text>{c.name}</Text>
-                      <TouchableOpacity
-                        onPress={() => handleRemoveCategory(c._id)}
-                      >
-                        <Ionicons name="trash" size={20} color="#8B0000" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              </>
-            )}
-            {displayType === "product" && (
-              <>
-                <Text style={styles.label}>Select Products</Text>
-                <TouchableOpacity
-                  style={styles.input}
-                  onPress={() => handleSelectProducts()}
-                >
-                  <Text>
-                    {Array.isArray(selectedProducts) &&
-                    selectedProducts.length > 0
-                      ? `${selectedProducts.length} products selected`
-                      : "Select products"}
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Slected products */}
-                <View>
-                  {selectedProducts.map((p) => (
-                    <View
-                      key={p._id}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        marginBottom: 10,
-                        backgroundColor: "#eee",
-                        padding: 10,
-                        borderRadius: 8,
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Text>{p.name}</Text>
-                      <TouchableOpacity
-                        onPress={() => handleRemoveProduct(p._id)}
-                      >
-                        <Ionicons name="trash" size={20} color="#8B0000" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              </>
-            )}
-          </>
-        )}
-        {/* Column config for style 3 */}
-        {displayStyle === 3 && (
-          <View style={{ marginBottom: 16 }}>
-            {columns.map((col, colIdx) => (
-              <View
-                key={colIdx}
-                style={{
-                  marginBottom: 32,
-                  borderBottomWidth: 1,
-                  borderColor: "#eee",
-                }}
+                onPress={() => setDisplayType(type)}
               >
-                <Text style={styles.label}>Column {colIdx + 1} Name</Text>
-                <TextInput
-                  style={styles.input}
-                  value={col.name}
-                  onChangeText={(text) => handleColumnNameChange(colIdx, text)}
-                  placeholder="Type name"
-                />
-                {/* Column-based selectors for display type */}
-                {displayType === "brand" && (
-                  <>
-                    <Text style={styles.label}>Select Brands</Text>
-                    <TouchableOpacity
-                      style={styles.input}
-                      onPress={() => {
-                        setActiveColumnIdx(colIdx);
-                        setShowBrandSheet(true);
-                      }}
-                    >
-                      <Text>
-                        {col.brands.length > 0
-                          ? col.brands
-                              .map((b) => b?.name || "Unnamed")
-                              .join(", ")
-                          : "Select brands"}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {/* Slected brands */}
-                    <View
-                      style={{
-                        flexWrap: "wrap",
-                        flexDirection: "row",
-                        gap: 10,
-                      }}
-                    >
-                      {col.brands.map((b) => (
-                        <View
-                          key={b._id}
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            marginBottom: 10,
-                            backgroundColor: "#eee",
-                            padding: 10,
-                            borderRadius: 8,
-                            justifyContent: "space-between",
-                            width: SIZES.width * 0.452,
-                          }}
-                        >
-                          <Text>{b.name}</Text>
-                          <TouchableOpacity
-                            onPress={() =>
-                              handleRemoveBrandColumn(colIdx, b._id)
-                            }
-                          >
-                            <Ionicons name="trash" size={20} color="#8B0000" />
-                          </TouchableOpacity>
-                        </View>
-                      ))}
-                    </View>
-                  </>
-                )}
-                {displayType === "category" && (
-                  <>
-                    <Text style={styles.label}>Select Categories</Text>
-                    <TouchableOpacity
-                      style={styles.input}
-                      onPress={() => {
-                        setActiveColumnIdx(colIdx);
-                        setShowCategorySheet(true);
-                      }}
-                    >
-                      <Text>
-                        {col.categories.length > 0
-                          ? col.categories
-                              .map((c) => c?.name || "Unnamed")
-                              .join(", ")
-                          : "Select categories"}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {/* Slected categories */}
-                    <View
-                      style={{
-                        flexWrap: "wrap",
-                        flexDirection: "row",
-                        gap: 10,
-                      }}
-                    >
-                      {col.categories.map((c) => (
-                        <View
-                          key={c._id}
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            marginBottom: 10,
-                            backgroundColor: "#eee",
-                            padding: 10,
-                            borderRadius: 8,
-                            justifyContent: "space-between",
-                            width: SIZES.width * 0.452,
-                          }}
-                        >
-                          <Text>{c.name}</Text>
-                          <TouchableOpacity
-                            onPress={() =>
-                              handleRemoveCategoryColumn(colIdx, c._id)
-                            }
-                          >
-                            <Ionicons name="trash" size={20} color="#8B0000" />
-                          </TouchableOpacity>
-                        </View>
-                      ))}
-                    </View>
-                  </>
-                )}
-                {displayType === "product" && mode === "manual" && (
-                  <>
-                    <Text style={styles.label}>Select Products</Text>
-                    <TouchableOpacity
-                      style={styles.input}
-                      onPress={() => handleSelectProducts(colIdx)}
-                    >
-                      <Text>
-                        {col.products.length > 0
-                          ? `${col.products.length} products selected`
-                          : "Select products"}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {/* Slected products */}
-                    <View>
-                      {col.products.map((p) => (
-                        <View
-                          key={p._id}
-                          style={{
-                            flexDirection: "row",
-                            alignItems: "center",
-                            marginBottom: 10,
-                            backgroundColor: "#eee",
-                            padding: 10,
-                            borderRadius: 8,
-                            justifyContent: "space-between",
-                          }}
-                        >
-                          <Text>{p.name}</Text>
-                          <TouchableOpacity
-                            onPress={() =>
-                              handleRemoveProductColumn(colIdx, p._id)
-                            }
-                          >
-                            <Ionicons name="trash" size={20} color="#8B0000" />
-                          </TouchableOpacity>
-                        </View>
-                      ))}
-                    </View>
-                  </>
-                )}
-                <TouchableOpacity
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginTop: 8,
-                  }}
-                  onPress={() => removeColumn(colIdx)}
-                >
-                  <Text style={{ color: "#D32F2F" }}>Remove Column</Text>
-                </TouchableOpacity>
-              </View>
+                <Text>{type.charAt(0).toUpperCase() + type.slice(1)}</Text>
+              </TouchableOpacity>
             ))}
-            {/* Add Column button below all columns */}
-            <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginTop: 16,
-                justifyContent: "center",
-                backgroundColor: "#eee",
-                padding: 10,
-                borderRadius: 8,
-                marginBottom: 10,
-              }}
-              onPress={addColumn}
-            >
-              <Text
-                style={{ color: "#8B0000", fontWeight: "bold", fontSize: 14 }}
+          </View>
+          {/* Mode Selector */}
+          <Text style={styles.label}>Mode</Text>
+          <View style={{ flexDirection: "row", marginBottom: 16 }}>
+            {["manual", "auto"].map((m) => (
+              <TouchableOpacity
+                key={m}
+                style={{
+                  backgroundColor: mode === m ? Colors.brandGray : "#eee",
+                  padding: 10,
+                  borderRadius: 8,
+                  marginRight: 10,
+                }}
+                onPress={() => setMode(m as "auto" | "manual")}
               >
-                Add Column
-              </Text>
-              <Ionicons name="add" size={20} color="#8B0000" />
-            </TouchableOpacity>
+                <Text>{m.charAt(0).toUpperCase() + m.slice(1)}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
-        )}
-        {/* Bottom sheets and loading overlay */}
-        {showCategorySheet &&
-          renderBottomSheet(
-            "category",
-            activeColumnIdx !== null ? activeColumnIdx : undefined
-          )}
-        {showBrandSheet &&
-          renderBottomSheet(
-            "brand",
-            activeColumnIdx !== null ? activeColumnIdx : undefined
-          )}
-        {isLoading && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={Colors.brandGray} />
+          {/* Display Style Selector */}
+          <Text style={styles.label}>Display Style</Text>
+          <View style={{ flexDirection: "column", marginBottom: 16, gap: 10 }}>
+            {[1, 2, 3].map((styleNum) => (
+              <TouchableOpacity
+                key={styleNum}
+                style={{
+                  backgroundColor:
+                    displayStyle === styleNum ? Colors.brandGray : "#eee",
+                  padding: 10,
+                  borderRadius: 8,
+                  marginRight: 10,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+                onPress={() => setDisplayStyle(styleNum)}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: 10,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+                    {styleNum}
+                  </Text>
+
+                  <Image
+                    source={displayStyleImages[styleNum]}
+                    style={{
+                      width: SIZES.width * 0.452,
+                      height: 100,
+                      borderRadius: 8,
+                      objectFit: "contain",
+                    }}
+                  />
+                </View>
+
+                <View
+                  style={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: 6,
+                    backgroundColor:
+                      displayStyle === styleNum ? "#fff" : Colors.brandGray,
+                    borderWidth: 1,
+                    borderColor: Colors.brandGray,
+                  }}
+                />
+              </TouchableOpacity>
+            ))}
           </View>
-        )}
-      </ScrollView>
-    </View>
+          {/* Section-level selectors for style 1 or 2 */}
+          {displayStyle !== 3 && (
+            <>
+              {displayType === "brand" && (
+                <>
+                  <Text style={styles.label}>Select Brand</Text>
+                  <TouchableOpacity
+                    style={styles.input}
+                    onPress={() => setShowBrandSheet(true)}
+                  >
+                    <Text>
+                      {Array.isArray(selectedBrands) &&
+                      selectedBrands.length > 0
+                        ? selectedBrands
+                            .map((b) => b?.name || "Unnamed")
+                            .join(", ")
+                        : "Select a brand"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Slected brands */}
+                  <View
+                    style={{
+                      flexWrap: "wrap",
+                      flexDirection: "row",
+                      gap: 10,
+                    }}
+                  >
+                    {selectedBrands.map((b) => (
+                      <View
+                        key={b._id}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginBottom: 10,
+                          backgroundColor: "#eee",
+                          padding: 10,
+                          borderRadius: 8,
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Text>{b.name}</Text>
+                        <TouchableOpacity
+                          onPress={() => handleRemoveBrand(b._id)}
+                        >
+                          <Ionicons name="trash" size={20} color="#8B0000" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
+              {displayType === "category" && (
+                <>
+                  <Text style={styles.label}>Select Category</Text>
+                  <TouchableOpacity
+                    style={styles.input}
+                    onPress={() => setShowCategorySheet(true)}
+                  >
+                    <Text>
+                      {Array.isArray(selectedCategories) &&
+                      selectedCategories.length > 0
+                        ? selectedCategories
+                            .map((c) => c?.name || "Unnamed")
+                            .join(", ")
+                        : "Select a category"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Slected categories */}
+                  <View
+                    style={{
+                      flexWrap: "wrap",
+                      flexDirection: "row",
+                      gap: 10,
+                    }}
+                  >
+                    {selectedCategories.map((c) => (
+                      <View
+                        key={c._id}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginBottom: 10,
+                          backgroundColor: "#eee",
+                          padding: 10,
+                          borderRadius: 8,
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Text>{c.name}</Text>
+                        <TouchableOpacity
+                          onPress={() => handleRemoveCategory(c._id)}
+                        >
+                          <Ionicons name="trash" size={20} color="#8B0000" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
+              {displayType === "product" && (
+                <>
+                  <Text style={styles.label}>Select Products</Text>
+                  <TouchableOpacity
+                    style={styles.input}
+                    onPress={() => handleSelectProducts()}
+                  >
+                    <Text>
+                      {Array.isArray(selectedProducts) &&
+                      selectedProducts.length > 0
+                        ? `${selectedProducts.length} products selected`
+                        : "Select products"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Slected products */}
+                  <View>
+                    {selectedProducts.map((p) => (
+                      <View
+                        key={p._id}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginBottom: 10,
+                          backgroundColor: "#eee",
+                          padding: 10,
+                          borderRadius: 8,
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Text>{p.name}</Text>
+                        <TouchableOpacity
+                          onPress={() => handleRemoveProduct(p._id)}
+                        >
+                          <Ionicons name="trash" size={20} color="#8B0000" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
+            </>
+          )}
+          {/* Column config for style 3 */}
+          {displayStyle === 3 && (
+            <View style={{ marginBottom: 16 }}>
+              {columns.map((col, colIdx) => (
+                <View
+                  key={colIdx}
+                  style={{
+                    marginBottom: 32,
+                    borderBottomWidth: 1,
+                    borderColor: "#eee",
+                  }}
+                >
+                  <Text style={styles.label}>Column {colIdx + 1} Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={col.name}
+                    onChangeText={(text) =>
+                      handleColumnNameChange(colIdx, text)
+                    }
+                    placeholder="Type name"
+                  />
+                  {/* Column-based selectors for display type */}
+                  {displayType === "brand" && (
+                    <>
+                      <Text style={styles.label}>Select Brands</Text>
+                      <TouchableOpacity
+                        style={styles.input}
+                        onPress={() => {
+                          setActiveColumnIdx(colIdx);
+                          setShowBrandSheet(true);
+                        }}
+                      >
+                        <Text>
+                          {col.brands.length > 0
+                            ? col.brands
+                                .map((b) => b?.name || "Unnamed")
+                                .join(", ")
+                            : "Select brands"}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* Slected brands */}
+                      <View
+                        style={{
+                          flexWrap: "wrap",
+                          flexDirection: "row",
+                          gap: 10,
+                        }}
+                      >
+                        {col.brands.map((b) => (
+                          <View
+                            key={b._id}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              marginBottom: 10,
+                              backgroundColor: "#eee",
+                              padding: 10,
+                              borderRadius: 8,
+                              justifyContent: "space-between",
+                              width: SIZES.width * 0.452,
+                            }}
+                          >
+                            <Text>{b.name}</Text>
+                            <TouchableOpacity
+                              onPress={() =>
+                                handleRemoveBrandColumn(colIdx, b._id)
+                              }
+                            >
+                              <Ionicons
+                                name="trash"
+                                size={20}
+                                color="#8B0000"
+                              />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </View>
+                    </>
+                  )}
+                  {displayType === "category" && (
+                    <>
+                      <Text style={styles.label}>Select Categories</Text>
+                      <TouchableOpacity
+                        style={styles.input}
+                        onPress={() => {
+                          setActiveColumnIdx(colIdx);
+                          setShowCategorySheet(true);
+                        }}
+                      >
+                        <Text>
+                          {col.categories.length > 0
+                            ? col.categories
+                                .map((c) => c?.name || "Unnamed")
+                                .join(", ")
+                            : "Select categories"}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* Slected categories */}
+                      <View
+                        style={{
+                          flexWrap: "wrap",
+                          flexDirection: "row",
+                          gap: 10,
+                        }}
+                      >
+                        {col.categories.map((c) => (
+                          <View
+                            key={c._id}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              marginBottom: 10,
+                              backgroundColor: "#eee",
+                              padding: 10,
+                              borderRadius: 8,
+                              justifyContent: "space-between",
+                              width: SIZES.width * 0.452,
+                            }}
+                          >
+                            <Text>{c.name}</Text>
+                            <TouchableOpacity
+                              onPress={() =>
+                                handleRemoveCategoryColumn(colIdx, c._id)
+                              }
+                            >
+                              <Ionicons
+                                name="trash"
+                                size={20}
+                                color="#8B0000"
+                              />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </View>
+                    </>
+                  )}
+                  {displayType === "product" && mode === "manual" && (
+                    <>
+                      <Text style={styles.label}>Select Products</Text>
+                      <TouchableOpacity
+                        style={styles.input}
+                        onPress={() => handleSelectProducts(colIdx)}
+                      >
+                        <Text>
+                          {col.products.length > 0
+                            ? `${col.products.length} products selected`
+                            : "Select products"}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* Slected products */}
+                      <View>
+                        {col.products.map((p) => (
+                          <View
+                            key={p._id}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              marginBottom: 10,
+                              backgroundColor: "#eee",
+                              padding: 10,
+                              borderRadius: 8,
+                              justifyContent: "space-between",
+                            }}
+                          >
+                            <Text>{p.name}</Text>
+                            <TouchableOpacity
+                              onPress={() =>
+                                handleRemoveProductColumn(colIdx, p._id)
+                              }
+                            >
+                              <Ionicons
+                                name="trash"
+                                size={20}
+                                color="#8B0000"
+                              />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </View>
+                    </>
+                  )}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginTop: 8,
+                    }}
+                    onPress={() => removeColumn(colIdx)}
+                  >
+                    <Text style={{ color: "#D32F2F" }}>Remove Column</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {/* Add Column button below all columns */}
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginTop: 16,
+                  justifyContent: "center",
+                  backgroundColor: "#eee",
+                  padding: 10,
+                  borderRadius: 8,
+                  marginBottom: 10,
+                }}
+                onPress={addColumn}
+              >
+                <Text
+                  style={{ color: "#8B0000", fontWeight: "bold", fontSize: 14 }}
+                >
+                  Add Column
+                </Text>
+                <Ionicons name="add" size={20} color="#8B0000" />
+              </TouchableOpacity>
+            </View>
+          )}
+          {/* Bottom sheets and loading overlay */}
+          {showCategorySheet &&
+            renderBottomSheet(
+              "category",
+              activeColumnIdx !== null ? activeColumnIdx : undefined
+            )}
+          {showBrandSheet &&
+            renderBottomSheet(
+              "brand",
+              activeColumnIdx !== null ? activeColumnIdx : undefined
+            )}
+          {isLoading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color={Colors.brandGray} />
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 

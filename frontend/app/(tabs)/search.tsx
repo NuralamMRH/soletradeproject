@@ -543,7 +543,7 @@ const SearchTab = () => {
     setModalVisible(false);
     router.push({
       pathname: "/search/search-results",
-      params: { query: text },
+      params: { title: text, query: text },
     });
   };
 

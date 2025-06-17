@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import MainApi from "@/api/MainApi";
 
+// Utility to remove empty, null, or undefined values from an object
+const cleanParams = (obj: Record<string, any>) => {
+  return Object.fromEntries(
+    Object.entries(obj).filter(
+      ([_, v]) => v !== null && v !== undefined && v !== ""
+    )
+  );
+};
+
 export const useProducts = ({ filter }: { filter: any | null }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -8,16 +17,18 @@ export const useProducts = ({ filter }: { filter: any | null }) => {
 
   const safeFilter = filter && typeof filter === "object" ? filter : {};
 
-  console.log("safeFilter", safeFilter);
-
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setError(null);
 
       console.log("Fetching products...");
+
+      const cleanedFilter = cleanParams(safeFilter);
+
+      console.log("cleanedFilter", cleanedFilter);
       const response = await MainApi.get("/api/v1/products", {
-        params: safeFilter,
+        params: cleanedFilter,
       });
       // const response = await MainApi.get("/api/v1/products");
 
@@ -40,8 +51,6 @@ export const useProducts = ({ filter }: { filter: any | null }) => {
       setLoading(false);
     }
   };
-
-  
 
   useEffect(() => {
     fetchProducts();

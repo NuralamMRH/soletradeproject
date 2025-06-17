@@ -1,12 +1,8 @@
-const { SellingItem } = require("../models/sellingOffer");
-const { BiddingOffer } = require("../models/biddingOffer");
-const { Order } = require("../models/order");
-const mongoose = require("mongoose");
-
 class APIFeatures {
   constructor(query, queryStr) {
     this.query = query;
     this.queryStr = queryStr;
+    this.model = query.model;
     this.specialFilters = {
       lowestBid: null,
       highestBid: null,
@@ -57,8 +53,68 @@ class APIFeatures {
         "recentSales",
         "lowestSale",
         "highestSale",
+        "lowestPriceFilter",
       ];
       removeFields.forEach((el) => delete queryCopy[el]);
+
+      // Multi-select filter support
+      // Convert string to array if comma-separated, or keep as array
+      const multiFields = [
+        { key: "subCategoryIds", dbField: "subCategoryId" },
+        { key: "brandIds", dbField: "brandId" },
+        { key: "subBrandIds", dbField: "subBrandId" },
+        { key: "indicatorIds", dbField: "indicatorId" },
+        { key: "serviceTypes", dbField: "serviceType" },
+      ];
+      multiFields.forEach(({ key, dbField }) => {
+        if (queryCopy[key]) {
+          let val = queryCopy[key];
+          if (typeof val === "string") {
+            // Check for comma-separated string
+            if (val.includes(",")) {
+              val = val.split(",").map((v) => v.trim());
+            } else {
+              val = [val];
+            }
+          }
+          if (Array.isArray(val)) {
+            queryCopy[dbField] = { $in: val };
+          } else {
+            queryCopy[dbField] = val;
+          }
+          delete queryCopy[key];
+        }
+      });
+
+      // Colors filter (colorway or mainColor)
+      if (queryCopy.colors) {
+        let colors = queryCopy.colors;
+        if (typeof colors === "string") {
+          colors = colors.split(",").map((v) => v.trim());
+        }
+        if (Array.isArray(colors)) {
+          queryCopy.$or = [
+            { colorway: { $in: colors } },
+            { mainColor: { $in: colors } },
+          ];
+        }
+        delete queryCopy.colors;
+      }
+
+      // Variations filter (variationIds)
+      if (
+        queryCopy.variationIds &&
+        typeof queryCopy.variationIds === "object"
+      ) {
+        // Each key is an attributeId, value is an array of attributeOptionIds
+        const variationFilters = Object.values(queryCopy.variationIds)
+          .filter((arr) => Array.isArray(arr) && arr.length > 0)
+          .map((optionIds) => ({ $elemMatch: { $in: optionIds } }));
+        if (variationFilters.length > 0) {
+          queryCopy.variations = { $all: variationFilters };
+        }
+        delete queryCopy.variationIds;
+      }
 
       // Advanced filter
       let queryStr = JSON.stringify(queryCopy);
@@ -67,290 +123,123 @@ class APIFeatures {
         (match) => `$${match}`
       );
 
+      // If price filter is present, use aggregation to filter by lowestAsk or retailPrice
+      if (
+        this.queryStr.lowestPriceFilter &&
+        Array.isArray(this.queryStr.lowestPriceFilter) &&
+        this.queryStr.lowestPriceFilter.length === 2
+      ) {
+        const [minPriceRaw, maxPriceRaw] = this.queryStr.lowestPriceFilter;
+        const minPrice = Number(minPriceRaw);
+        const maxPrice = Number(maxPriceRaw);
+
+        // Build additional match stages for numViews, sellerFee, buyerFee
+        const extraMatch = {};
+        if (this.queryStr.numViews) {
+          if (
+            Array.isArray(this.queryStr.numViews) &&
+            this.queryStr.numViews.length === 2
+          ) {
+            extraMatch.numViews = {
+              $gte: Number(this.queryStr.numViews[0]),
+              $lte: Number(this.queryStr.numViews[1]),
+            };
+          } else {
+            extraMatch.numViews = Number(this.queryStr.numViews);
+          }
+        }
+        if (this.queryStr.sellerFee) {
+          if (
+            Array.isArray(this.queryStr.sellerFee) &&
+            this.queryStr.sellerFee.length === 2
+          ) {
+            extraMatch.sellerFee = {
+              $gte: Number(this.queryStr.sellerFee[0]),
+              $lte: Number(this.queryStr.sellerFee[1]),
+            };
+          } else {
+            extraMatch.sellerFee = Number(this.queryStr.sellerFee);
+          }
+        }
+        if (this.queryStr.buyerFee) {
+          if (
+            Array.isArray(this.queryStr.buyerFee) &&
+            this.queryStr.buyerFee.length === 2
+          ) {
+            extraMatch.buyerFee = {
+              $gte: Number(this.queryStr.buyerFee[0]),
+              $lte: Number(this.queryStr.buyerFee[1]),
+            };
+          } else {
+            extraMatch.buyerFee = Number(this.queryStr.buyerFee);
+          }
+        }
+
+        this.query = this.model.aggregate([
+          { $match: { ...JSON.parse(queryStr), ...extraMatch } },
+          {
+            $lookup: {
+              from: "sellingoffers",
+              let: { productId: "$_id" },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ["$productId", "$$productId"] },
+                        { $eq: ["$status", "Active"] },
+                        { $eq: ["$type", "placeAsk"] },
+                      ],
+                    },
+                  },
+                },
+                { $sort: { sellingPrice: 1, sellingAt: 1 } },
+                { $limit: 1 },
+              ],
+              as: "lowestAskArr",
+            },
+          },
+          {
+            $addFields: {
+              lowestAskPrice: {
+                $ifNull: [
+                  { $arrayElemAt: ["$lowestAskArr.sellingPrice", 0] },
+                  "$retailPrice",
+                ],
+              },
+            },
+          },
+          {
+            $match: {
+              lowestAskPrice: { $gte: minPrice, $lte: maxPrice },
+            },
+          },
+        ]);
+        return this;
+      }
+
+      // If price filter is not present, allow numViews, sellerFee, buyerFee in .find()
+      const rangeFields = ["numViews", "sellerFee", "buyerFee"];
+      rangeFields.forEach((field) => {
+        if (this.queryStr[field]) {
+          if (
+            Array.isArray(this.queryStr[field]) &&
+            this.queryStr[field].length === 2
+          ) {
+            queryCopy[field] = {
+              $gte: Number(this.queryStr[field][0]),
+              $lte: Number(this.queryStr[field][1]),
+            };
+          } else {
+            queryCopy[field] = Number(this.queryStr[field]);
+          }
+        }
+      });
+
       // Apply base filters
       this.query = this.query.find(JSON.parse(queryStr));
 
       // Apply special filters (lowestAsk, lowestBid, highestBid, recent_solds)
-      if (this.queryStr.lowestBid) {
-        const lowestBids = await BiddingOffer.aggregate([
-          {
-            $match: {
-              biddingStatus: "Active",
-              biddingType: "Offer",
-              $or: [{ validUntil: { $gt: new Date() } }, { validUntil: null }],
-            },
-          },
-          {
-            $sort: {
-              offeredPrice: 1,
-              offerCreateDate: 1,
-            },
-          },
-          {
-            $group: {
-              _id: "$productId",
-              lowestBid: { $first: "$$ROOT" },
-            },
-          },
-          {
-            $project: {
-              _id: 1,
-              lowestBid: {
-                offeredPrice: "$lowestBid.offeredPrice",
-                totalPrice: "$lowestBid.totalPrice",
-                offerCreateDate: "$lowestBid.offerCreateDate",
-                validUntil: "$lowestBid.validUntil",
-              },
-            },
-          },
-        ]);
-
-        const productIds = lowestBids.map(
-          (bid) => new mongoose.Types.ObjectId(bid._id)
-        );
-        this.query = this.query.where("_id").in(productIds);
-        this.specialFilters.lowestBid = lowestBids;
-      }
-
-      if (this.queryStr.highestBid) {
-        const highestBids = await BiddingOffer.aggregate([
-          {
-            $match: {
-              biddingStatus: "Active",
-              biddingType: "Offer",
-              $or: [{ validUntil: { $gt: new Date() } }, { validUntil: null }],
-            },
-          },
-          {
-            $sort: {
-              offeredPrice: -1,
-              offerCreateDate: 1,
-            },
-          },
-          {
-            $group: {
-              _id: "$productId",
-              highestBid: { $first: "$$ROOT" },
-            },
-          },
-          {
-            $project: {
-              _id: 1,
-              highestBid: {
-                offeredPrice: "$highestBid.offeredPrice",
-                totalPrice: "$highestBid.totalPrice",
-                offerCreateDate: "$highestBid.offerCreateDate",
-                validUntil: "$highestBid.validUntil",
-              },
-            },
-          },
-        ]);
-
-        const productIds = highestBids.map(
-          (bid) => new mongoose.Types.ObjectId(bid._id)
-        );
-        this.query = this.query.where("_id").in(productIds);
-        this.specialFilters.highestBid = highestBids;
-      }
-
-      if (this.queryStr.lowestAsk) {
-        const lowestAsks = await SellingItem.aggregate([
-          {
-            $match: {
-              status: "Pending",
-              sellingType: "Ask",
-              $or: [{ validUntil: { $gt: new Date() } }, { validUntil: null }],
-            },
-          },
-          {
-            $sort: {
-              sellingPrice: 1,
-              sellingAt: 1,
-            },
-          },
-          {
-            $group: {
-              _id: "$productId",
-              lowestAsk: { $first: "$$ROOT" },
-            },
-          },
-          {
-            $project: {
-              _id: 1,
-              lowestAsk: {
-                offeredPrice: "$lowestAsk.sellingPrice",
-                totalPrice: "$lowestAsk.earnings",
-                offerCreateDate: "$lowestAsk.sellingAt",
-                validUntil: "$lowestAsk.validUntil",
-              },
-            },
-          },
-        ]);
-
-        const productIds = lowestAsks.map(
-          (ask) => new mongoose.Types.ObjectId(ask._id)
-        );
-        this.query = this.query.where("_id").in(productIds);
-        this.specialFilters.lowestAsk = lowestAsks;
-      }
-
-      if (this.queryStr.highestAsk) {
-        const highestAsks = await SellingItem.aggregate([
-          {
-            $match: {
-              status: "Pending",
-              sellingType: "Ask",
-              $or: [{ validUntil: { $gt: new Date() } }, { validUntil: null }],
-            },
-          },
-          {
-            $sort: {
-              sellingPrice: -1,
-              sellingAt: 1,
-            },
-          },
-          {
-            $group: {
-              _id: "$productId",
-              highestAsk: { $first: "$$ROOT" },
-            },
-          },
-          {
-            $project: {
-              _id: 1,
-              highestAsk: {
-                offeredPrice: "$highestAsk.sellingPrice",
-                totalPrice: "$highestAsk.earnings",
-                offerCreateDate: "$highestAsk.sellingAt",
-                validUntil: "$highestAsk.validUntil",
-              },
-            },
-          },
-        ]);
-
-        const productIds = highestAsks.map(
-          (ask) => new mongoose.Types.ObjectId(ask._id)
-        );
-        this.query = this.query.where("_id").in(productIds);
-        this.specialFilters.highestAsk = highestAsks;
-      }
-
-      if (this.queryStr.recentSales) {
-        const recentSales = await Order.aggregate([
-          {
-            $match: {
-              orderStatus: this.queryStr.orderStatus || "Sold",
-              orderType: this.queryStr.orderType || { $exists: true },
-            },
-          },
-          {
-            $sort: { createdAt: -1 },
-          },
-          {
-            $group: {
-              _id: "$productId",
-              lastSale: { $first: "$$ROOT" },
-            },
-          },
-          {
-            $project: {
-              _id: 1,
-              lastSale: {
-                orderType: "$lastSale.orderType",
-                orderStatus: "$lastSale.orderStatus",
-                totalPrice: "$lastSale.totalPrice",
-                offerPrice: "$lastSale.offerPrice",
-                sellerOffer: "$lastSale.sellerOffer",
-                createdAt: "$lastSale.createdAt",
-              },
-            },
-          },
-        ]);
-
-        const productIds = recentSales.map(
-          (sale) => new mongoose.Types.ObjectId(sale._id)
-        );
-        this.query = this.query.where("_id").in(productIds);
-        this.specialFilters.recentSales = recentSales;
-      }
-
-      if (this.queryStr.lowestSale) {
-        const lowestSales = await Order.aggregate([
-          {
-            $match: {
-              orderStatus: this.queryStr.orderStatus || "Sold",
-              orderType: this.queryStr.orderType || { $exists: true },
-            },
-          },
-          {
-            $sort: { totalPrice: 1, createdAt: 1 },
-          },
-          {
-            $group: {
-              _id: "$productId",
-              lowestSale: { $first: "$$ROOT" },
-            },
-          },
-          {
-            $project: {
-              _id: 1,
-              lowestSale: {
-                orderType: "$lowestSale.orderType",
-                orderStatus: "$lowestSale.orderStatus",
-                totalPrice: "$lowestSale.totalPrice",
-                offerPrice: "$lowestSale.offerPrice",
-                sellerOffer: "$lowestSale.sellerOffer",
-                createdAt: "$lowestSale.createdAt",
-              },
-            },
-          },
-        ]);
-
-        const productIds = lowestSales.map(
-          (sale) => new mongoose.Types.ObjectId(sale._id)
-        );
-        this.query = this.query.where("_id").in(productIds);
-        this.specialFilters.lowestSale = lowestSales;
-      }
-
-      if (this.queryStr.highestSale) {
-        const highestSales = await Order.aggregate([
-          {
-            $match: {
-              orderStatus: this.queryStr.orderStatus || "Sold",
-              orderType: this.queryStr.orderType || { $exists: true },
-            },
-          },
-          {
-            $sort: { totalPrice: -1, createdAt: 1 },
-          },
-          {
-            $group: {
-              _id: "$productId",
-              highestSale: { $first: "$$ROOT" },
-            },
-          },
-          {
-            $project: {
-              _id: 1,
-              highestSale: {
-                orderType: "$highestSale.orderType",
-                orderStatus: "$highestSale.orderStatus",
-                totalPrice: "$highestSale.totalPrice",
-                offerPrice: "$highestSale.offerPrice",
-                sellerOffer: "$highestSale.sellerOffer",
-                createdAt: "$highestSale.createdAt",
-              },
-            },
-          },
-        ]);
-
-        const productIds = highestSales.map(
-          (sale) => new mongoose.Types.ObjectId(sale._id)
-        );
-        this.query = this.query.where("_id").in(productIds);
-        this.specialFilters.highestSale = highestSales;
-      }
 
       if (queryCopy.calenderDateTime) {
         queryCopy.calenderDateTime = {
@@ -372,134 +261,13 @@ class APIFeatures {
 
   async execute() {
     try {
-      // Get all products first
-      const allProducts = await this.query.lean();
-
-      // Apply special filters data and sort products
-      if (this.specialFilters.lowestBid) {
-        allProducts.forEach((product) => {
-          const bid = this.specialFilters.lowestBid.find(
-            (bid) => bid._id.toString() === product._id.toString()
-          );
-          if (bid) {
-            product.lowestBid = bid.lowestBid;
-          }
-        });
-
-        // Sort products by lowest bid price
-        allProducts.sort((a, b) => {
-          const priceA = a.lowestBid?.offeredPrice || Infinity;
-          const priceB = b.lowestBid?.offeredPrice || Infinity;
-          return priceA - priceB;
-        });
-      }
-
-      if (this.specialFilters.highestBid) {
-        allProducts.forEach((product) => {
-          const bid = this.specialFilters.highestBid.find(
-            (bid) => bid._id.toString() === product._id.toString()
-          );
-          if (bid) {
-            product.highestBid = bid.highestBid;
-          }
-        });
-
-        // Sort products by highest bid price
-        allProducts.sort((a, b) => {
-          const priceA = a.highestBid?.offeredPrice || -Infinity;
-          const priceB = b.highestBid?.offeredPrice || -Infinity;
-          return priceB - priceA;
-        });
-      }
-
-      if (this.specialFilters.lowestAsk) {
-        allProducts.forEach((product) => {
-          const ask = this.specialFilters.lowestAsk.find(
-            (ask) => ask._id.toString() === product._id.toString()
-          );
-          if (ask) {
-            product.lowestAsk = ask.lowestAsk;
-          }
-        });
-
-        // Sort products by lowest ask price
-        allProducts.sort((a, b) => {
-          const priceA = a.lowestAsk?.offeredPrice || Infinity;
-          const priceB = b.lowestAsk?.offeredPrice || Infinity;
-          return priceA - priceB;
-        });
-      }
-
-      if (this.specialFilters.highestAsk) {
-        allProducts.forEach((product) => {
-          const ask = this.specialFilters.highestAsk.find(
-            (ask) => ask._id.toString() === product._id.toString()
-          );
-          if (ask) {
-            product.highestAsk = ask.highestAsk;
-          }
-        });
-
-        // Sort products by highest ask price
-        allProducts.sort((a, b) => {
-          const priceA = a.highestAsk?.offeredPrice || -Infinity;
-          const priceB = b.highestAsk?.offeredPrice || -Infinity;
-          return priceB - priceA;
-        });
-      }
-
-      if (this.specialFilters.recentSales) {
-        allProducts.forEach((product) => {
-          const sale = this.specialFilters.recentSales.find(
-            (sale) => sale._id.toString() === product._id.toString()
-          );
-          if (sale) {
-            product.lastSale = sale.lastSale;
-          }
-        });
-
-        // Sort products by most recent sale date
-        allProducts.sort((a, b) => {
-          const dateA = a.lastSale?.createdAt || new Date(0);
-          const dateB = b.lastSale?.createdAt || new Date(0);
-          return dateB - dateA;
-        });
-      }
-
-      if (this.specialFilters.lowestSale) {
-        allProducts.forEach((product) => {
-          const sale = this.specialFilters.lowestSale.find(
-            (sale) => sale._id.toString() === product._id.toString()
-          );
-          if (sale) {
-            product.lowestSale = sale.lowestSale;
-          }
-        });
-
-        // Sort products by lowest sale price
-        allProducts.sort((a, b) => {
-          const priceA = a.lowestSale?.totalPrice || Infinity;
-          const priceB = b.lowestSale?.totalPrice || Infinity;
-          return priceA - priceB;
-        });
-      }
-
-      if (this.specialFilters.highestSale) {
-        allProducts.forEach((product) => {
-          const sale = this.specialFilters.highestSale.find(
-            (sale) => sale._id.toString() === product._id.toString()
-          );
-          if (sale) {
-            product.highestSale = sale.highestSale;
-          }
-        });
-
-        // Sort products by highest sale price
-        allProducts.sort((a, b) => {
-          const priceA = a.highestSale?.totalPrice || -Infinity;
-          const priceB = b.highestSale?.totalPrice || -Infinity;
-          return priceB - priceA;
-        });
+      let allProducts;
+      if (typeof this.query.lean === "function") {
+        allProducts = await this.query.lean();
+      } else if (typeof this.query.exec === "function") {
+        allProducts = await this.query.exec();
+      } else {
+        allProducts = await this.query;
       }
 
       // Get total count
