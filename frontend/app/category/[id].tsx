@@ -34,7 +34,10 @@ const Id = () => {
           pathname: "/search/search-results",
           params: {
             title: subCategory.name,
-            filter: JSON.stringify({ subCategoryId: subCategory.id }),
+            filter: JSON.stringify({
+              subCategoryId: subCategory.id,
+              product_type: "deal",
+            }),
           },
         });
       }}

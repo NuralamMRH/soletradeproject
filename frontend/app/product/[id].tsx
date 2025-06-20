@@ -19,19 +19,6 @@ import LottieView from "lottie-react-native";
 const { width } = Dimensions.get("window");
 
 // Mock product data
-const product = {
-  id: "1",
-  name: "Nike Air Max",
-  price: 299.99,
-  description:
-    "The Nike Air Max is a classic running shoe that combines style and comfort. Perfect for both casual wear and athletic activities.",
-  images: [
-    require("../../assets/images/shoe1.png"),
-    require("../../assets/images/shoe2.png"),
-  ],
-  sizes: ["US 7", "US 8", "US 9", "US 10", "US 11"],
-  colors: ["#000000", "#FFFFFF", "#FF0000"],
-};
 
 export default function ProductDetailsScreen() {
   const router = useRouter();

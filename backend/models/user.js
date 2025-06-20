@@ -198,6 +198,18 @@ userSchema.virtual("shippingAddress", {
   foreignField: "user",
 });
 
+userSchema.virtual("searchKeywords", {
+  ref: "SearchKeyword",
+  localField: "_id",
+  foreignField: "userId",
+});
+
+userSchema.virtual("recentlyViewedProducts", {
+  ref: "RecentViewed",
+  localField: "_id",
+  foreignField: "userId",
+});
+
 // Encrypting password before saving user
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {

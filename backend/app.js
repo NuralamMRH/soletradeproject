@@ -155,6 +155,12 @@ app.use(`${api}/payment-methods`, paymentMethodRoutes);
 const transactionRoutes = require("./routes/transactionRoutes");
 app.use(`${api}/transactions`, transactionRoutes);
 
+const recentViewedRoutes = require("./routes/recentViewedRoutes");
+app.use(`${api}/recent-views`, recentViewedRoutes);
+
+const searchKeywordRoutes = require("./routes/searchKeywordRoutes");
+app.use(`${api}/search-keywords`, searchKeywordRoutes);
+
 // Middleware to handle errors
 app.use(errorMiddleware);
 

@@ -3,6 +3,7 @@ const ErrorHandler = require("../utils/errorHandler");
 const APIFeatures = require("../utils/apiFeatures");
 const Product = require("../models/product");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
+const mongoose = require("mongoose");
 
 exports.getAllHomeFeedSections = catchAsyncErrors(async (req, res, next) => {
   try {
@@ -281,3 +282,39 @@ exports.autoPopulateSection = catchAsyncErrors(async (req, res, next) => {
     section,
   });
 });
+
+exports.updateHomeFeedSectionOrder = catchAsyncErrors(
+  async (req, res, next) => {
+    try {
+      const { sections } = req.body;
+
+      if (!Array.isArray(sections)) {
+        return next(new ErrorHandler("Sections array is required", 400));
+      }
+
+      for (const section of sections) {
+        if (!mongoose.Types.ObjectId.isValid(section._id)) {
+          return next(
+            new ErrorHandler(`Invalid ObjectId: ${section._id}`, 400)
+          );
+        }
+      }
+
+      const bulkOps = sections.map(({ _id, order }) => ({
+        updateOne: {
+          filter: { _id },
+          update: { order },
+        },
+      }));
+
+      await HomeFeedSection.bulkWrite(bulkOps);
+
+      res.status(200).json({
+        success: true,
+      });
+    } catch (error) {
+      console.error("Error updating home feed section order:", error);
+      next(error);
+    }
+  }
+);

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -258,6 +258,7 @@ const FilterPage: React.FC = () => {
     colors,
     setColors,
     clearAll,
+    setIsFilterActive,
   } = useListCreation();
 
   // Data hooks
@@ -344,6 +345,10 @@ const FilterPage: React.FC = () => {
       setArr([...arr, value]);
     }
   };
+
+  useEffect(() => {
+    setIsFilterActive(true);
+  }, []);
 
   // Renderers
   return (

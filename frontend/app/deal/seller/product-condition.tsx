@@ -13,6 +13,7 @@ import AdminHeader from "@/components/AdminHeader";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS, SIZES } from "@/constants";
+import { showNotification } from "@/hooks/useLocalNotifications";
 
 const imageLabels = [
   "Outer Exterior",
@@ -250,7 +251,17 @@ export default function ProductCondition() {
                   styles.conditionOption,
                   selectedBoxCondition === cond && { borderColor: "#c00" },
                 ]}
-                onPress={() => handleSelectBoxCondition(cond)}
+                onPress={() => {
+                  if (!selectedCondition) {
+                    showNotification({
+                      title: "Error",
+                      body: "Please select product condition",
+                    });
+                    setTab("product");
+                  } else {
+                    handleSelectBoxCondition(cond);
+                  }
+                }}
               >
                 <Text style={{ color: "#fff", fontSize: 16 }}>{cond}</Text>
               </TouchableOpacity>

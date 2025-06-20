@@ -34,6 +34,7 @@ interface User {
 interface AuthState {
   isInitialized: boolean;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   user: User | null;
 }
 
@@ -53,13 +54,18 @@ interface AuthContextType extends AuthState {
 const initialState: AuthState = {
   isInitialized: false,
   isAuthenticated: false,
+  isAdmin: false,
   user: null,
 };
 
 type Action =
   | {
       type: "INITIAL";
-      payload: { isAuthenticated: boolean; user: User | null };
+      payload: {
+        isAuthenticated: boolean;
+        user: User | null;
+        isAdmin: boolean;
+      };
     }
   | { type: "LOGIN"; payload: { user: User } }
   | { type: "REGISTER"; payload: { user: User } }
@@ -71,24 +77,28 @@ const reducer = (state: AuthState, action: Action): AuthState => {
       return {
         isInitialized: true,
         isAuthenticated: action.payload.isAuthenticated,
+        isAdmin: action.payload.user?.role === "admin",
         user: action.payload.user,
       };
     case "LOGIN":
       return {
         ...state,
         isAuthenticated: true,
+        isAdmin: action.payload.user?.role === "admin",
         user: action.payload.user,
       };
     case "REGISTER":
       return {
         ...state,
         isAuthenticated: true,
+        isAdmin: action.payload.user?.role === "admin",
         user: action.payload.user,
       };
     case "LOGOUT":
       return {
         ...state,
         isAuthenticated: false,
+        isAdmin: false,
         user: null,
       };
     default:
@@ -112,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           type: "INITIAL",
           payload: {
             isAuthenticated: true,
+            isAdmin: user?.role === "admin",
             user,
           },
         });
@@ -120,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           type: "INITIAL",
           payload: {
             isAuthenticated: false,
+            isAdmin: false,
             user: null,
           },
         });
@@ -129,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         type: "INITIAL",
         payload: {
           isAuthenticated: false,
+          isAdmin: false,
           user: null,
         },
       });
@@ -301,6 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       isInitialized: state.isInitialized,
       isAuthenticated: state.isAuthenticated,
+      isAdmin: state.isAdmin,
       user: state.user,
       login,
       register,
@@ -311,6 +325,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [
       state.isInitialized,
       state.isAuthenticated,
+      state.isAdmin,
       state.user,
       login,
       register,

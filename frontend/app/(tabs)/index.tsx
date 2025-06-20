@@ -35,6 +35,12 @@ import {
 import { useSocket } from "@/context/SocketContext";
 import Price from "@/utils/Price";
 import { useSelector } from "react-redux";
+import { ThemedText } from "@/components/ThemedText";
+import { useRecentViews } from "@/hooks/useRecentViews";
+import { useListCreation } from "@/context/ListCreationContext";
+import ContentLoader from "react-native-content-loader";
+import { Rect } from "react-native-svg";
+import { Feather } from "@expo/vector-icons";
 
 interface HomeFeedButton {
   _id: string;
@@ -54,6 +60,8 @@ interface Product {
   image_full_url?: string;
   product_type?: string;
   images?: any[];
+  number_of_items?: number;
+  order?: number;
 }
 
 interface Section {
@@ -115,29 +123,15 @@ const sortTypes = [
   { key: "rating", label: "Top Rated" },
 ];
 
-function getSortedProducts(products, sortKey) {
-  const sorted = [...products];
-  switch (sortKey) {
-    case "newest":
-      sorted.sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated));
-      break;
-    case "popular":
-    case "numViews":
-      sorted.sort((a, b) => (b.numViews || 0) - (a.numViews || 0));
-      break;
-    case "price-asc":
-      sorted.sort((a, b) => (a.retailPrice || 0) - (b.retailPrice || 0));
-      break;
-    case "price-desc":
-      sorted.sort((a, b) => (b.retailPrice || 0) - (a.retailPrice || 0));
-      break;
-    case "rating":
-      sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-      break;
-    default:
-      break;
-  }
-  return sorted;
+function getSortedProducts(products: any[], sortKey: any) {
+  return products.sort((a, b) => {
+    if (sortKey === "newest") {
+      return (
+        new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime()
+      );
+    }
+    return 0;
+  });
 }
 
 export default function HomeScreen() {
@@ -151,7 +145,7 @@ export default function HomeScreen() {
   const { mutate: addToWishlist } = useAddToWishlist();
   const { mutate: removeFromWishlist } = useRemoveFromWishlist();
   const { data: wishlists, isLoading: wishlistsLoading } = useWishlists();
-
+  const { clearAll } = useListCreation();
   const { products, loading, error, refetch } = useProducts({
     filter: {
       product_type: "deal",
@@ -161,6 +155,12 @@ export default function HomeScreen() {
   const { products: allProducts } = useProducts({
     filter: {},
   });
+
+  const {
+    recentViews,
+    loading: recentViewsLoading,
+    refetch: refetchRecentViews,
+  } = useRecentViews();
 
   const { brands, loading: brandsLoading, error: brandsError } = useBrands();
   const {
@@ -286,7 +286,9 @@ export default function HomeScreen() {
                 >
                   <Ionicons name="cart-outline" size={24} color="#333" />
                   <View style={styles.cartBadge}>
-                    <Text style={styles.cartBadgeText}>{cartCount}</Text>
+                    <ThemedText style={styles.cartBadgeText}>
+                      {cartCount}
+                    </ThemedText>
                   </View>
                 </TouchableOpacity>
               )}
@@ -325,7 +327,7 @@ export default function HomeScreen() {
                     style={styles.buttonImage}
                   />
                 </View>
-                <Text style={styles.buttonText}>{item.name}</Text>
+                <ThemedText style={styles.buttonText}>{item.name}</ThemedText>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -350,7 +352,7 @@ export default function HomeScreen() {
                     style={styles.buttonImage}
                   />
                 </View>
-                <Text style={styles.buttonText}>{item.name}</Text>
+                <ThemedText style={styles.buttonText}>{item.name}</ThemedText>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -363,7 +365,9 @@ export default function HomeScreen() {
   const renderCategorySection = () => {
     return (
       <View style={styles.categorySectionContainer}>
-        <Text style={styles.sectionTitle}>Shop by Category</Text>
+        <ThemedText type="title" style={styles.sectionTitle}>
+          Shop by Category
+        </ThemedText>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -397,9 +401,22 @@ export default function HomeScreen() {
     return (
       <View style={styles.productSectionContainer}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>New Items</Text>
-          <TouchableOpacity onPress={() => router.push("/new-items")}>
-            <Text style={styles.viewMoreText}>View More &gt;</Text>
+          <ThemedText type="title" style={styles.sectionTitle}>
+            New Arrival
+          </ThemedText>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/search/view-more",
+                params: {
+                  title: "New Arrival",
+                  products: JSON.stringify(products),
+                  searchFor: "products",
+                },
+              })
+            }
+          >
+            <ThemedText style={styles.viewMoreText}>View More &gt;</ThemedText>
           </TouchableOpacity>
         </View>
         <ScrollView
@@ -430,13 +447,30 @@ export default function HomeScreen() {
     );
   };
   // Hot items section with horizontal scroll
-  const renderHotItemsSection = () => {
+  const renderRecentlyViewedSection = () => {
     return (
       <View style={styles.productSectionContainer}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Hot Items</Text>
-          <TouchableOpacity onPress={() => router.push("/hot-items")}>
-            <Text style={styles.viewMoreText}>View More &gt;</Text>
+          <ThemedText type="title" style={styles.sectionTitle}>
+            Recently Viewed
+          </ThemedText>
+          <TouchableOpacity
+            onPress={() => {
+              clearAll();
+              router.push({
+                pathname: "/search/view-more",
+                params: {
+                  title: "Recently Viewed",
+                  filter: JSON.stringify({
+                    product_type: "deal",
+                  }),
+                  products: JSON.stringify(recentViews),
+                  searchFor: "products",
+                },
+              });
+            }}
+          >
+            <ThemedText style={styles.viewMoreText}>View More &gt;</ThemedText>
           </TouchableOpacity>
         </View>
         <ScrollView
@@ -445,7 +479,7 @@ export default function HomeScreen() {
           contentContainerStyle={styles.productScrollContainer}
         >
           {/* Example product cards */}
-          {products.slice(0, 5).map((product: any, index: number) => (
+          {recentViews.slice(0, 15).map((product: any, index: number) => (
             <View key={product._id}>
               <ProductCard
                 sectionType="row"
@@ -472,9 +506,26 @@ export default function HomeScreen() {
     return (
       <View style={styles.productSectionContainer}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recommended for You</Text>
-          <TouchableOpacity onPress={() => router.push("/recommended")}>
-            <Text style={styles.viewMoreText}>View More &gt;</Text>
+          <ThemedText type="title" style={styles.sectionTitle}>
+            Recommended for You
+          </ThemedText>
+          <TouchableOpacity
+            onPress={() => {
+              clearAll();
+              router.push({
+                pathname: "/search/view-more",
+                params: {
+                  title: "Recently Viewed",
+                  filter: JSON.stringify({
+                    product_type: "deal",
+                  }),
+                  products: JSON.stringify(products),
+                  searchFor: "products",
+                },
+              });
+            }}
+          >
+            <ThemedText style={styles.viewMoreText}>View More &gt;</ThemedText>
           </TouchableOpacity>
         </View>
         <ScrollView
@@ -505,35 +556,6 @@ export default function HomeScreen() {
     );
   };
 
-  // Top Brands section
-  const renderTopBrandsSection = () => {
-    return (
-      <View style={styles.topBrandsContainer}>
-        <Text style={styles.sectionTitle}>Top Brands</Text>
-        <View
-          style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            gap: 10,
-            paddingHorizontal: 10,
-          }}
-        >
-          {brands.map((brand: any) => {
-            return (
-              <TouchableOpacity
-                onPress={() => router.push(`/brand/${brand._id}`)}
-                key={brand._id}
-                style={styles.brandButton}
-              >
-                <Text style={styles.brandButtonText}>{brand?.name}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-    );
-  };
-
   // Product Card Component
   const ProductCard: React.FC<ProductCardProps> = ({
     index,
@@ -549,20 +571,32 @@ export default function HomeScreen() {
       style={styles.productCard}
     >
       {sectionType !== "row" && index && (
-        <Text style={styles.productIndex}>{index}</Text>
+        <ThemedText style={styles.productIndex}>{index}</ThemedText>
       )}
-      <Image source={image} style={styles.productImage} />
+      <Image
+        source={image}
+        style={{
+          width: SIZES.width / 3 - 20,
+          height: SIZES.width / 3 - 40,
+          objectFit: "contain",
+        }}
+      />
       <View style={styles.productInfo}>
-        <Text style={styles.productBrand}>{brand}</Text>
-        <Text style={styles.productName} numberOfLines={2}>
+        <ThemedText style={styles.productBrand}>{brand}</ThemedText>
+        <ThemedText style={styles.productName} numberOfLines={2}>
           {name}
-        </Text>
-        {price && (
+        </ThemedText>
+        {price ? (
           <View>
-            <Text style={styles.productPrice}>
+            <ThemedText style={styles.productPrice}>
               <Price price={price || 0} currency="THB" />
-            </Text>
-            <Text style={styles.lowestAsk}>Lowest Ask</Text>
+            </ThemedText>
+            <ThemedText style={styles.lowestAsk}>Lowest Ask</ThemedText>
+          </View>
+        ) : (
+          <View>
+            <ThemedText style={styles.productPrice}>N/A</ThemedText>
+            <ThemedText style={styles.lowestAsk}>Lowest Ask</ThemedText>
           </View>
         )}
       </View>
@@ -592,32 +626,6 @@ export default function HomeScreen() {
       )}
     </TouchableOpacity>
   );
-
-  // Filter and sort sections based on priority and conditions
-  const sections = [
-    { type: "SLIDER", id: "slider" },
-    { type: "BUTTONS", id: "buttons" },
-    { type: "CATEGORY", id: "category" },
-    { type: "NEW_ITEMS", id: "new-items" },
-    // Dynamic sections from API will be added here
-    ...(homeFeedSections || [])
-      .filter((section, index) => {
-        // Skip if section is not active
-        if (!section.isActive) return false;
-        return true;
-      })
-      .sort((a, b) => (b.order || 0) - (a.order || 0))
-      .map((section) => ({
-        type: "DYNAMIC_SECTION",
-        id: section._id,
-        data: section,
-      })),
-    // Static sections
-    { type: "HOT_ITEMS", id: "hot-items" },
-    { type: "RECOMMENDED", id: "recommended" },
-    { type: "MOST_POPULAR", id: "most-popular" },
-    { type: "TOP_BRANDS", id: "top-brands" },
-  ];
 
   // Process items based on mode and autoCriteria
   const processItems = (section: Section) => {
@@ -785,11 +793,38 @@ export default function HomeScreen() {
     // }
     return (
       <View style={styles.productSectionContainer}>
-        {isActive && section.variable_source === "products" && (
+        {display_style !== 3 && (
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{name}</Text>
-            <TouchableOpacity>
-              <Text style={styles.viewMoreText}>View More &gt;</Text>
+            <ThemedText type="title" style={styles.sectionTitle}>
+              {name}
+            </ThemedText>
+            <TouchableOpacity
+              onPress={() => {
+                clearAll();
+                if (
+                  (section.display_type === "product" ||
+                    section.display_type === "new-items" ||
+                    section.display_type === "hot-items" ||
+                    section.display_type === "most-popular") &&
+                  display_style !== 3
+                ) {
+                  router.push({
+                    pathname: "/search/view-more",
+                    params: {
+                      title: name,
+                      filter: JSON.stringify({
+                        product_type: "deal",
+                      }),
+                      products: JSON.stringify(items),
+                      searchFor: "products",
+                    },
+                  });
+                }
+              }}
+            >
+              <ThemedText style={styles.viewMoreText}>
+                View More &gt;
+              </ThemedText>
             </TouchableOpacity>
           </View>
         )}
@@ -833,9 +868,9 @@ export default function HomeScreen() {
                       return (
                         <View key={item?.column} style={styles.column}>
                           <View>
-                            <Text style={styles.columnTitle}>
+                            <ThemedText type="title" style={styles.columnTitle}>
                               {column_names?.[colKey]}
-                            </Text>
+                            </ThemedText>
                           </View>
                           {item?.column === colKey
                             ? item?.products
@@ -849,9 +884,12 @@ export default function HomeScreen() {
                                         router.push(`/product/${product._id}`)
                                       }
                                     >
-                                      <Text style={styles.popularItemNumber}>
+                                      <ThemedText
+                                        type="title"
+                                        style={styles.popularItemNumber}
+                                      >
                                         {pIndex + 1}
-                                      </Text>
+                                      </ThemedText>
                                       <Image
                                         source={
                                           product.images[0].file_full_url
@@ -871,11 +909,15 @@ export default function HomeScreen() {
                     })
                   : columns.map((col, colIndex) => (
                       <View key={col.name + colIndex} style={styles.column}>
-                        <Text style={styles.columnTitle}>{col.name}</Text>
+                        <ThemedText type="title" style={styles.columnTitle}>
+                          {col.name}
+                        </ThemedText>
                         {col.products.length === 0 ? (
-                          <Text style={{ textAlign: "center", color: "#aaa" }}>
+                          <ThemedText
+                            style={{ textAlign: "center", color: "#aaa" }}
+                          >
                             No products
-                          </Text>
+                          </ThemedText>
                         ) : (
                           col.products.map((product, pIndex) => (
                             <TouchableOpacity
@@ -885,9 +927,12 @@ export default function HomeScreen() {
                                 router.push(`/product/${product._id}`)
                               }
                             >
-                              <Text style={styles.popularItemNumber}>
+                              <ThemedText
+                                type="title"
+                                style={styles.popularItemNumber}
+                              >
                                 {pIndex + 1}
-                              </Text>
+                              </ThemedText>
                               <Image
                                 source={
                                   product.images[0]?.file_fill_url
@@ -914,7 +959,7 @@ export default function HomeScreen() {
             <View>
               {items
                 .slice(0, items_per_column || 5)
-                .map((item: any, index: number) => (
+                .map((item: any, index: number, array: any[]) => (
                   <View key={item._id || index}>
                     <TouchableOpacity
                       key={item._id || index}
@@ -935,10 +980,13 @@ export default function HomeScreen() {
                         style={styles.popularItemImage}
                       />
                       <View>
-                        <Text style={{ fontSize: 16, fontWeight: "bold" }}>
+                        <ThemedText
+                          type="title"
+                          style={{ fontSize: 16, fontWeight: "bold" }}
+                        >
                           {item.name}
-                        </Text>
-                        <Text
+                        </ThemedText>
+                        <ThemedText
                           style={{
                             fontSize: 14,
                             color: COLORS.gray,
@@ -949,8 +997,10 @@ export default function HomeScreen() {
                           }}
                         >
                           {item.description || "No description"}
-                        </Text>
-                        <Text style={{ fontSize: 14, color: COLORS.gray }}>
+                        </ThemedText>
+                        <ThemedText
+                          style={{ fontSize: 14, color: COLORS.gray }}
+                        >
                           <Price
                             price={
                               Number(lowestPrice(item._id)) ||
@@ -959,10 +1009,12 @@ export default function HomeScreen() {
                             }
                             currency="THB"
                           />
-                        </Text>
-                        <Text style={{ fontSize: 14, color: COLORS.gray }}>
+                        </ThemedText>
+                        <ThemedText
+                          style={{ fontSize: 14, color: COLORS.gray }}
+                        >
                           Lowest Ask
-                        </Text>
+                        </ThemedText>
                       </View>
                       <Ionicons
                         name="chevron-forward"
@@ -971,17 +1023,19 @@ export default function HomeScreen() {
                         style={{ marginLeft: "auto" }}
                       />
                     </TouchableOpacity>
-                    <Image
-                      source={require("@/assets/images/icons/divider.png")}
-                      style={{
-                        flex: 1,
-                        width: SIZES.width,
-                        height: 40,
-                        objectFit: "contain",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    />
+                    {index < array.length - 1 && (
+                      <Image
+                        source={require("@/assets/images/icons/divider.png")}
+                        style={{
+                          flex: 1,
+                          width: SIZES.width,
+                          height: 40,
+                          objectFit: "contain",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      />
+                    )}
                   </View>
                 ))}
             </View>
@@ -992,7 +1046,6 @@ export default function HomeScreen() {
             style={{
               flexDirection: "row",
               flexWrap: "wrap",
-              gap: 10,
               paddingHorizontal: 10,
             }}
           >
@@ -1003,7 +1056,9 @@ export default function HomeScreen() {
                   key={brand._id}
                   style={styles.brandButton}
                 >
-                  <Text style={styles.brandButtonText}>{brand?.name}</Text>
+                  <ThemedText type="title" style={styles.brandButtonText}>
+                    {brand?.name}
+                  </ThemedText>
                 </TouchableOpacity>
               );
             })}
@@ -1031,7 +1086,9 @@ export default function HomeScreen() {
                     }
                     style={styles.categoryImage}
                   />
-                  <Text style={styles.categoryName}>{item.name}</Text>
+                  <ThemedText style={styles.categoryName}>
+                    {item.name}
+                  </ThemedText>
                 </TouchableOpacity>
               ))}
           </ScrollView>
@@ -1051,7 +1108,7 @@ export default function HomeScreen() {
                   )
                 )
                 .slice(0, items_per_column || 5)
-                .map((item: any, index: number) => (
+                .map((item: any, index: number, array: any[]) => (
                   <View key={item._id || index}>
                     <TouchableOpacity
                       key={item._id || index}
@@ -1072,10 +1129,12 @@ export default function HomeScreen() {
                         style={styles.popularItemImage}
                       />
                       <View>
-                        <Text style={{ fontSize: 16, fontWeight: "bold" }}>
+                        <ThemedText
+                          style={{ fontSize: 16, fontWeight: "bold" }}
+                        >
                           {item.name}
-                        </Text>
-                        <Text
+                        </ThemedText>
+                        <ThemedText
                           style={{
                             fontSize: 14,
                             color: COLORS.gray,
@@ -1086,8 +1145,10 @@ export default function HomeScreen() {
                           }}
                         >
                           {item.description || "No description"}
-                        </Text>
-                        <Text style={{ fontSize: 14, color: COLORS.gray }}>
+                        </ThemedText>
+                        <ThemedText
+                          style={{ fontSize: 14, color: COLORS.gray }}
+                        >
                           <Price
                             price={
                               Number(lowestPrice(item._id)) ||
@@ -1096,10 +1157,12 @@ export default function HomeScreen() {
                             }
                             currency="THB"
                           />
-                        </Text>
-                        <Text style={{ fontSize: 14, color: COLORS.gray }}>
+                        </ThemedText>
+                        <ThemedText
+                          style={{ fontSize: 14, color: COLORS.gray }}
+                        >
                           Lowest Ask
-                        </Text>
+                        </ThemedText>
                       </View>
                       <Ionicons
                         name="chevron-forward"
@@ -1108,17 +1171,19 @@ export default function HomeScreen() {
                         style={{ marginLeft: "auto" }}
                       />
                     </TouchableOpacity>
-                    <Image
-                      source={require("@/assets/images/icons/divider.png")}
-                      style={{
-                        flex: 1,
-                        width: SIZES.width,
-                        height: 40,
-                        objectFit: "contain",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    />
+                    {index < array.length - 1 && (
+                      <Image
+                        source={require("@/assets/images/icons/divider.png")}
+                        style={{
+                          flex: 1,
+                          width: SIZES.width,
+                          height: 40,
+                          objectFit: "contain",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      />
+                    )}
                   </View>
                 ))}
             </View>
@@ -1141,7 +1206,7 @@ export default function HomeScreen() {
                     : b.numViews - a.numViews
                 )
                 .slice(0, items_per_column || 5)
-                .map((item: any, index: number) => (
+                .map((item: any, index: number, array: any[]) => (
                   <View key={item._id || index}>
                     <TouchableOpacity
                       key={item._id || index}
@@ -1162,10 +1227,12 @@ export default function HomeScreen() {
                         style={styles.popularItemImage}
                       />
                       <View>
-                        <Text style={{ fontSize: 16, fontWeight: "bold" }}>
+                        <ThemedText
+                          style={{ fontSize: 16, fontWeight: "bold" }}
+                        >
                           {item.name}
-                        </Text>
-                        <Text
+                        </ThemedText>
+                        <ThemedText
                           style={{
                             fontSize: 14,
                             color: COLORS.gray,
@@ -1176,8 +1243,10 @@ export default function HomeScreen() {
                           }}
                         >
                           {item.description || "No description"}
-                        </Text>
-                        <Text style={{ fontSize: 14, color: COLORS.gray }}>
+                        </ThemedText>
+                        <ThemedText
+                          style={{ fontSize: 14, color: COLORS.gray }}
+                        >
                           <Price
                             price={
                               Number(lowestPrice(item._id)) ||
@@ -1186,10 +1255,12 @@ export default function HomeScreen() {
                             }
                             currency="THB"
                           />
-                        </Text>
-                        <Text style={{ fontSize: 14, color: COLORS.gray }}>
+                        </ThemedText>
+                        <ThemedText
+                          style={{ fontSize: 14, color: COLORS.gray }}
+                        >
                           Lowest Ask
-                        </Text>
+                        </ThemedText>
                       </View>
                       <Ionicons
                         name="chevron-forward"
@@ -1198,17 +1269,19 @@ export default function HomeScreen() {
                         style={{ marginLeft: "auto" }}
                       />
                     </TouchableOpacity>
-                    <Image
-                      source={require("@/assets/images/icons/divider.png")}
-                      style={{
-                        flex: 1,
-                        width: SIZES.width,
-                        height: 40,
-                        objectFit: "contain",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    />
+                    {index < array.length - 1 && (
+                      <Image
+                        source={require("@/assets/images/icons/divider.png")}
+                        style={{
+                          flex: 1,
+                          width: SIZES.width,
+                          height: 40,
+                          objectFit: "contain",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      />
+                    )}
                   </View>
                 ))}
             </View>
@@ -1255,6 +1328,29 @@ export default function HomeScreen() {
     );
   };
 
+  // Filter and sort sections based on priority and conditions
+  const sections = [
+    { type: "SLIDER", id: "slider" },
+    { type: "BUTTONS", id: "buttons" },
+    { type: "CATEGORY", id: "category" },
+    { type: "NEW_ITEMS", id: "new-items" },
+    { type: "RECENTLY_VIEWED", id: "recently-viewed" },
+    { type: "RECOMMENDED", id: "recommended" },
+    // Dynamic sections from API will be added here
+    ...(homeFeedSections || [])
+      .sort((a, b) => a.order - b.order)
+      .filter((section, index) => {
+        // Skip if section is not active
+        if (!section.isActive) return false;
+        if (section.pageType === "search") return false;
+        return true;
+      })
+      .map((section) => ({
+        type: "DYNAMIC_SECTION",
+        id: section._id,
+        data: section,
+      })),
+  ];
   // Render each section based on its type
   const renderSection = ({ item }: { item: SectionType }) => {
     switch (item.type) {
@@ -1285,7 +1381,7 @@ export default function HomeScreen() {
               />
             ) : (
               <View style={styles.noContentContainer}>
-                <Text>No slider content available</Text>
+                <ThemedText>No slider content available</ThemedText>
               </View>
             )}
           </View>
@@ -1296,16 +1392,15 @@ export default function HomeScreen() {
         return renderCategorySection();
       case "NEW_ITEMS":
         return renderNewItemsSection();
-      case "HOT_ITEMS":
-        return renderHotItemsSection();
+      case "RECENTLY_VIEWED":
+        return renderRecentlyViewedSection();
       case "RECOMMENDED":
         return renderRecommendedSection();
       // case "MOST_POPULAR":
       //   return renderMostPopularSection();
       case "DYNAMIC_SECTION":
         return renderDynamicSection(item.data);
-      case "TOP_BRANDS":
-        return renderTopBrandsSection();
+
       default:
         return null;
     }
@@ -1531,7 +1626,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
   },
   productCard: {
-    width: 170,
     marginRight: 15,
     borderRadius: 10,
     overflow: "hidden",
@@ -1547,9 +1641,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   productImage: {
-    width: "100%",
-    maxWidth: 170,
-    height: 120,
     objectFit: "cover",
     overflow: "hidden",
     borderRadius: 10,
@@ -1653,8 +1744,8 @@ const styles = StyleSheet.create({
   brandButton: {
     paddingVertical: 10,
     paddingHorizontal: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#8b0612",
+    borderBottomWidth: 1.2,
+    borderBottomColor: "#000",
   },
   brandButtonText: {
     fontSize: 16,

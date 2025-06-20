@@ -204,8 +204,8 @@ const Essential = ({ product }: { product: any }) => {
                   setModalVisible(true);
                 }}
                 style={{
-                  width: width,
-                  height: width,
+                  width: SIZES.width - 32,
+                  height: SIZES.width - 202,
                   justifyContent: "center",
                   alignItems: "center",
                 }}
@@ -339,8 +339,6 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   imageContainer: {
-    width: width,
-    height: width,
     backgroundColor: "#f5f5f5",
     justifyContent: "center",
     alignItems: "center",

@@ -31,7 +31,10 @@ const Brand = () => {
           pathname: "/search/search-results",
           params: {
             title: subBrand.name,
-            filter: JSON.stringify({ subBrandId: subBrand.id }),
+            filter: JSON.stringify({
+              subBrandId: subBrand.id,
+              product_type: "deal",
+            }),
           },
         });
       }}

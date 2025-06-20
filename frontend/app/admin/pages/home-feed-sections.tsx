@@ -14,14 +14,45 @@ import { COLORS } from "@/constants";
 import Constants from "expo-constants";
 import Colors from "@/constants/Colors";
 import { useRouter } from "expo-router";
-import { useGetHomeFeedSections } from "@/hooks/react-query/useHomeFeedSectionMutations";
+import {
+  useGetHomeFeedSections,
+  useUpdateHomeFeedSectionOrder,
+} from "@/hooks/react-query/useHomeFeedSectionMutations";
 import type { HomeFeedSection } from "@/hooks/react-query/useHomeFeedSectionMutations";
+import DraggableFlatList from "react-native-draggable-flatlist";
+import { useSections } from "@/hooks/useSections";
+import { RefreshControl } from "react-native";
+
+const TABS = [
+  { key: "home", label: "Home" },
+  { key: "search", label: "Search" },
+];
 
 const HomeFeedSections: React.FC = () => {
-  const { data: homeFeedSections = [], isLoading } = useGetHomeFeedSections();
+  const [activeTab, setActiveTab] = useState<string>("home");
+  const {
+    sections: homeFeedSections,
+    loading: isLoading,
+    refetch: refetch,
+  } = useSections();
 
-  console.log("homeFeedSections", homeFeedSections);
+  const filteredSections = homeFeedSections.filter((s: HomeFeedSection) =>
+    activeTab === "home" ? s.pageType === "home" : s.pageType === "search"
+  );
+
   const router = useRouter();
+
+  const updateHomeFeedSectionOrder = useUpdateHomeFeedSectionOrder();
+
+  // Drag and drop
+  const handleDragEnd = ({ data }: { data: any[] }) => {
+    updateHomeFeedSectionOrder.mutate({
+      sections: data.map((item, idx) => ({
+        _id: item._id,
+        order: idx, // or idx+1 if you want 1-based order
+      })),
+    });
+  };
 
   const handleEditSection = (section: HomeFeedSection) => {
     router.push({
@@ -81,7 +112,13 @@ const HomeFeedSections: React.FC = () => {
     </View>
   );
 
-  const renderSectionItem = ({ item }: { item: HomeFeedSection }) => (
+  const renderSectionItem = ({
+    item,
+    drag,
+  }: {
+    item: HomeFeedSection;
+    drag: () => void;
+  }) => (
     <View key={item.id} style={styles.sectionItem}>
       <View style={styles.sectionInfo}>
         <View style={styles.sectionDetails}>
@@ -92,6 +129,9 @@ const HomeFeedSections: React.FC = () => {
           </Text>
         </View>
       </View>
+      <TouchableOpacity onLongPress={drag} style={{ marginRight: 12 }}>
+        <Ionicons name="reorder-two" size={28} color="#888" />
+      </TouchableOpacity>
       <TouchableOpacity
         style={styles.editButton}
         onPress={() => handleEditSection(item)}
@@ -104,12 +144,35 @@ const HomeFeedSections: React.FC = () => {
   return (
     <View style={{ flex: 1 }}>
       {renderHeader()}
-      <View style={{ flex: 1, padding: 10 }}>
-        <FlatList
-          data={homeFeedSections?.homeFeedSections || []}
+      <View style={{ flex: 1 }}>
+        <View style={styles.tabContainer}>
+          {TABS.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, activeTab === tab.key && styles.activeTab]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Text
+                style={
+                  activeTab === tab.key ? styles.activeTabText : styles.tabText
+                }
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <DraggableFlatList
+          showsVerticalScrollIndicator={false}
+          data={filteredSections?.sort((a, b) => a.order - b.order) || []}
           keyExtractor={(item) => String(item._id)}
           renderItem={renderSectionItem}
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: 32, paddingHorizontal: 10 }}
+          onDragEnd={handleDragEnd}
+          refreshControl={
+            <RefreshControl refreshing={isLoading} onRefresh={refetch} />
+          }
+          // containerStyle={{ minHeight: 100 }}
         />
       </View>
     </View>
@@ -202,6 +265,30 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     backgroundColor: "#f0f0f0",
+  },
+  tabContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  activeTab: {
+    borderBottomColor: COLORS.primary,
+  },
+  tabText: {
+    color: "#888",
+    fontWeight: "bold",
+  },
+  activeTabText: {
+    color: COLORS.primary,
+    fontWeight: "bold",
   },
 });
 

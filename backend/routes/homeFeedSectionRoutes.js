@@ -7,6 +7,7 @@ const {
   deleteHomeFeedSection,
   autoPopulateSection,
   getHomeFeedSectionById,
+  updateHomeFeedSectionOrder,
 } = require("../controllers/homeFeedSectionController");
 const { isAuthenticatedUser, authorizeRoles } = require("../middlewares/auth");
 
@@ -34,6 +35,13 @@ router.delete(
   isAuthenticatedUser,
   authorizeRoles("admin"),
   deleteHomeFeedSection
+);
+
+router.post(
+  "/update-order",
+  isAuthenticatedUser,
+  authorizeRoles("admin"),
+  updateHomeFeedSectionOrder
 );
 
 router.post(

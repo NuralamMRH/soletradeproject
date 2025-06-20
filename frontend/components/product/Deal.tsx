@@ -234,6 +234,10 @@ const Deal = ({ product }: { product: any }) => {
   };
 
   const handleGoToOfferPlace = (offer: any) => {
+    bottomSheetRef.current?.close();
+    setTimeout(() => {
+      bottomSheetRef.current?.close();
+    }, 100);
     router.push({
       pathname: "/deal/offer-place",
       params: {
@@ -268,6 +272,11 @@ const Deal = ({ product }: { product: any }) => {
   };
 
   const handleGoToPlaceAsk = (ask: any) => {
+    bottomSheetRef.current?.close();
+    setTimeout(() => {
+      bottomSheetRef.current?.close();
+    }, 100);
+
     router.push({
       pathname: "/deal/seller/product-condition",
       params: {
@@ -579,8 +588,8 @@ const Deal = ({ product }: { product: any }) => {
                   setModalVisible(true);
                 }}
                 style={{
-                  width: width,
-                  height: width,
+                  width: SIZES.width - 32,
+                  height: SIZES.width - 202,
                   justifyContent: "center",
                   alignItems: "center",
                 }}
@@ -870,10 +879,10 @@ const Deal = ({ product }: { product: any }) => {
                     }}
                     onPress={() => {
                       setSelectedSize(variation._id);
-                      {
-                        bottomSheetType === "buy"
-                          ? setActiveTab("buyNow")
-                          : setActiveTab("sellNow");
+                      if (bottomSheetType === "buy") {
+                        setActiveTab("buyNow");
+                      } else {
+                        setActiveTab("sellNow");
                       }
                     }}
                   >
@@ -1382,8 +1391,6 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   imageContainer: {
-    width: width,
-    height: width,
     backgroundColor: "#f5f5f5",
     justifyContent: "center",
     alignItems: "center",

@@ -10,6 +10,8 @@ type ListCreationContextType = {
   selectedProducts: string[];
   setSelectedProducts: (products: string[]) => void;
   //filter
+  isFilterActive: boolean;
+  setIsFilterActive: (isFilterActive: boolean) => void;
   selectedCategory: string | null;
   setSelectedCategory: (category: string | null) => void;
   selectedSubCategory: string[];
@@ -54,6 +56,7 @@ const defaultImages = Array(9).fill(null);
 // Provider component to wrap the part of the app that needs access to this context
 export function ListCreationProvider({ children }: { children: ReactNode }) {
   // filters
+  const [isFilterActive, setIsFilterActive] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState<string[]>([]);
   const [selectedAttribute, setSelectedAttribute] = useState<string | null>(
@@ -75,6 +78,7 @@ export function ListCreationProvider({ children }: { children: ReactNode }) {
   );
 
   const clearAll = () => {
+    setIsFilterActive(false);
     setSelectedCategory(null);
     setSelectedSubCategory([]);
     setSelectedBrand([]);
@@ -122,6 +126,8 @@ export function ListCreationProvider({ children }: { children: ReactNode }) {
         selectedProducts,
         setSelectedProducts,
         // filter
+        isFilterActive,
+        setIsFilterActive,
         selectedAttribute,
         setSelectedAttribute,
         selectedVariations,

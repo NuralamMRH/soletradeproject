@@ -46,6 +46,8 @@ import { DatePicker } from "react-native-wheel-pick";
 const defaultProductData = {
   product_type: "",
   name: "",
+  description: "",
+  richDescription: "",
   brandId: "",
   subBrandId: "",
   categoryId: "",
@@ -149,6 +151,8 @@ export default function AdminAddNewProduct() {
         product_type: productType,
         sellerFee: product.sellerFee,
         numberOfStocks: product.numberOfStocks,
+        description: product.description,
+        richDescription: product.richDescription,
         images: product.images.map((image: any) => {
           const uri = image.file_full_url.startsWith("http")
             ? image.file_full_url
@@ -414,7 +418,7 @@ export default function AdminAddNewProduct() {
             style={{
               borderBottomWidth: 1,
               marginBottom: 16,
-              borderColor: Colors.grayLinesColor,
+              borderColor: Colors.brandGray,
             }}
           >
             <Text
@@ -429,7 +433,6 @@ export default function AdminAddNewProduct() {
             <TextInput
               style={{
                 fontSize: 16,
-                fontWeight: "bold",
                 paddingBottom: 10,
                 color: "black",
               }}
@@ -444,12 +447,46 @@ export default function AdminAddNewProduct() {
             />
           </View>
 
+          {/* Product subTitle */}
+          <View
+            style={{
+              borderBottomWidth: 1,
+              marginBottom: 16,
+              borderColor: Colors.brandGray,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 16,
+                color: "black",
+                paddingBottom: 10,
+              }}
+            >
+              Product SubTitle
+            </Text>
+            <TextInput
+              style={{
+                fontSize: 16,
+                paddingBottom: 10,
+                color: "black",
+              }}
+              placeholder="Product Subtitle"
+              value={productData.richDescription}
+              onChangeText={(text) =>
+                setProductData((prev: any) => ({
+                  ...prev,
+                  richDescription: text,
+                }))
+              }
+            />
+          </View>
+
           {/* Brand */}
           <View
             style={{
               borderBottomWidth: 1,
               marginBottom: 16,
-              borderColor: Colors.grayLinesColor,
+              borderColor: Colors.brandGray,
             }}
           >
             <Text
@@ -481,7 +518,7 @@ export default function AdminAddNewProduct() {
               style={{
                 borderBottomWidth: 1,
                 marginBottom: 16,
-                borderColor: Colors.grayLinesColor,
+                borderColor: Colors.brandGray,
               }}
             >
               <Text
@@ -517,7 +554,7 @@ export default function AdminAddNewProduct() {
             style={{
               borderBottomWidth: 1,
               marginBottom: 16,
-              borderColor: Colors.grayLinesColor,
+              borderColor: Colors.brandGray,
             }}
           >
             <Text
@@ -554,7 +591,7 @@ export default function AdminAddNewProduct() {
               style={{
                 borderBottomWidth: 1,
                 marginBottom: 16,
-                borderColor: Colors.grayLinesColor,
+                borderColor: Colors.brandGray,
               }}
             >
               <Text
@@ -592,7 +629,7 @@ export default function AdminAddNewProduct() {
             style={{
               borderBottomWidth: 1,
               marginBottom: 16,
-              borderColor: Colors.grayLinesColor,
+              borderColor: Colors.brandGray,
             }}
           >
             <Text
@@ -627,7 +664,7 @@ export default function AdminAddNewProduct() {
               style={{
                 borderBottomWidth: 1,
                 marginBottom: 16,
-                borderColor: Colors.grayLinesColor,
+                borderColor: Colors.brandGray,
               }}
             >
               <Text
@@ -665,7 +702,7 @@ export default function AdminAddNewProduct() {
                 borderBottomWidth: 1,
                 marginBottom: 16,
                 paddingBottom: 10,
-                borderColor: Colors.grayLinesColor,
+                borderColor: Colors.brandGray,
               }}
             >
               <Text
@@ -715,7 +752,7 @@ export default function AdminAddNewProduct() {
               style={{
                 borderBottomWidth: 1,
                 marginBottom: 16,
-                borderColor: Colors.grayLinesColor,
+                borderColor: Colors.brandGray,
               }}
             >
               <Text
@@ -758,7 +795,7 @@ export default function AdminAddNewProduct() {
               borderBottomWidth: 1,
               marginBottom: 16,
               position: "relative",
-              borderColor: Colors.grayLinesColor,
+              borderColor: Colors.brandGray,
             }}
           >
             <Text
@@ -808,6 +845,7 @@ export default function AdminAddNewProduct() {
               keyboardType="numeric"
             />
           </View>
+
           {/* Colorway */}
           {productType !== "essential" && (
             <>
@@ -815,7 +853,7 @@ export default function AdminAddNewProduct() {
                 style={{
                   borderBottomWidth: 1,
                   marginBottom: 16,
-                  borderColor: Colors.grayLinesColor,
+                  borderColor: Colors.brandGray,
                 }}
               >
                 <Text
@@ -849,7 +887,7 @@ export default function AdminAddNewProduct() {
                 style={{
                   borderBottomWidth: 1,
                   marginBottom: 16,
-                  borderColor: Colors.grayLinesColor,
+                  borderColor: Colors.brandGray,
                 }}
               >
                 <Text
@@ -891,7 +929,7 @@ export default function AdminAddNewProduct() {
                 style={{
                   borderBottomWidth: 1,
                   marginBottom: 16,
-                  borderColor: Colors.grayLinesColor,
+                  borderColor: Colors.brandGray,
                 }}
               >
                 <Text
@@ -931,7 +969,7 @@ export default function AdminAddNewProduct() {
                 style={{
                   borderBottomWidth: 1,
                   marginBottom: 16,
-                  borderColor: Colors.grayLinesColor,
+                  borderColor: Colors.brandGray,
                 }}
               >
                 <Text
@@ -992,7 +1030,7 @@ export default function AdminAddNewProduct() {
                 style={{
                   borderBottomWidth: 1,
                   marginBottom: 16,
-                  borderColor: Colors.grayLinesColor,
+                  borderColor: Colors.brandGray,
                 }}
               >
                 <Text style={{ fontWeight: "bold", marginBottom: 8 }}>
@@ -1036,7 +1074,7 @@ export default function AdminAddNewProduct() {
               style={{
                 borderBottomWidth: 1,
                 marginBottom: 16,
-                borderColor: Colors.grayLinesColor,
+                borderColor: Colors.brandGray,
               }}
             >
               <Text
@@ -1058,6 +1096,7 @@ export default function AdminAddNewProduct() {
                   borderColor: Colors.black,
                   borderRadius: 0,
                   padding: 10,
+                  minHeight: 100,
                 }}
                 placeholder="Description"
                 value={productData.description}

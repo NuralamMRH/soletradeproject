@@ -351,7 +351,10 @@ exports.resetPassword = catchAsyncErrors(async (req, res, next) => {
 // Get currently logged in user details   =>   /api/v1/me
 exports.getUserProfile = catchAsyncErrors(async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).populate("shippingAddress");
+    const user = await User.findById(req.user.id)
+      .populate("shippingAddress")
+      .populate("searchKeywords")
+      .populate("recentlyViewedProducts");
 
     res.status(200).json(user);
   } catch (error) {

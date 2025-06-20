@@ -18,6 +18,12 @@ export interface UpdateSectionParams {
   sectionData: CreateOrUpdateSectionInput;
 }
 
+export interface UpdateSectionOrderParams {
+  sections: {
+    _id: string;
+    order: number;
+  }[];
+}
 // Get all home feed sections
 export const useGetHomeFeedSections = () => {
   return useQuery<HomeFeedSection[], unknown>({
@@ -97,6 +103,23 @@ export const useAutoPopulateSection = () => {
       const { data } = await MainApi.post(
         `/api/v1/home-feed-sections/${id}/auto-populate`
       );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["homeFeedSections"] });
+    },
+  });
+};
+
+export const useUpdateHomeFeedSectionOrder = () => {
+  const queryClient = useQueryClient();
+  return useMutation<HomeFeedSection, unknown, UpdateSectionOrderParams>({
+    mutationFn: async ({ sections }: UpdateSectionOrderParams) => {
+      const { data } = await MainApi.post(
+        `/api/v1/home-feed-sections/update-order`,
+        { sections }
+      );
+      console.log("data", data);
       return data;
     },
     onSuccess: () => {

@@ -1,17 +1,17 @@
 const mongoose = require("mongoose");
 
 const portfolioItemSchema = mongoose.Schema({
-  user: {
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
-  product: {
+  productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",
     required: true,
   },
-  size: {
+  sizeId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "AttributeOption",
     required: true,
@@ -41,5 +41,22 @@ portfolioItemSchema.virtual("id").get(function () {
 portfolioItemSchema.set("toJSON", {
   virtuals: true,
 });
+
+portfolioItemSchema.virtual("size", {
+  ref: "AttributeOption",
+  localField: "sizeId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+portfolioItemSchema.virtual("product", {
+  ref: "Product",
+  localField: "productId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+
+
 
 exports.PortfolioItem = mongoose.model("PortfolioItem", portfolioItemSchema);

@@ -11,6 +11,7 @@ import {
   Keyboard,
   Modal,
   Pressable,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useProducts } from "@/hooks/useProducts";
@@ -22,6 +23,9 @@ import { baseUrl } from "@/api/MainApi";
 import { useBrands } from "@/hooks/useBrands";
 import { useCategories } from "@/hooks/useCategories";
 import Constants from "expo-constants";
+import Price from "@/utils/Price";
+import { ThemedText } from "@/components/ThemedText";
+import { useSearchKeywords } from "@/hooks/useSearchKeywords";
 // Helper functions and constants from index.tsx
 const sortTypes = [
   { key: "numViews", label: "Most Popular" },
@@ -30,6 +34,16 @@ const sortTypes = [
   { key: "price-desc", label: "Highest Price" },
   { key: "rating", label: "Top Rated" },
 ];
+
+interface ProductCardProps {
+  index?: number;
+  brand: string;
+  name: string;
+  price: number;
+  image: string;
+  productId: string;
+  sectionType?: string;
+}
 
 function getSortedProducts(products, sortKey) {
   const sorted = [...products];
@@ -117,7 +131,14 @@ function processItems(section, products, categories, brands) {
   return section.products || [];
 }
 
-function renderDynamicSection(section, products, categories, brands, router) {
+function renderDynamicSection(
+  index: number,
+  section: any,
+  products: any,
+  categories: any,
+  brands: any,
+  router: any
+) {
   const {
     name,
     description,
@@ -127,20 +148,22 @@ function renderDynamicSection(section, products, categories, brands, router) {
     column_names,
     column_products,
     items_per_column,
+    items_per_row,
     mode,
-    autoCriteria,
     isActive,
-    column_categories,
-    column_brands,
   } = section;
 
   const items = processItems(section, products, categories, brands);
 
+  // console.log("items_per_row", items_per_row);
+  const boxWidth = SIZES.width / items_per_row - 20;
+  const boxHeight = SIZES.width / items_per_row - 20;
+
   function buildColumns(
-    products,
-    column_count,
-    items_per_column,
-    column_names
+    products: any,
+    column_count: number,
+    items_per_column: number,
+    column_names: any
   ) {
     let remaining = [...products];
     const columns = [];
@@ -183,6 +206,7 @@ function renderDynamicSection(section, products, categories, brands, router) {
 
   return (
     <View
+      key={index}
       style={{
         backgroundColor: "#000000",
         paddingVertical: 15,
@@ -194,11 +218,12 @@ function renderDynamicSection(section, products, categories, brands, router) {
           flexDirection: "row",
           justifyContent: "space-between",
           alignItems: "center",
-          paddingHorizontal: 15,
+          paddingHorizontal: 5,
           marginBottom: 10,
         }}
       >
-        <Text
+        <ThemedText
+          type="title"
           style={{
             fontSize: 18,
             fontWeight: "bold",
@@ -208,15 +233,18 @@ function renderDynamicSection(section, products, categories, brands, router) {
           }}
         >
           {name}
-        </Text>
+        </ThemedText>
         <TouchableOpacity>
-          <Text style={{ fontSize: 14, color: "#fff" }}>View More &gt;</Text>
+          <ThemedText style={{ fontSize: 14, color: "#fff" }}>
+            View More &gt;
+          </ThemedText>
         </TouchableOpacity>
       </View>
       {/* Display Style 3: Column-based layout */}
       {isActive &&
         display_style === 3 &&
-        (display_type === "product" || display_type === "new-items") && (
+        (display_type === "product" || display_type === "new-items") &&
+        section.variable_source === "products" && (
           <View style={{ position: "relative" }}>
             <View
               style={{
@@ -252,7 +280,7 @@ function renderDynamicSection(section, products, categories, brands, router) {
                     const colKey = `C${index + 1}`;
                     return (
                       <View
-                        key={item?.column}
+                        key={item?.column + index}
                         style={{
                           flex: 1,
                           marginRight: 20,
@@ -261,7 +289,7 @@ function renderDynamicSection(section, products, categories, brands, router) {
                         }}
                       >
                         <View>
-                          <Text
+                          <ThemedText
                             style={{
                               fontSize: 16,
                               fontWeight: "bold",
@@ -271,7 +299,7 @@ function renderDynamicSection(section, products, categories, brands, router) {
                             }}
                           >
                             {column_names?.[colKey]}
-                          </Text>
+                          </ThemedText>
                         </View>
                         {item?.column === colKey
                           ? item?.products
@@ -289,7 +317,7 @@ function renderDynamicSection(section, products, categories, brands, router) {
                                       router.push(`/product/${product._id}`)
                                     }
                                   >
-                                    <Text
+                                    <ThemedText
                                       style={{
                                         fontSize: 18,
                                         fontWeight: "bold",
@@ -298,12 +326,12 @@ function renderDynamicSection(section, products, categories, brands, router) {
                                       }}
                                     >
                                       {pIndex + 1}
-                                    </Text>
+                                    </ThemedText>
                                     <Image
                                       source={
-                                        product.image_full_url
+                                        product.images[0]?.file_full_url
                                           ? {
-                                              uri: `${baseUrl}${product.image_full_url}`,
+                                              uri: `${baseUrl}${product.images[0]?.file_full_url}`,
                                             }
                                           : require("@/assets/images/bg_8.png")
                                       }
@@ -330,7 +358,7 @@ function renderDynamicSection(section, products, categories, brands, router) {
                         overflow: "hidden",
                       }}
                     >
-                      <Text
+                      <ThemedText
                         style={{
                           fontSize: 16,
                           fontWeight: "bold",
@@ -340,11 +368,13 @@ function renderDynamicSection(section, products, categories, brands, router) {
                         }}
                       >
                         {col.name}
-                      </Text>
+                      </ThemedText>
                       {col.products.length === 0 ? (
-                        <Text style={{ textAlign: "center", color: "#aaa" }}>
+                        <ThemedText
+                          style={{ textAlign: "center", color: "#aaa" }}
+                        >
                           No products
-                        </Text>
+                        </ThemedText>
                       ) : (
                         col.products.map((product, pIndex) => (
                           <TouchableOpacity
@@ -358,7 +388,7 @@ function renderDynamicSection(section, products, categories, brands, router) {
                               router.push(`/product/${product._id}`)
                             }
                           >
-                            <Text
+                            <ThemedText
                               style={{
                                 fontSize: 18,
                                 fontWeight: "bold",
@@ -367,12 +397,12 @@ function renderDynamicSection(section, products, categories, brands, router) {
                               }}
                             >
                               {pIndex + 1}
-                            </Text>
+                            </ThemedText>
                             <Image
                               source={
-                                product.image_full_url
+                                product.images[0]?.file_full_url
                                   ? {
-                                      uri: `${baseUrl}${product.image_full_url}`,
+                                      uri: `${baseUrl}${product.images[0]?.file_full_url}`,
                                     }
                                   : require("@/assets/images/bg_8.png")
                               }
@@ -392,55 +422,216 @@ function renderDynamicSection(section, products, categories, brands, router) {
         )}
       {/* Display Style 1: Products with details */}
       {display_style === 1 &&
-        (display_type === "product" || display_type === "new-items") && (
+        (display_type === "product" || display_type === "new-items") &&
+        section.variable_source === "products" && (
           <View>
-            {items
+            {items.slice(0, 3).map((item: any, index: number) => (
+              <View key={item._id || index}>
+                <TouchableOpacity
+                  key={item._id || index}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 5,
+                    paddingHorizontal: 20,
+                    gap: 20,
+                  }}
+                  onPress={() => router.push(`/product/${item._id}`)}
+                >
+                  <Image
+                    source={
+                      item.images[0]?.file_full_url
+                        ? {
+                            uri: `${baseUrl}${item.images[0]?.file_full_url}`,
+                          }
+                        : require("@/assets/images/bg_8.png")
+                    }
+                    style={{ width: 100, height: 70, resizeMode: "contain" }}
+                  />
+                  <View>
+                    <ThemedText
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "bold",
+                        color: "#fff",
+                      }}
+                    >
+                      {item.brand?.name || item.name}
+                    </ThemedText>
+                    <ThemedText
+                      style={{
+                        fontSize: 14,
+                        color: COLORS.gray,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        maxWidth: "80%",
+                        height: 20,
+                      }}
+                    >
+                      {item.description || "No description"}
+                    </ThemedText>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={24}
+                    color="#999"
+                    style={{ marginLeft: "auto" }}
+                  />
+                </TouchableOpacity>
+                <Image
+                  source={require("@/assets/images/icons/divider.png")}
+                  style={{
+                    flex: 1,
+                    width: SIZES.width,
+                    height: 10,
+                    objectFit: "cover",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                />
+              </View>
+            ))}
+          </View>
+        )}
+
+      {display_style === 1 && display_type === "brand" && (
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 10,
+            paddingHorizontal: 25,
+          }}
+        >
+          {section.brands?.map((brand: any) => {
+            return (
+              <TouchableOpacity
+                onPress={() => router.push(`/brand/${brand._id}`)}
+                key={brand._id}
+                style={{
+                  borderWidth: 1,
+                  borderColor: "#fff",
+                  borderRadius: 10,
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                }}
+              >
+                <ThemedText style={{ color: "#fff" }}>{brand?.name}</ThemedText>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+
+      {display_style === 1 && display_type === "category" && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {section.categories?.length > 0 &&
+            section.categories.map((item: any, index: number) => (
+              <TouchableOpacity
+                key={item._id}
+                style={{
+                  borderRadius: 10,
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+                onPress={() => router.push(`/category/${item.id}`)}
+              >
+                <Image
+                  source={
+                    item.images[0]?.file_full_url
+                      ? { uri: `${baseUrl}${item.images[0]?.file_full_url}` }
+                      : require("@/assets/images/bg_8.png")
+                  }
+                  style={{
+                    width: 100,
+                    height: 100,
+                    resizeMode: "contain",
+                  }}
+                />
+                <ThemedText style={{ color: "#fff" }}>{item.name}</ThemedText>
+              </TouchableOpacity>
+            ))}
+        </ScrollView>
+      )}
+
+      {display_style === 2 &&
+        display_type === "hot-items" &&
+        section.variable_source === "products" &&
+        section.categories?.length > 0 && (
+          <View>
+            {products
+              .filter((product: any) =>
+                section.categories.some(
+                  (c: any) =>
+                    c._id === product.categoryId ||
+                    c._id === product.category?._id
+                )
+              )
               .slice(0, items_per_column || 5)
               .map((item: any, index: number) => (
                 <View key={item._id || index}>
                   <TouchableOpacity
                     key={item._id || index}
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      marginBottom: 15,
-                      paddingHorizontal: 20,
-                      gap: 20,
-                    }}
+                    style={[
+                      {
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginBottom: 15,
+                        justifyContent: "space-between",
+                      },
+                      { paddingHorizontal: 20, gap: 20 },
+                    ]}
                     onPress={() => router.push(`/product/${item._id}`)}
                   >
                     <Image
                       source={
-                        item.image_full_url
+                        item.images[0]?.file_full_url
                           ? {
-                              uri: `${baseUrl}${item.image_full_url}`,
+                              uri: `${baseUrl}${item.images[0]?.file_full_url}`,
                             }
                           : require("@/assets/images/bg_8.png")
                       }
-                      style={{ width: 100, height: 100, resizeMode: "contain" }}
+                      style={{
+                        width: 100,
+                        height: 70,
+                        objectFit: "contain",
+                        marginBottom: 15,
+                      }}
                     />
-                    <View>
-                      <Text style={{ fontSize: 16, fontWeight: "bold" }}>
-                        {item.name}
-                      </Text>
-                      <Text
+                    <View
+                      style={{
+                        flex: 1,
+                        alignItems: "flex-start",
+                        justifyContent: "center",
+                        gap: 5,
+                      }}
+                    >
+                      <ThemedText
+                        type="title"
                         style={{
-                          fontSize: 14,
-                          color: COLORS.gray,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          maxWidth: "80%",
-                          height: 20,
+                          color: "#fff",
+                          fontSize: 16,
+                          fontWeight: "bold",
                         }}
                       >
-                        {item.description || "No description"}
-                      </Text>
-                      <Text style={{ fontSize: 14, color: COLORS.gray }}>
-                        {item.retailPrice ? `${item.retailPrice} Baht` : ""}
-                      </Text>
-                      <Text style={{ fontSize: 14, color: COLORS.gray }}>
-                        Lowest Ask
-                      </Text>
+                        {item.brand?.name}
+                      </ThemedText>
+                      <ThemedText
+                        style={{
+                          fontSize: 14,
+                          color: "#888",
+                        }}
+                      >
+                        {item.name} - Size:
+                        {item.variations
+                          .slice(0, 2)
+                          .map((v: any) => v.optionName)
+                          .join(` ${item.attribute.name}, `)}{" "}
+                        {item.attribute.name} {item.richDescription}{" "}
+                        {item.description}
+                      </ThemedText>
                     </View>
                     <Ionicons
                       name="chevron-forward"
@@ -464,42 +655,132 @@ function renderDynamicSection(section, products, categories, brands, router) {
               ))}
           </View>
         )}
-      {/* Display Style 2: Image-only grid */}
-      {display_style === 2 &&
-        (display_type === "product" || display_type === "new-items") && (
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 10,
-              paddingHorizontal: 10,
-            }}
-          >
-            {items.slice(0, items_per_column || 5).map((item, index) => (
-              <TouchableOpacity
-                key={item._id || index}
-                style={{
-                  width: SIZES.width / 3 - 20,
-                  height: SIZES.width / 3 - 20,
-                  borderRadius: 10,
-                  overflow: "hidden",
-                  borderWidth: 1,
-                  borderColor: COLORS.grayTie,
-                }}
-                onPress={() => router.push(`/product/${item._id}`)}
-              >
-                <Image
-                  source={{
-                    uri: item.image_full_url
-                      ? `${baseUrl}${item.image_full_url}`
-                      : `https://via.placeholder.com/170x120`,
-                  }}
-                  style={{ width: "100%", height: "100%", resizeMode: "cover" }}
-                />
-              </TouchableOpacity>
-            ))}
+
+      {display_style === 1 &&
+        display_type === "most-popular" &&
+        section.mode === "auto" &&
+        section.variable_source === "products" && (
+          <View>
+            {products
+              .sort((a: any, b: any) =>
+                section.autoCriteria?.sortBy === "newest"
+                  ? new Date(b.dateCreated).getTime() -
+                    new Date(a.dateCreated).getTime()
+                  : section.autoCriteria?.sortBy === "price-asc"
+                  ? a.retailPrice - b.retailPrice
+                  : section.autoCriteria?.sortBy === "price-desc"
+                  ? b.retailPrice - a.retailPrice
+                  : b.numViews - a.numViews
+              )
+              .slice(0, items_per_column || 5)
+              .map((item: any, index: number) => (
+                <View key={item._id || index}>
+                  <TouchableOpacity
+                    key={item._id || index}
+                    style={[
+                      {
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginBottom: 15,
+                        justifyContent: "space-between",
+                      },
+                      { paddingHorizontal: 20, gap: 20 },
+                    ]}
+                    onPress={() => router.push(`/product/${item._id}`)}
+                  >
+                    <Image
+                      source={
+                        item.images[0]?.file_full_url
+                          ? {
+                              uri: `${baseUrl}${item.images[0]?.file_full_url}`,
+                            }
+                          : require("@/assets/images/bg_8.png")
+                      }
+                      style={{
+                        width: 100,
+                        height: 70,
+                        objectFit: "contain",
+                        marginBottom: 15,
+                      }}
+                    />
+                    <View>
+                      <ThemedText style={{ fontSize: 16, fontWeight: "bold" }}>
+                        {item.name}
+                      </ThemedText>
+                      <ThemedText
+                        style={{
+                          fontSize: 14,
+                          color: COLORS.gray,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          maxWidth: "80%",
+                          height: 20,
+                        }}
+                      >
+                        {item.description || "No description"}
+                      </ThemedText>
+
+                      <ThemedText style={{ fontSize: 14, color: COLORS.gray }}>
+                        Lowest Ask
+                      </ThemedText>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={24}
+                      color="#999"
+                      style={{ marginLeft: "auto" }}
+                    />
+                  </TouchableOpacity>
+                  <Image
+                    source={require("@/assets/images/icons/divider.png")}
+                    style={{
+                      flex: 1,
+                      width: SIZES.width,
+                      height: 40,
+                      objectFit: "contain",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  />
+                </View>
+              ))}
           </View>
         )}
+
+      {/* Display Style 2: Image-only grid */}
+      {display_style === 2 && display_type === "product" && (
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 10,
+            paddingHorizontal: 10,
+          }}
+        >
+          {items.map((item: any, index: number) => (
+            <TouchableOpacity
+              key={item._id || index}
+              style={{
+                borderRadius: 10,
+              }}
+              onPress={() => router.push(`/product/${item._id}`)}
+            >
+              <Image
+                source={
+                  item.images[0]?.file_full_url
+                    ? { uri: `${baseUrl}${item.images[0]?.file_full_url}` }
+                    : require("@/assets/images/bg_8.png")
+                }
+                style={{
+                  width: boxWidth || SIZES.width / 3 - 20,
+                  height: boxHeight || SIZES.width / 3 - 20,
+                  resizeMode: "contain",
+                }}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -511,9 +792,18 @@ const SearchTab = () => {
   const inputRef = useRef<TextInput>(null);
   const router = useRouter();
   const { addSearch, suggest, history, removeSearch } = useSearchHistory();
-  const { products, loading } = useProducts({
-    filter: query ? { keyword: query } : {},
+  const { products, loading, refetch } = useProducts({
+    filter: { product_type: "deal", keyword: query },
   });
+
+  const {
+    topSearches,
+    recentSearches,
+    loading: loadingSearchKeywords,
+    error: errorSearchKeywords,
+    refetch: refetchSearchKeywords,
+  } = useSearchKeywords();
+
   const { sections } = useSections();
   const { categories: fetchedCategories, loading: loadingCategories } =
     useCategories();
@@ -549,43 +839,34 @@ const SearchTab = () => {
 
   // Render product grid for search results
   const renderProductGrid = () => (
-    <FlatList
-      data={products}
-      renderItem={({ item }) => (
+    <View style={styles.gridContainer}>
+      {products.map((item: any) => (
         <TouchableOpacity
           key={item._id}
-          style={styles.gridItem}
-          onPress={() => router.push(`/product/${item._id}`)}
+          onPress={() => {
+            setModalVisible(false);
+            router.push(`/product/${item._id}`);
+          }}
         >
           <Image
             source={
-              item.image_full_url
-                ? { uri: `${baseUrl}${item.image_full_url}` }
+              item.images[0]?.file_full_url
+                ? { uri: `${baseUrl}${item.images[0]?.file_full_url}` }
                 : require("@/assets/images/bg_8.png")
             }
             style={styles.gridImage}
           />
-          <Text style={styles.gridTitle} numberOfLines={2}>
+          <ThemedText style={styles.gridTitle} numberOfLines={2}>
             {item.name}
-          </Text>
+          </ThemedText>
           {item.subtitle && (
-            <Text style={styles.gridSubtitle} numberOfLines={1}>
+            <ThemedText style={styles.gridSubtitle} numberOfLines={1}>
               {item.subtitle}
-            </Text>
+            </ThemedText>
           )}
         </TouchableOpacity>
-      )}
-      keyExtractor={(item) => item._id}
-      numColumns={3}
-      contentContainerStyle={styles.gridContainer}
-      ListEmptyComponent={
-        loading ? (
-          <Text style={styles.loadingText}>Loading...</Text>
-        ) : (
-          <Text style={styles.loadingText}>No products found.</Text>
-        )
-      }
-    />
+      ))}
+    </View>
   );
 
   // Render search suggestion/history
@@ -601,41 +882,8 @@ const SearchTab = () => {
         color="#aaa"
         style={{ marginRight: 8 }}
       />
-      <Text style={styles.suggestionText}>{item}</Text>
+      <ThemedText style={styles.suggestionText}>{item}</ThemedText>
     </TouchableOpacity>
-  );
-
-  // Render category icons from API
-  const renderCategories = () => (
-    <View style={styles.categoryRow}>
-      {loadingCategories ? (
-        <Text style={{ color: "#fff", textAlign: "center", flex: 1 }}>
-          Loading...
-        </Text>
-      ) : fetchedCategories.length === 0 ? (
-        <Text style={{ color: "#fff", textAlign: "center", flex: 1 }}>
-          No categories
-        </Text>
-      ) : (
-        fetchedCategories.slice(0, 6).map((cat: any) => (
-          <TouchableOpacity
-            key={cat._id}
-            style={styles.categoryItem}
-            onPress={() => handleSuggestion(cat.name)}
-          >
-            <Image
-              source={
-                cat.image_full_url
-                  ? { uri: cat.image_full_url }
-                  : require("@/assets/images/bg_8.png")
-              }
-              style={styles.categoryIcon}
-            />
-            <Text style={styles.categoryLabel}>{cat.name}</Text>
-          </TouchableOpacity>
-        ))
-      )}
-    </View>
   );
 
   // Modal content for search input, suggestions, history, and product results
@@ -646,6 +894,7 @@ const SearchTab = () => {
       transparent={false}
       onRequestClose={() => setModalVisible(false)}
     >
+      <StatusBar backgroundColor="#fff" barStyle="dark-content" />
       <View style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <TextInput
@@ -660,68 +909,48 @@ const SearchTab = () => {
             returnKeyType="search"
           />
           <TouchableOpacity onPress={() => setModalVisible(false)}>
-            <Text style={styles.cancelText}>Cancel</Text>
+            <ThemedText style={styles.cancelText}>Cancel</ThemedText>
           </TouchableOpacity>
         </View>
-        {/* Product Grid Results */}
-        {searching && query.length > 0 && renderProductGrid()}
-        {/* Recommended Search Items */}
-        <Text style={styles.recommendedTitle}>Recommended Search Items</Text>
-        <View style={styles.recommendedRow}>
-          {/* Example recommended items, replace with real data if available */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <TouchableOpacity
-              style={styles.recommendedItem}
-              onPress={() => handleRecommendedClick("Denim Tears Jeans")}
-            >
-              <Text>Denim Tears Jeans</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.recommendedItem}
-              onPress={() => handleRecommendedClick("Labubu Macaron")}
-            >
-              <Text>Labubu Macaron</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.recommendedItem}
-              onPress={() => handleRecommendedClick("Jordan Low")}
-            >
-              <Text>Jordan Low</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.recommendedItem}
-              onPress={() => handleRecommendedClick("Asics Gel")}
-            >
-              <Text>Asics Gel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.recommendedItem}
-              onPress={() => handleRecommendedClick("Stussy Knit")}
-            >
-              <Text>Stussy Knit</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-        {/* Recent Searches */}
-        <Text style={styles.recentTitle}>Recent Searches</Text>
-        <FlatList
-          data={history}
-          renderItem={({ item }) => (
-            <View key={item?._id} style={styles.recentRow}>
-              <TouchableOpacity
-                style={{ flex: 1 }}
-                onPress={() => handleSuggestion(item)}
-              >
-                <Text style={styles.recentText}>{item}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => removeSearch(item)}>
-                <Text style={styles.removeText}>×</Text>
-              </TouchableOpacity>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Product Grid Results */}
+          {searching && query.length > 0 && renderProductGrid()}
+          {/* Recommended Search Items */}
+          <ThemedText style={styles.recommendedTitle}>
+            Recommended Search Items
+          </ThemedText>
+          <View style={styles.recommendedRow}>
+            {/* Example recommended items, replace with real data if available */}
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {topSearches.map((item: any, index: number) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.recommendedItem}
+                  onPress={() => handleRecommendedClick(item.keyword)}
+                >
+                  <ThemedText>{item.keyword}</ThemedText>
+                </TouchableOpacity>
+              ))}
             </View>
-          )}
-          keyExtractor={(item) => item}
-          style={styles.recentList}
-        />
+          </View>
+          {/* Recent Searches */}
+          <ThemedText style={styles.recentTitle}>Recent Searches</ThemedText>
+          <View style={styles.recentList}>
+            {history.map((item: any, index: number) => (
+              <View key={index} style={styles.recentRow}>
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  onPress={() => handleSuggestion(item)}
+                >
+                  <ThemedText style={styles.recentText}>{item}</ThemedText>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => removeSearch(item)}>
+                  <ThemedText style={styles.removeText}>×</ThemedText>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -730,36 +959,98 @@ const SearchTab = () => {
   const renderDynamicSections = () => (
     <View>
       {sections &&
-        sections.map((section: any) =>
-          renderDynamicSection(
-            section,
-            products,
-            fetchedCategories,
-            brands,
-            router
-          )
-        )}
+        sections
+          .sort((a: any, b: any) => a.order - b.order)
+          .filter((section: any) => section.pageType === "search")
+          .map((section: any, index: number) =>
+            renderDynamicSection(
+              index,
+              section,
+              products,
+              fetchedCategories,
+              brands,
+              router
+            )
+          )}
     </View>
   );
 
+  // Category section with horizontal scroll
+  const renderCategorySection = () => {
+    return (
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ padding: 10 }}
+      >
+        {fetchedCategories.length > 0 &&
+          fetchedCategories.map((item: any, index: number) => (
+            <TouchableOpacity
+              key={item._id}
+              style={{
+                borderRadius: 10,
+                marginLeft: 15,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onPress={() => router.push(`/category/${item.id}`)}
+            >
+              <Image
+                source={
+                  item.image_full_url
+                    ? { uri: `${baseUrl}${item.image_full_url}` }
+                    : require("@/assets/images/bg_8.png")
+                }
+                style={{
+                  width: SIZES.width / 3 - 20,
+                  height: SIZES.width / 3 - 20,
+                }}
+              />
+              <Text style={{ color: "#fff", fontSize: 16 }}>{item.name}</Text>
+            </TouchableOpacity>
+          ))}
+      </ScrollView>
+    );
+  };
+
   return (
     <View style={[styles.container, { paddingTop: Constants.statusBarHeight }]}>
+      <StatusBar backgroundColor="#000" barStyle="light-content" />
       {/* Search Bar */}
-      <Pressable onPress={() => setModalVisible(true)}>
+      <TouchableOpacity onPress={() => setModalVisible(true)}>
         <View style={styles.searchBarContainer}>
-          <Ionicons name="search" size={20} color="#fff" />
-          <Text style={{ color: "#fff", fontSize: 16 }}>
+          <ThemedText style={{ color: "#fff", fontSize: 16 }}>
             {query || "Search"}
-          </Text>
+          </ThemedText>
+          {query && (
+            <Ionicons
+              name="close"
+              size={20}
+              color="#fff"
+              onPress={() => {
+                setQuery("");
+                setModalVisible(false);
+                Keyboard.dismiss();
+                inputRef.current?.blur();
+                setSearching(false);
+              }}
+              style={{ marginLeft: "auto" }}
+            />
+          )}
         </View>
-      </Pressable>
+      </TouchableOpacity>
+
       {renderSearchModal()}
       {/* Default Content */}
       {!searching && (
         <ScrollView>
-          {renderCategories()}
+          {renderCategorySection()}
           {renderDynamicSections()}
         </ScrollView>
+      )}
+
+      {searching && (
+        <ScrollView style={{ flex: 1 }}>{renderProductGrid()}</ScrollView>
       )}
     </View>
   );
@@ -774,13 +1065,14 @@ const styles = StyleSheet.create({
   searchBarContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#222",
-    borderRadius: 8,
+    backgroundColor: "#000",
     marginHorizontal: 16,
     marginBottom: 12,
     height: 44,
     gap: 10,
     paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#fff",
   },
   searchInputText: {
     flex: 1,
@@ -803,8 +1095,7 @@ const styles = StyleSheet.create({
   modalSearchInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#b71c1c",
-    borderRadius: 6,
+    borderColor: "#000",
     fontSize: 18,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -812,7 +1103,7 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   cancelText: {
-    color: "#b71c1c",
+    color: "#000",
     fontSize: 16,
     marginLeft: 12,
   },
@@ -829,11 +1120,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   recommendedItem: {
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: "#111",
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     marginRight: 8,
     marginBottom: 8,
     backgroundColor: "#fff",
@@ -940,32 +1231,60 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   gridContainer: {
-    paddingHorizontal: 8,
-    paddingBottom: 12,
+    display: "flex",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+    gap: 10,
   },
   gridItem: {
     flex: 1,
     alignItems: "center",
     margin: 8,
-    maxWidth: "30%",
   },
   gridImage: {
-    width: 90,
-    height: 60,
+    width: SIZES.width / 3 - 20,
+    height: SIZES.width / 3 - 20,
     resizeMode: "contain",
     marginBottom: 6,
   },
   gridTitle: {
-    color: "#222",
+    color: "#999",
     fontSize: 14,
     textAlign: "center",
     fontWeight: "500",
     marginBottom: 2,
   },
   gridSubtitle: {
-    color: "#666",
+    color: "#999",
     fontSize: 13,
     textAlign: "center",
+  },
+  productCard: {
+    width: 170,
+    marginRight: 15,
+    borderRadius: 10,
+    overflow: "hidden",
+    position: "relative",
+  },
+  productIndex: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    zIndex: 1,
+  },
+
+  productInfo: {
+    padding: 10,
+  },
+
+  productPrice: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#fff",
   },
 });
 

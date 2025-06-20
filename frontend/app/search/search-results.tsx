@@ -45,11 +45,12 @@ export default function SearchResultsPage() {
   const { title } = useLocalSearchParams();
   const params = useLocalSearchParams();
   const searchFor =
-    (params.searchFor as "<string>" | "products" | "columnSelection") ||
-    "products";
-  const [productType, setProductType] = useState<
-    "deal" | "auction" | "essential"
-  >((params.productType as "deal" | "auction" | "essential") || "deal");
+    (params.searchFor as
+      | "<string>"
+      | "products"
+      | "columnSelection"
+      | "productSelection") || "products";
+
   let initialSelectedProducts: ProductCardProps[] = [];
   if (params.selectedProducts && typeof params.selectedProducts === "string") {
     try {
@@ -76,7 +77,6 @@ export default function SearchResultsPage() {
     price,
     listStyleView,
     setListStyleView,
-    selectedProducts,
     setSelectedProducts,
     setColumnProducts,
   } = useListCreation();
@@ -194,13 +194,30 @@ export default function SearchResultsPage() {
     const selectedProductsList = productsArray.filter(
       (product: ProductCardProps) => selectedIds.includes(product._id)
     );
-    if (colIdx === undefined) {
-      Toast.show({ type: "error", text1: "Column index missing" });
+
+    if (searchFor === "productSelection") {
+      setSelectedProducts(selectedProductsList);
+      router.back();
       return;
     }
-    setColumnProducts(colIdx, selectedProductsList);
-    router.back();
-    Toast.show({ type: "success", text1: "Products selected" });
+
+    if (searchFor === "columnSelection") {
+      if (colIdx === undefined) {
+        Toast.show({
+          type: "error",
+          text1: "Column index missing",
+          position: "bottom",
+        });
+        return;
+      }
+      setColumnProducts(colIdx, selectedProductsList);
+      router.back();
+      Toast.show({
+        type: "success",
+        text1: "Products selected",
+        position: "bottom",
+      });
+    }
   };
 
   const ProductCard: React.FC<ProductCardProps> = ({
@@ -215,7 +232,7 @@ export default function SearchResultsPage() {
   }) => (
     <TouchableOpacity
       onPress={() =>
-        searchFor === "columnSelection"
+        searchFor === "columnSelection" || searchFor === "productSelection"
           ? toggleProductSelection(productId)
           : router.push(`/product/${productId}`)
       }
@@ -327,7 +344,8 @@ export default function SearchResultsPage() {
                 />
               </TouchableOpacity>
             )}
-            {searchFor === "columnSelection" && (
+            {(searchFor === "columnSelection" ||
+              searchFor === "productSelection") && (
               <View
                 style={[
                   styles.favoriteButton,
@@ -511,30 +529,31 @@ export default function SearchResultsPage() {
         </Animated.View>
       </View>
 
-      {searchFor === "columnSelection" && selectedIds.length > 0 && (
-        <View
-          style={{
-            paddingHorizontal: 50,
-            paddingBottom: 30,
-          }}
-        >
-          <TouchableOpacity
-            onPress={handleSave}
+      {(searchFor === "columnSelection" || searchFor === "productSelection") &&
+        selectedIds.length > 0 && (
+          <View
             style={{
-              backgroundColor: "black",
-
-              padding: 10,
-              borderRadius: 10,
-              alignItems: "center",
-              justifyContent: "center",
+              paddingHorizontal: 50,
+              paddingBottom: 30,
             }}
           >
-            <Text style={{ color: "white" }}>
-              Save {selectedIds.length} Items
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+            <TouchableOpacity
+              onPress={handleSave}
+              style={{
+                backgroundColor: "black",
+
+                padding: 10,
+                borderRadius: 10,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: "white" }}>
+                Save {selectedIds.length} Items
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
     </View>
   );
 }

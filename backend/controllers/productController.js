@@ -11,10 +11,11 @@ const {
 const ErrorHandler = require("../utils/errorHandler");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const APIFeatures = require("../utils/apiFeatures");
+const { SearchKeyword } = require("../models/SearchKeyword");
+const { RecentViewed } = require("../models/RecentViewed");
 
 exports.getAllProducts = catchAsyncErrors(async (req, res, next) => {
   try {
-    console.log("req.query", req.query);
     // If count_only is true, optimize the query to only get the count
     const countOnly = req.query.count_only === "true";
 
@@ -43,6 +44,21 @@ exports.getAllProducts = catchAsyncErrors(async (req, res, next) => {
     // console.log("Query", req.query);
     // Apply APIFeatures for search, filter, and pagination
     const apiFeatures = new APIFeatures(query, req.query);
+
+    // Add search keyword to the query
+    if (req.query.keyword && req.user) {
+      const searchKeyword = await SearchKeyword.findOne({
+        userId: req.user.id,
+        keyword: req.query.keyword,
+      });
+
+      if (!searchKeyword) {
+        await SearchKeyword.create({
+          userId: req.user.id,
+          keyword: req.query.keyword,
+        });
+      }
+    }
 
     // console.log("API Features", apiFeatures);
     await apiFeatures.search();
@@ -125,6 +141,25 @@ exports.getProductById = catchAsyncErrors(async (req, res, next) => {
 
   if (!product) {
     return next(new ErrorHandler("Product not found", 404));
+  }
+
+  if (req.user) {
+    const recentViewed = await RecentViewed.findOne({
+      userId: req.user.id,
+      productId: req.params.id,
+    });
+
+    if (!recentViewed) {
+      await RecentViewed.create({
+        userId: req.user.id,
+        productId: req.params.id,
+      });
+    } else {
+      await RecentViewed.findOneAndUpdate(
+        { userId: req.user.id, productId: req.params.id },
+        { $set: { createdAt: new Date() } }
+      );
+    }
   }
 
   res.status(200).json({

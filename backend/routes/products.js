@@ -15,8 +15,10 @@ const {
 const { isAuthenticatedUser } = require("../middlewares/auth");
 
 router.route("/").get(getAllProducts);
-router.route("/search").get(getAllProducts);
+router.route("/auth").get(isAuthenticatedUser, getAllProducts);
 router.route("/:id").get(getProductById);
+router.route("/auth/:id").get(isAuthenticatedUser, getProductById);
+router.route("/search").get(getAllProducts);
 
 // route for create product with multiple images : api/v1/products
 router

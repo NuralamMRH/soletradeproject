@@ -27,6 +27,7 @@ import {
 } from "@/hooks/react-query/homeFeedButtonApi";
 import Toast from "react-native-toast-message";
 import STATIC_APP_ROUTES from "@/utils/staticAppRoutes";
+import { baseUrl } from "@/api/MainApi";
 
 interface Params {
   button?: any;
@@ -73,7 +74,7 @@ const AddHomeFeedButton: React.FC = () => {
         setButtonImage(
           image_full_url.startsWith("http")
             ? image_full_url
-            : `${process.env.EXPO_PUBLIC_API_URL}${image_full_url}`
+            : `${baseUrl}${image_full_url}`
         );
       }
     }

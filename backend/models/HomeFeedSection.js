@@ -13,6 +13,10 @@ const homeFeedSectionSchema = mongoose.Schema(
     number_of_items: {
       type: Number,
     },
+    items_per_row: {
+      type: Number,
+      default: 3,
+    },
     items_per_column: {
       type: Number,
       default: 3,
@@ -76,6 +80,12 @@ const homeFeedSectionSchema = mongoose.Schema(
       enum: ["auto", "manual"],
       required: true,
       default: "manual",
+    },
+    pageType: {
+      type: String,
+      enum: ["home", "search"],
+      required: true,
+      default: "home",
     },
     isActive: {
       type: Boolean,

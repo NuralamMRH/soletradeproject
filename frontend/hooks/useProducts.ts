@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import MainApi from "@/api/MainApi";
+import { useAuth } from "./useAuth";
 
 // Utility to remove empty, null, or undefined values from an object
 const cleanParams = (obj: Record<string, any>) => {
@@ -11,6 +12,7 @@ const cleanParams = (obj: Record<string, any>) => {
 };
 
 export const useProducts = ({ filter }: { filter: any | null }) => {
+  const { isAuthenticated } = useAuth();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,12 +29,16 @@ export const useProducts = ({ filter }: { filter: any | null }) => {
       const cleanedFilter = cleanParams(safeFilter);
 
       console.log("cleanedFilter", cleanedFilter);
-      const response = await MainApi.get("/api/v1/products", {
-        params: cleanedFilter,
-      });
-      // const response = await MainApi.get("/api/v1/products");
-
-      // console.log("Response", response.data);
+      let response;
+      if (isAuthenticated) {
+        response = await MainApi.get("/api/v1/products/auth", {
+          params: cleanedFilter,
+        });
+      } else {
+        response = await MainApi.get("/api/v1/products", {
+          params: cleanedFilter,
+        });
+      }
 
       // Validate response data
       if (!response.data.products) {

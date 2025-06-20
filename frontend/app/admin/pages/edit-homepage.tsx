@@ -376,8 +376,9 @@ const EditHomePage: React.FC = () => {
                 <View style={[styles.button, styles.squareButton]}>
                   <Image
                     source={{
-                      uri: `${process.env.EXPO_PUBLIC_API_URL}${
-                        item.image_url || item.image_full_url
+                      uri: `${baseUrl}${
+                        item.image_full_url ||
+                        `/public/uploads/feedButton/${item.image}`
                       }`,
                     }}
                     style={styles.buttonImage}
@@ -397,7 +398,7 @@ const EditHomePage: React.FC = () => {
               alignItems: "center",
             }}
           >
-            <Text style={styles.sectionTitle}>Homefeed Sections</Text>
+            <Text style={styles.sectionTitle}>Home feed Sections</Text>
             <TouchableOpacity
               style={{
                 flexDirection: "row",

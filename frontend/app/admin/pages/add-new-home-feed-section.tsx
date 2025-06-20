@@ -35,14 +35,17 @@ import { SIZES } from "@/constants";
 import { useListCreation } from "@/context/ListCreationContext";
 import { useProducts } from "@/hooks/useProducts";
 import { Platform } from "react-native";
+import { ThemedText } from "@/components/ThemedText";
 
 interface Section {
   _id?: string;
   name: string;
   mode: "auto" | "manual";
+  pageType: "home" | "search";
   description?: string;
   number_of_items?: number;
   items_per_column?: number;
+  items_per_row?: number;
   column_count?: number;
   column_names?: { [key: string]: string };
   column_variables?: { [key: string]: string };
@@ -75,7 +78,11 @@ const AddNewHomeFeedSection: React.FC = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const isEditing = params.isEditing === "true";
-  const defaultSection: Section = { name: "", mode: "manual" };
+  const defaultSection: Section = {
+    name: "",
+    mode: "manual",
+    pageType: "home",
+  };
   let section: Section = defaultSection;
   if (params.section && typeof params.section === "string") {
     try {
@@ -90,23 +97,22 @@ const AddNewHomeFeedSection: React.FC = () => {
     section.description || ""
   );
   const [numberOfItems, setNumberOfItems] = useState<string>(
-    section.number_of_items?.toString() || "10"
+    section?.number_of_items?.toString() || "10"
   );
   const [displayStyle, setDisplayStyle] = useState<number>(
-    section.display_style || 1
+    section?.display_style || 1
   );
   const [selectedBrands, setSelectedBrands] = useState<any[]>(
-    section.brands || []
+    section?.brands || []
   );
   const [selectedCategories, setSelectedCategories] = useState<any[]>(
-    section.categories || []
+    section?.categories || []
   );
-  const [selectedProducts, setSelectedProducts] = useState<any[]>(
-    section.products || []
-  );
+
   const [isLoading, setIsLoading] = useState(false);
   const [showCategorySheet, setShowCategorySheet] = useState(false);
   const [showBrandSheet, setShowBrandSheet] = useState(false);
+  const [showItemsPerRowSheet, setShowItemsPerRowSheet] = useState(false);
   const { categories } = useCategories();
   const { brands } = useBrands();
   const [columns, setColumns] = useState<
@@ -122,6 +128,7 @@ const AddNewHomeFeedSection: React.FC = () => {
   const deleteSection = useDeleteHomeFeedSection();
   const bottomSheetRef = useRef<any>(null);
   const [mode, setMode] = useState<"auto" | "manual">("manual");
+  const [pageType, setPageType] = useState<"home" | "search">("home");
   const [isActive, setIsActive] = useState<boolean>(true);
   const [variableSource, setVariableSource] = useState<
     "products" | "categories" | "brands"
@@ -134,8 +141,8 @@ const AddNewHomeFeedSection: React.FC = () => {
   });
   const [itemCount, setItemCount] = useState<string>("10");
   const [columnCount, setColumnCount] = useState<string>("2");
-  const [itemsPerColumn, setItemsPerColumn] = useState<string>("3");
-  const [columnNames, setColumnNames] = useState<{ [key: string]: string }>({});
+  const [itemsPerColumn, setItemsPerColumn] = useState<number>(3);
+  const [itemsPerRow, setItemsPerRow] = useState<number>(3);
   const [columnVariables, setColumnVariables] = useState<{
     [key: string]: string;
   }>({});
@@ -147,9 +154,14 @@ const AddNewHomeFeedSection: React.FC = () => {
   //   columns.map((col) => col.products)
   // );
 
-  const [displayType, setDisplayType] = useState<string>("brand");
+  const [displayType, setDisplayType] = useState<string>("product");
 
-  const { columnProducts, clearColumnProducts } = useListCreation();
+  const {
+    columnProducts,
+    clearColumnProducts,
+    selectedProducts,
+    setSelectedProducts,
+  } = useListCreation();
   const { products: allProducts } = useProducts({ filter: {} });
 
   const getProductObjects = (
@@ -201,7 +213,7 @@ const AddNewHomeFeedSection: React.FC = () => {
     }
   }, [columnProducts]);
 
-  const handleSelectProducts = (columnIdx?: number) => {
+  const handleSelectColumnProducts = (columnIdx?: number) => {
     clearAll();
 
     router.push({
@@ -220,9 +232,27 @@ const AddNewHomeFeedSection: React.FC = () => {
     });
   };
 
+  const handleSelectProducts = (columnIdx?: number) => {
+    clearAll();
+
+    router.push({
+      pathname: "/search/search-results",
+      params: {
+        title: "Select Products",
+        searchFor: "productSelection",
+        filter: JSON.stringify({ product_type: "deal" }),
+        selectedProducts: JSON.stringify(selectedProducts),
+      },
+    });
+  };
+
   const handleSave = () => {
     if (!sectionName.trim()) {
-      Toast.show({ type: "error", text1: "Please enter a section name" });
+      Toast.show({
+        type: "error",
+        text1: "Please enter a section name",
+        position: "bottom",
+      });
       return;
     }
     setIsLoading(true);
@@ -238,8 +268,8 @@ const AddNewHomeFeedSection: React.FC = () => {
       name: sectionName.trim(),
       description: sectionDescription.trim(),
       number_of_items: parseInt(itemCount) || 100,
-      items_per_column:
-        displayStyle === 3 ? parseInt(itemsPerColumn) || 3 : undefined,
+      items_per_column: displayStyle === 3 ? itemsPerColumn || 3 : undefined,
+      items_per_row: itemsPerRow || 3,
       column_count: displayStyle === 3 ? parseInt(columnCount) || 2 : undefined,
       column_names: displayStyle === 3 ? builtColumnNames : undefined,
       column_variables: displayStyle === 3 ? columnVariables : undefined,
@@ -249,6 +279,7 @@ const AddNewHomeFeedSection: React.FC = () => {
       display_type: displayType,
       display_style: displayStyle,
       mode: mode,
+      pageType: pageType,
       isActive: isActive,
       order: 0,
       products: mode === "manual" ? selectedProducts : undefined,
@@ -265,6 +296,7 @@ const AddNewHomeFeedSection: React.FC = () => {
             Toast.show({
               type: "success",
               text1: "Section updated successfully",
+              position: "bottom",
             });
             router.back();
           },
@@ -272,6 +304,7 @@ const AddNewHomeFeedSection: React.FC = () => {
             Toast.show({
               type: "error",
               text1: error?.message || "Failed to update section",
+              position: "bottom",
             });
           },
           onSettled: () => setIsLoading(false),
@@ -283,6 +316,7 @@ const AddNewHomeFeedSection: React.FC = () => {
           Toast.show({
             type: "success",
             text1: "Section created successfully",
+            position: "bottom",
           });
           router.back();
         },
@@ -290,6 +324,7 @@ const AddNewHomeFeedSection: React.FC = () => {
           Toast.show({
             type: "error",
             text1: error?.message || "Failed to create section",
+            position: "bottom",
           });
         },
         onSettled: () => setIsLoading(false),
@@ -318,6 +353,7 @@ const AddNewHomeFeedSection: React.FC = () => {
               Toast.show({
                 type: "error",
                 text1: error?.message || "Failed to delete section",
+                position: "bottom",
               });
             }
           },
@@ -350,13 +386,17 @@ const AddNewHomeFeedSection: React.FC = () => {
 
       <TouchableOpacity onPress={handleSave}>
         {isEditing ? (
-          <Text style={{ fontSize: 18, fontWeight: "bold", color: "#111" }}>
+          <ThemedText
+            style={{ fontSize: 18, fontWeight: "bold", color: "#111" }}
+          >
             Update
-          </Text>
+          </ThemedText>
         ) : (
-          <Text style={{ fontSize: 18, fontWeight: "bold", color: "#111" }}>
+          <ThemedText
+            style={{ fontSize: 18, fontWeight: "bold", color: "#111" }}
+          >
             Save
-          </Text>
+          </ThemedText>
         )}
       </TouchableOpacity>
     </View>
@@ -364,7 +404,7 @@ const AddNewHomeFeedSection: React.FC = () => {
 
   // BottomSheet for categories/brands
   const renderBottomSheet = (
-    type: "category" | "brand",
+    type: "category" | "brand" | "itemsPerRow",
     activeColumnIdx?: number
   ) => (
     <BottomSheet
@@ -375,19 +415,32 @@ const AddNewHomeFeedSection: React.FC = () => {
         if (index === -1) {
           setShowCategorySheet(false);
           setShowBrandSheet(false);
+          setShowItemsPerRowSheet(false);
         }
       }}
     >
       <BottomSheetView style={{ flex: 1 }}>
         <FlatList<any>
-          data={type === "category" ? categories : brands}
-          keyExtractor={(item) => item?._id || String(item)}
+          data={
+            type === "category"
+              ? categories
+              : type === "brand"
+              ? brands
+              : [1, 2, 3, 4, 5, 6]
+          }
+          keyExtractor={(item) =>
+            type === "itemsPerRow" ? String(item) : item?._id || String(item)
+          }
           renderItem={({ item }) => {
             const isSelected =
               displayStyle !== 3
                 ? type === "category"
                   ? selectedCategories.some((c) => c._id === item._id)
-                  : selectedBrands.some((b) => b._id === item._id)
+                  : type === "brand"
+                  ? selectedBrands.some((b) => b._id === item._id)
+                  : type === "itemsPerRow"
+                  ? itemsPerRow === item
+                  : false
                 : activeColumnIdx !== undefined &&
                   ((type === "category" &&
                     columns[activeColumnIdx].categories.some(
@@ -409,22 +462,29 @@ const AddNewHomeFeedSection: React.FC = () => {
                 }}
                 onPress={() => {
                   if (displayStyle !== 3) {
-                    if (type === "category") {
-                      const already = selectedCategories.some(
-                        (c) => c._id === item._id
-                      );
-                      const newCategories = already
-                        ? selectedCategories.filter((c) => c._id !== item._id)
-                        : [...selectedCategories, item];
-                      setSelectedCategories(newCategories);
+                    if (type === "itemsPerRow") {
+                      setItemsPerRow(item);
+                      setShowItemsPerRowSheet(false);
+                      setShowCategorySheet(false);
+                      setShowBrandSheet(false);
                     } else {
-                      const already = selectedBrands.some(
-                        (b) => b._id === item._id
-                      );
-                      const newBrands = already
-                        ? selectedBrands.filter((b) => b._id !== item._id)
-                        : [...selectedBrands, item];
-                      setSelectedBrands(newBrands);
+                      if (type === "category") {
+                        const already = selectedCategories.some(
+                          (c) => c._id === item._id
+                        );
+                        const newCategories = already
+                          ? selectedCategories.filter((c) => c._id !== item._id)
+                          : [...selectedCategories, item];
+                        setSelectedCategories(newCategories);
+                      } else {
+                        const already = selectedBrands.some(
+                          (b) => b._id === item._id
+                        );
+                        const newBrands = already
+                          ? selectedBrands.filter((b) => b._id !== item._id)
+                          : [...selectedBrands, item];
+                        setSelectedBrands(newBrands);
+                      }
                     }
                   } else {
                     if (activeColumnIdx === undefined) return;
@@ -480,7 +540,9 @@ const AddNewHomeFeedSection: React.FC = () => {
                     />
                   ) : null}
                 </View>
-                <Text>{item?.name || "Unnamed"}</Text>
+                <ThemedText>
+                  {type === "itemsPerRow" ? item : item?.name || "Unnamed"}
+                </ThemedText>
               </TouchableOpacity>
             );
           }}
@@ -569,13 +631,16 @@ const AddNewHomeFeedSection: React.FC = () => {
         const parsed = JSON.parse(params.section);
         setSectionName(parsed.name || "");
         setNumberOfItems(parsed.number_of_items || 100);
+        setItemsPerRow(parsed.items_per_row || 3);
+        setItemsPerColumn(parsed.items_per_column || 3);
         setSectionDescription(parsed.description || "");
         setNumberOfItems(
           parsed.number_of_items ? String(parsed.number_of_items) : ""
         );
         setDisplayStyle(parsed.display_style || 1);
-        setDisplayType(parsed.display_type || "brand");
+        setDisplayType(parsed.display_type || "product");
         setMode(parsed.mode || "manual");
+        setPageType(parsed.pageType);
         setIsActive(parsed.isActive !== undefined ? parsed.isActive : true);
         setSelectedBrands(parsed.brands || []);
         setSelectedCategories(parsed.categories || []);
@@ -637,23 +702,27 @@ const AddNewHomeFeedSection: React.FC = () => {
     >
       <View style={{ flex: 1, backgroundColor: "#fff" }}>
         {renderHeader()}
-        <ScrollView contentContainerStyle={{ padding: 16 }}>
+        <ScrollView
+          contentContainerStyle={{
+            padding: 16,
+          }}
+        >
           {/* Top-level section fields */}
-          <Text style={styles.label}>Section Name</Text>
+          <ThemedText style={styles.label}>Section Name</ThemedText>
           <TextInput
             value={sectionName}
             onChangeText={setSectionName}
             style={styles.input}
             placeholder="Enter section name"
           />
-          <Text style={styles.label}>Description</Text>
+          <ThemedText style={styles.label}>Description</ThemedText>
           <TextInput
             value={sectionDescription}
             onChangeText={setSectionDescription}
             style={styles.input}
             placeholder="Enter description"
           />
-          <Text style={styles.label}>Number of Items</Text>
+          <ThemedText style={styles.label}>Number of Items</ThemedText>
           <TextInput
             value={numberOfItems}
             onChangeText={setNumberOfItems}
@@ -662,9 +731,9 @@ const AddNewHomeFeedSection: React.FC = () => {
             keyboardType="numeric"
           />
           {/* Display Type Selector */}
-          <Text style={styles.label}>Display Type</Text>
+          <ThemedText style={styles.label}>Display Type</ThemedText>
           <View style={{ flexDirection: "row", marginBottom: 16 }}>
-            {["brand", "category", "product", "custom"].map((type) => (
+            {["product", "brand", "category"].map((type) => (
               <TouchableOpacity
                 key={type}
                 style={{
@@ -676,12 +745,14 @@ const AddNewHomeFeedSection: React.FC = () => {
                 }}
                 onPress={() => setDisplayType(type)}
               >
-                <Text>{type.charAt(0).toUpperCase() + type.slice(1)}</Text>
+                <ThemedText>
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </ThemedText>
               </TouchableOpacity>
             ))}
           </View>
           {/* Mode Selector */}
-          <Text style={styles.label}>Mode</Text>
+          <ThemedText style={styles.label}>Mode</ThemedText>
           <View style={{ flexDirection: "row", marginBottom: 16 }}>
             {["manual", "auto"].map((m) => (
               <TouchableOpacity
@@ -691,15 +762,44 @@ const AddNewHomeFeedSection: React.FC = () => {
                   padding: 10,
                   borderRadius: 8,
                   marginRight: 10,
+                  minWidth: 100,
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
                 onPress={() => setMode(m as "auto" | "manual")}
               >
-                <Text>{m.charAt(0).toUpperCase() + m.slice(1)}</Text>
+                <ThemedText>
+                  {m.charAt(0).toUpperCase() + m.slice(1)}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Mode Selector */}
+          <ThemedText style={styles.label}>Page Type</ThemedText>
+          <View style={{ flexDirection: "row", marginBottom: 16 }}>
+            {["home", "search"].map((m) => (
+              <TouchableOpacity
+                key={m}
+                style={{
+                  backgroundColor: pageType === m ? Colors.brandGray : "#eee",
+                  padding: 10,
+                  borderRadius: 8,
+                  marginRight: 10,
+                  minWidth: 100,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                onPress={() => setPageType(m as "home" | "search")}
+              >
+                <ThemedText>
+                  {m.charAt(0).toUpperCase() + m.slice(1)}
+                </ThemedText>
               </TouchableOpacity>
             ))}
           </View>
           {/* Display Style Selector */}
-          <Text style={styles.label}>Display Style</Text>
+          <ThemedText style={styles.label}>Display Style</ThemedText>
           <View style={{ flexDirection: "column", marginBottom: 16, gap: 10 }}>
             {[1, 2, 3].map((styleNum) => (
               <TouchableOpacity
@@ -723,9 +823,9 @@ const AddNewHomeFeedSection: React.FC = () => {
                     alignItems: "center",
                   }}
                 >
-                  <Text style={{ fontSize: 20, fontWeight: "bold" }}>
+                  <ThemedText style={{ fontSize: 20, fontWeight: "bold" }}>
                     {styleNum}
-                  </Text>
+                  </ThemedText>
 
                   <Image
                     source={displayStyleImages[styleNum]}
@@ -752,24 +852,47 @@ const AddNewHomeFeedSection: React.FC = () => {
               </TouchableOpacity>
             ))}
           </View>
+
           {/* Section-level selectors for style 1 or 2 */}
           {displayStyle !== 3 && (
             <>
+              {displayStyle === 2 && (
+                <>
+                  <ThemedText style={styles.label}>
+                    Select items per row
+                  </ThemedText>
+                  <TouchableOpacity
+                    style={{
+                      borderWidth: 1,
+                      borderColor: "#ccc",
+                      borderRadius: 8,
+                      padding: 5,
+                      backgroundColor: "#fff",
+                      marginBottom: 10,
+                    }}
+                    onPress={() => setShowItemsPerRowSheet(true)}
+                  >
+                    <ThemedText>{itemsPerRow}</ThemedText>
+                  </TouchableOpacity>
+                </>
+              )}
+              {displayStyle === 2 && <></>}
+
               {displayType === "brand" && (
                 <>
-                  <Text style={styles.label}>Select Brand</Text>
+                  <ThemedText style={styles.label}>Select Brand</ThemedText>
                   <TouchableOpacity
                     style={styles.input}
                     onPress={() => setShowBrandSheet(true)}
                   >
-                    <Text>
+                    <ThemedText>
                       {Array.isArray(selectedBrands) &&
                       selectedBrands.length > 0
                         ? selectedBrands
                             .map((b) => b?.name || "Unnamed")
                             .join(", ")
                         : "Select a brand"}
-                    </Text>
+                    </ThemedText>
                   </TouchableOpacity>
 
                   {/* Slected brands */}
@@ -793,7 +916,7 @@ const AddNewHomeFeedSection: React.FC = () => {
                           justifyContent: "space-between",
                         }}
                       >
-                        <Text>{b.name}</Text>
+                        <ThemedText>{b.name}</ThemedText>
                         <TouchableOpacity
                           onPress={() => handleRemoveBrand(b._id)}
                         >
@@ -806,19 +929,19 @@ const AddNewHomeFeedSection: React.FC = () => {
               )}
               {displayType === "category" && (
                 <>
-                  <Text style={styles.label}>Select Category</Text>
+                  <ThemedText style={styles.label}>Select Category</ThemedText>
                   <TouchableOpacity
                     style={styles.input}
                     onPress={() => setShowCategorySheet(true)}
                   >
-                    <Text>
+                    <ThemedText>
                       {Array.isArray(selectedCategories) &&
                       selectedCategories.length > 0
                         ? selectedCategories
                             .map((c) => c?.name || "Unnamed")
                             .join(", ")
                         : "Select a category"}
-                    </Text>
+                    </ThemedText>
                   </TouchableOpacity>
 
                   {/* Slected categories */}
@@ -842,7 +965,7 @@ const AddNewHomeFeedSection: React.FC = () => {
                           justifyContent: "space-between",
                         }}
                       >
-                        <Text>{c.name}</Text>
+                        <ThemedText>{c.name}</ThemedText>
                         <TouchableOpacity
                           onPress={() => handleRemoveCategory(c._id)}
                         >
@@ -855,17 +978,17 @@ const AddNewHomeFeedSection: React.FC = () => {
               )}
               {displayType === "product" && (
                 <>
-                  <Text style={styles.label}>Select Products</Text>
+                  <ThemedText style={styles.label}>Select Products</ThemedText>
                   <TouchableOpacity
                     style={styles.input}
                     onPress={() => handleSelectProducts()}
                   >
-                    <Text>
+                    <ThemedText>
                       {Array.isArray(selectedProducts) &&
                       selectedProducts.length > 0
                         ? `${selectedProducts.length} products selected`
                         : "Select products"}
-                    </Text>
+                    </ThemedText>
                   </TouchableOpacity>
 
                   {/* Slected products */}
@@ -883,7 +1006,7 @@ const AddNewHomeFeedSection: React.FC = () => {
                           justifyContent: "space-between",
                         }}
                       >
-                        <Text>{p.name}</Text>
+                        <ThemedText>{p.name}</ThemedText>
                         <TouchableOpacity
                           onPress={() => handleRemoveProduct(p._id)}
                         >
@@ -899,6 +1022,21 @@ const AddNewHomeFeedSection: React.FC = () => {
           {/* Column config for style 3 */}
           {displayStyle === 3 && (
             <View style={{ marginBottom: 16 }}>
+              {mode === "auto" && (
+                <>
+                  <ThemedText style={styles.label}>
+                    Number of Columns
+                  </ThemedText>
+                  <TextInput
+                    value={columnCount}
+                    onChangeText={setColumnCount}
+                    style={styles.input}
+                    placeholder="e.g. 3"
+                    keyboardType="numeric"
+                  />
+                </>
+              )}
+
               {columns.map((col, colIdx) => (
                 <View
                   key={colIdx}
@@ -908,7 +1046,9 @@ const AddNewHomeFeedSection: React.FC = () => {
                     borderColor: "#eee",
                   }}
                 >
-                  <Text style={styles.label}>Column {colIdx + 1} Name</Text>
+                  <ThemedText style={styles.label}>
+                    Column {colIdx + 1} Name
+                  </ThemedText>
                   <TextInput
                     style={styles.input}
                     value={col.name}
@@ -920,7 +1060,9 @@ const AddNewHomeFeedSection: React.FC = () => {
                   {/* Column-based selectors for display type */}
                   {displayType === "brand" && (
                     <>
-                      <Text style={styles.label}>Select Brands</Text>
+                      <ThemedText style={styles.label}>
+                        Select Brands
+                      </ThemedText>
                       <TouchableOpacity
                         style={styles.input}
                         onPress={() => {
@@ -928,17 +1070,17 @@ const AddNewHomeFeedSection: React.FC = () => {
                           setShowBrandSheet(true);
                         }}
                       >
-                        <Text>
+                        <ThemedText>
                           {col.brands.length > 0
                             ? col.brands
                                 .map((b) => b?.name || "Unnamed")
                                 .join(", ")
                             : "Select brands"}
-                        </Text>
+                        </ThemedText>
                       </TouchableOpacity>
 
                       {/* Slected brands */}
-                      <View
+                      <ThemedText
                         style={{
                           flexWrap: "wrap",
                           flexDirection: "row",
@@ -959,7 +1101,7 @@ const AddNewHomeFeedSection: React.FC = () => {
                               width: SIZES.width * 0.452,
                             }}
                           >
-                            <Text>{b.name}</Text>
+                            <ThemedText>{b.name}</ThemedText>
                             <TouchableOpacity
                               onPress={() =>
                                 handleRemoveBrandColumn(colIdx, b._id)
@@ -973,12 +1115,14 @@ const AddNewHomeFeedSection: React.FC = () => {
                             </TouchableOpacity>
                           </View>
                         ))}
-                      </View>
+                      </ThemedText>
                     </>
                   )}
                   {displayType === "category" && (
                     <>
-                      <Text style={styles.label}>Select Categories</Text>
+                      <ThemedText style={styles.label}>
+                        Select Categories
+                      </ThemedText>
                       <TouchableOpacity
                         style={styles.input}
                         onPress={() => {
@@ -986,13 +1130,13 @@ const AddNewHomeFeedSection: React.FC = () => {
                           setShowCategorySheet(true);
                         }}
                       >
-                        <Text>
+                        <ThemedText>
                           {col.categories.length > 0
                             ? col.categories
                                 .map((c) => c?.name || "Unnamed")
                                 .join(", ")
                             : "Select categories"}
-                        </Text>
+                        </ThemedText>
                       </TouchableOpacity>
 
                       {/* Slected categories */}
@@ -1017,7 +1161,7 @@ const AddNewHomeFeedSection: React.FC = () => {
                               width: SIZES.width * 0.452,
                             }}
                           >
-                            <Text>{c.name}</Text>
+                            <ThemedText>{c.name}</ThemedText>
                             <TouchableOpacity
                               onPress={() =>
                                 handleRemoveCategoryColumn(colIdx, c._id)
@@ -1036,16 +1180,18 @@ const AddNewHomeFeedSection: React.FC = () => {
                   )}
                   {displayType === "product" && mode === "manual" && (
                     <>
-                      <Text style={styles.label}>Select Products</Text>
+                      <ThemedText style={styles.label}>
+                        Select Products
+                      </ThemedText>
                       <TouchableOpacity
                         style={styles.input}
-                        onPress={() => handleSelectProducts(colIdx)}
+                        onPress={() => handleSelectColumnProducts(colIdx)}
                       >
-                        <Text>
+                        <ThemedText>
                           {col.products.length > 0
                             ? `${col.products.length} products selected`
                             : "Select products"}
-                        </Text>
+                        </ThemedText>
                       </TouchableOpacity>
 
                       {/* Slected products */}
@@ -1063,7 +1209,7 @@ const AddNewHomeFeedSection: React.FC = () => {
                               justifyContent: "space-between",
                             }}
                           >
-                            <Text>{p.name}</Text>
+                            <ThemedText>{p.name}</ThemedText>
                             <TouchableOpacity
                               onPress={() =>
                                 handleRemoveProductColumn(colIdx, p._id)
@@ -1088,7 +1234,9 @@ const AddNewHomeFeedSection: React.FC = () => {
                     }}
                     onPress={() => removeColumn(colIdx)}
                   >
-                    <Text style={{ color: "#D32F2F" }}>Remove Column</Text>
+                    <ThemedText style={{ color: "#D32F2F" }}>
+                      Remove Column
+                    </ThemedText>
                   </TouchableOpacity>
                 </View>
               ))}
@@ -1106,32 +1254,85 @@ const AddNewHomeFeedSection: React.FC = () => {
                 }}
                 onPress={addColumn}
               >
-                <Text
+                <ThemedText
                   style={{ color: "#8B0000", fontWeight: "bold", fontSize: 14 }}
                 >
                   Add Column
-                </Text>
+                </ThemedText>
                 <Ionicons name="add" size={20} color="#8B0000" />
               </TouchableOpacity>
             </View>
           )}
-          {/* Bottom sheets and loading overlay */}
-          {showCategorySheet &&
-            renderBottomSheet(
-              "category",
-              activeColumnIdx !== null ? activeColumnIdx : undefined
-            )}
-          {showBrandSheet &&
-            renderBottomSheet(
-              "brand",
-              activeColumnIdx !== null ? activeColumnIdx : undefined
-            )}
+
           {isLoading && (
             <View style={styles.loadingOverlay}>
               <ActivityIndicator size="large" color={Colors.brandGray} />
             </View>
           )}
+          {isEditing && <View style={{ marginBottom: 100 }}></View>}
         </ScrollView>
+        {/* Bottom sheets and loading overlay */}
+        {showCategorySheet &&
+          renderBottomSheet(
+            "category",
+            activeColumnIdx !== null ? activeColumnIdx : undefined
+          )}
+        {showBrandSheet &&
+          renderBottomSheet(
+            "brand",
+            activeColumnIdx !== null ? activeColumnIdx : undefined
+          )}
+        {showItemsPerRowSheet &&
+          renderBottomSheet(
+            "itemsPerRow",
+            activeColumnIdx !== null ? activeColumnIdx : undefined
+          )}
+        {isEditing && params.section && (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 10,
+              backgroundColor: "#fff0",
+              position: "absolute",
+              bottom: 20,
+              left: 0,
+              right: 0,
+              padding: 10,
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                backgroundColor: "#eee",
+                padding: 10,
+                width: SIZES.width / 2 - 32,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onPress={() => router.back()}
+            >
+              <ThemedText>Cancel</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                padding: 10,
+                backgroundColor: Colors.brandRed,
+                width: SIZES.width / 2 - 32,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onPress={handleDelete}
+            >
+              <ThemedText
+                style={{
+                  color: "#fff",
+                }}
+              >
+                Delete
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </KeyboardAvoidingView>
   );

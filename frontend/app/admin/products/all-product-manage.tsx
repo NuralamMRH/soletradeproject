@@ -202,17 +202,15 @@ export default function AllProductManagePage() {
               resizeMode="contain"
             />
 
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, justifyContent: "center" }}>
               <Text style={styles.productName}>{product.name}</Text>
               <Text style={{ fontSize: 12, color: "#333" }}>
                 {product.brand?.name || product.category?.name}
               </Text>
               <Text style={{ fontSize: 12, color: "#333" }}>
-                {product?.richDescription?.slice(0, 50)}
-              </Text>
-
-              <Text style={{ fontSize: 12, color: "#333" }}>
-                {product?.description?.slice(0, 50)}
+                {product?.richDescription?.length > 0
+                  ? product?.richDescription?.slice(0, 30)
+                  : product?.description?.slice(0, 30)}
               </Text>
             </View>
           </TouchableOpacity>
@@ -348,12 +346,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-start",
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-    gap: 40,
+    gap: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
   },
   productName: {
     fontSize: 14,

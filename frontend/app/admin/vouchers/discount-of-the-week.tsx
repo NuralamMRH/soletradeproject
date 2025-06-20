@@ -21,7 +21,6 @@ import {
   useCreateVoucherSection,
   useUpdateVoucherSection,
 } from "@/hooks/react-query/voucherApi";
-import { useQuery } from "@tanstack/react-query";
 import { useGetVouchers } from "@/hooks/react-query/useVoucherMutation";
 import COLORS from "@/constants/Colors";
 import AdminHeader from "@/components/AdminHeader";

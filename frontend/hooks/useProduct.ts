@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import MainApi from "@/api/MainApi";
+import { useAuth } from "./useAuth";
 
 export const useProduct = (id: string | null) => {
+  const { isAuthenticated } = useAuth();
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<null | string>(null);
@@ -11,7 +13,12 @@ export const useProduct = (id: string | null) => {
       setLoading(true);
       setError(null);
       let response;
-      response = await MainApi.get(`/api/v1/products/${id}`);
+
+      if (isAuthenticated) {
+        response = await MainApi.get(`/api/v1/products/auth/${id}`);
+      } else {
+        response = await MainApi.get(`/api/v1/products/${id}`);
+      }
 
       setProduct(response.data.product || []);
     } catch (err: any) {
