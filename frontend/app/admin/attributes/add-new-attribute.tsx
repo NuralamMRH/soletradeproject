@@ -33,6 +33,7 @@ import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import {
   useCreateAttribute,
   useCreateAttributeOption,
+  useDeleteAttributeOption,
   useUpdateAttribute,
   useUpdateAttributeOption,
 } from "@/hooks/react-query/useAttributeMutations";
@@ -85,6 +86,7 @@ export default function AddNewAttributePage() {
   const updateAttribute = useUpdateAttribute();
   const createAttributeOption = useCreateAttributeOption();
   const updateAttributeOption = useUpdateAttributeOption();
+  const deleteAttributeOption = useDeleteAttributeOption();
   const isLoading =
     createAttribute.status === "pending" ||
     updateAttribute.status === "pending" ||
@@ -256,6 +258,15 @@ export default function AddNewAttributePage() {
     }
   };
 
+  const handleDeleteAttributeOption = async () => {
+    await deleteAttributeOption.mutateAsync(editAttributeOptionId as string);
+    setEditAttributeOptionId(null);
+    setAttributeOptionName("");
+    handleCloseBottomSheet();
+    refetchAttributeOptions();
+    Toast.show({ type: "success", text1: "Attribute option deleted" });
+  };
+
   const handleAddImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -411,6 +422,7 @@ export default function AddNewAttributePage() {
           ]}
         >
           <FlatList
+            showsVerticalScrollIndicator={false}
             data={attributeOptions as AttributeOption[]}
             keyExtractor={(option) => option._id || option.id || ""}
             renderItem={({ item: option, index }) => (
@@ -518,7 +530,7 @@ export default function AddNewAttributePage() {
           backgroundColor: "white",
         }}
       >
-        <BottomSheetView style={{ flex: 1, position: "relative" }}>
+        <BottomSheetView style={{ flex: 1, position: "relative", height: 300 }}>
           <View
             style={[
               styles.inputContainer,
@@ -526,9 +538,7 @@ export default function AddNewAttributePage() {
               { marginTop: 20 },
             ]}
           >
-            <Text style={[styles.inputLabel, { color: "#ffffff" }]}>
-              Attribute Option Name
-            </Text>
+            <Text style={[styles.inputLabel, { color: "#ffffff" }]}>Size</Text>
             <TextInput
               style={[styles.textInput, { color: "#ffffff" }]}
               value={attributeOptionName}
@@ -551,34 +561,56 @@ export default function AddNewAttributePage() {
               marginBottom: 20,
             }}
           >
-            <Button
-              title="Cancel"
-              onPress={() => handleCloseBottomSheet()}
-              disabled={isLoading}
-              textColor="#fff"
-              style={{
-                flex: 1,
-                borderRadius: 0,
-                backgroundColor: "#333333",
-              }}
-            />
-
             {editAttributeOptionId ? (
-              <Button
-                title={"Update"}
-                onPress={handleUpdateAttributeOption}
-                disabled={isLoading}
-                textColor="#fff"
-                style={{ flex: 1, borderRadius: 0, backgroundColor: "#8B0000" }}
-              />
+              <>
+                <Button
+                  title="Update"
+                  onPress={() => handleUpdateAttributeOption()}
+                  disabled={isLoading}
+                  textColor="#fff"
+                  style={{
+                    flex: 1,
+                    borderRadius: 0,
+                    backgroundColor: "#333333",
+                  }}
+                />
+                <Button
+                  title={"Delete"}
+                  onPress={handleDeleteAttributeOption}
+                  disabled={isLoading}
+                  textColor="#fff"
+                  style={{
+                    flex: 1,
+                    borderRadius: 0,
+                    backgroundColor: "#8B0000",
+                  }}
+                />
+              </>
             ) : (
-              <Button
-                title={"Save"}
-                onPress={handleSaveAttributeOption}
-                disabled={isLoading}
-                textColor="#fff"
-                style={{ flex: 1, borderRadius: 0, backgroundColor: "#8B0000" }}
-              />
+              <>
+                <Button
+                  title="Cancel"
+                  onPress={() => handleCloseBottomSheet()}
+                  disabled={isLoading}
+                  textColor="#fff"
+                  style={{
+                    flex: 1,
+                    borderRadius: 0,
+                    backgroundColor: "#333333",
+                  }}
+                />
+                <Button
+                  title={"Save"}
+                  onPress={handleSaveAttributeOption}
+                  disabled={isLoading}
+                  textColor="#fff"
+                  style={{
+                    flex: 1,
+                    borderRadius: 0,
+                    backgroundColor: "#8B0000",
+                  }}
+                />
+              </>
             )}
           </View>
         </BottomSheetView>

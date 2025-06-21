@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 
 const categorySchema = mongoose.Schema({
+  type: {
+    type: String,
+    enum: ["general", "sole-check"],
+    default: "general",
+  },
   name: {
     type: String,
     required: true,

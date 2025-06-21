@@ -20,8 +20,6 @@ import { useRouter } from "expo-router";
 
 const { width } = Dimensions.get("window");
 
-
-
 const featuredBrands = [
   {
     id: 1,
@@ -230,18 +228,17 @@ const styles = StyleSheet.create({
   },
   sliderContainer: {
     width: width,
-    height: width * 0.45,
+    height: width * 0.55,
     marginBottom: 8,
   },
   sliderSlide: {
     width: width,
-    height: width * 0.45,
+    height: width * 0.55,
   },
   sliderImage: {
     width: width,
-    height: width * 0.45,
+    height: width * 0.55,
     resizeMode: "cover",
-    borderRadius: 20,
   },
   paginationDot: {
     width: 8,

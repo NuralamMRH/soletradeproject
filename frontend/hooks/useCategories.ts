@@ -1,8 +1,16 @@
 import { useState, useEffect } from "react";
 import MainApi from "@/api/MainApi";
 
+export interface Category {
+  _id: string;
+  id: string;
+  name: string;
+  type: string;
+  image_full_url: string;
+}
+
 export const useCategories = () => {
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 

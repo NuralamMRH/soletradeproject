@@ -7,7 +7,9 @@ const {
 } = require("../utils/fileUploader");
 
 exports.getAllSoleCheckBrands = catchAsyncErrors(async (req, res, next) => {
-  const brandList = await SoleCheckBrand.find().populate("models");
+  const brandList = await SoleCheckBrand.find()
+    .populate("models")
+    .populate("categories");
 
   if (!brandList) {
     return next(new ErrorHandler("Sole check brands not found", 500));
@@ -20,7 +22,9 @@ exports.getAllSoleCheckBrands = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.getSoleCheckBrandById = catchAsyncErrors(async (req, res, next) => {
-  const brand = await SoleCheckBrand.findById(req.params.id);
+  const brand = await SoleCheckBrand.findById(req.params.id).populate(
+    "categories"
+  );
 
   if (!brand) {
     return next(new ErrorHandler("Sole check brand not found", 404));
@@ -61,38 +65,45 @@ exports.createSoleCheckBrand = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.updateSoleCheckBrand = catchAsyncErrors(async (req, res, next) => {
-  const brand = await SoleCheckBrand.findById(req.params.id);
-  if (!brand) {
-    return next(new ErrorHandler("Brand not found", 404));
+  try {
+    const brand = await SoleCheckBrand.findById(req.params.id);
+    if (!brand) {
+      return next(new ErrorHandler("Brand not found", 404));
+    }
+
+    const imageFields = ["image"];
+
+    const uploadedFile = await filesUpdatePromises(
+      req,
+      res,
+      next,
+      imageFields,
+      "brand"
+    );
+
+    const updatedBrand = await SoleCheckBrand.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...uploadedFile,
+        ...req.body,
+      },
+      { new: true }
+    );
+
+    if (!updatedBrand) {
+      return next(new ErrorHandler("Error updating sole check brand", 400));
+    }
+
+    res.status(200).json({
+      success: true,
+      soleCheckBrand: updatedBrand,
+    });
+  } catch (error) {
+    console.log("Error updating sole check brand", error);
+    return next(
+      new ErrorHandler(`Error updating sole check brand: ${error.message}`, 500)
+    );
   }
-
-  const imageFields = ["image"];
-
-  const uploadedFile = await filesUpdatePromises(
-    req,
-    res,
-    next,
-    imageFields,
-    "brand"
-  );
-
-  const updatedBrand = await SoleCheckBrand.findByIdAndUpdate(
-    req.params.id,
-    {
-      ...uploadedFile,
-      ...req.body,
-    },
-    { new: true }
-  );
-
-  if (!updatedBrand) {
-    return next(new ErrorHandler("Error updating sole check brand", 400));
-  }
-
-  res.status(200).json({
-    success: true,
-    soleCheckBrand: updatedBrand,
-  });
 });
 
 exports.deleteSoleCheckBrand = catchAsyncErrors(async (req, res, next) => {
@@ -115,15 +126,36 @@ exports.deleteSoleCheckBrand = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-exports.getActiveSoleCheckBrands = catchAsyncErrors(async (req, res, next) => {
-  const activeBrands = await SoleCheckBrand.find({ isActive: true });
+exports.deleteManySoleCheckBrands = catchAsyncErrors(async (req, res, next) => {
+  try {
+    // Validate input
 
-  if (!activeBrands) {
-    return next(new ErrorHandler("Active sole check brands not found", 500));
+    if (!req.body.ids || !Array.isArray(req.body.ids)) {
+      return next(new ErrorHandler("Invalid request data", 400));
+    }
+
+    // Find the s to delete
+    const soleCheckBrands = await SoleCheckBrand.find({
+      _id: { $in: req.body.ids },
+    });
+
+    if (!soleCheckBrands || soleCheckBrands.length === 0) {
+      return next(new ErrorHandler("Sole check brands not found", 404));
+    }
+
+    // Perform deletion
+    await SoleCheckBrand.deleteMany({ _id: { $in: req.body.ids } });
+
+    res.status(200).json({
+      success: true,
+      message: "Sole check brands have been deleted successfully.",
+    });
+  } catch (error) {
+    return next(
+      new ErrorHandler(
+        `Error deleting sole check brands: ${error.message}`,
+        500
+      )
+    );
   }
-
-  res.status(200).json({
-    success: true,
-    soleCheckBrands: activeBrands,
-  });
 });

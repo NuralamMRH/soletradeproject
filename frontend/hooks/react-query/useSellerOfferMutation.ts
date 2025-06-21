@@ -192,7 +192,7 @@ function cleanProductData(data: any) {
     if (cleaned[field] === "") delete cleaned[field];
   });
   if (Array.isArray(cleaned.variations)) {
-    cleaned.variations = cleaned.variations.filter((v) => v && v !== "");
+    cleaned.variations = cleaned.variations.filter((v: any) => v && v !== "");
   }
   return cleaned;
 }

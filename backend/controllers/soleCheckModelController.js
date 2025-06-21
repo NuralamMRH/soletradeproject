@@ -7,7 +7,7 @@ const {
 } = require("../utils/fileUploader");
 
 exports.getAllSoleCheckModels = catchAsyncErrors(async (req, res, next) => {
-  const modelList = await SoleCheckModel.find().populate("soleCheckBrand");
+  const modelList = await SoleCheckModel.find();
 
   if (!modelList) {
     return next(new ErrorHandler("Sole check models not found", 500));
@@ -20,9 +20,10 @@ exports.getAllSoleCheckModels = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.getSoleCheckModelById = catchAsyncErrors(async (req, res, next) => {
-  const model = await SoleCheckModel.findById(req.params.id).populate(
-    "soleCheckBrand"
-  );
+  const model = await SoleCheckModel.findById(req.params.id)
+    .populate("brands")
+    .populate("models")
+    .populate("labels");
 
   if (!model) {
     return next(new ErrorHandler("Sole check model not found", 404));
@@ -132,17 +133,36 @@ exports.getSoleCheckModelsByBrand = catchAsyncErrors(async (req, res, next) => {
   });
 });
 
-exports.getActiveSoleCheckModels = catchAsyncErrors(async (req, res, next) => {
-  const activeModels = await SoleCheckModel.find({ isActive: true }).populate(
-    "soleCheckBrand"
-  );
+exports.deleteManySoleCheckModels = catchAsyncErrors(async (req, res, next) => {
+  try {
+    // Validate input
 
-  if (!activeModels) {
-    return next(new ErrorHandler("Active sole check models not found", 500));
+    if (!req.body.ids || !Array.isArray(req.body.ids)) {
+      return next(new ErrorHandler("Invalid request data", 400));
+    }
+
+    // Find the s to delete
+    const soleCheckModels = await SoleCheckModel.find({
+      _id: { $in: req.body.ids },
+    });
+
+    if (!soleCheckModels || soleCheckModels.length === 0) {
+      return next(new ErrorHandler("Sole check models not found", 404));
+    }
+
+    // Perform deletion
+    await SoleCheckModel.deleteMany({ _id: { $in: req.body.ids } });
+
+    res.status(200).json({
+      success: true,
+      message: "Sole check models have been deleted successfully.",
+    });
+  } catch (error) {
+    return next(
+      new ErrorHandler(
+        `Error deleting sole check models: ${error.message}`,
+        500
+      )
+    );
   }
-
-  res.status(200).json({
-    success: true,
-    soleCheckModels: activeModels,
-  });
 });

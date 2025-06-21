@@ -51,6 +51,7 @@ type Category = {
 
 type Params = {
   category?: Category;
+  type?: string;
 };
 
 export default function AddNewCategoryPage() {
@@ -60,7 +61,10 @@ export default function AddNewCategoryPage() {
     category: paramsRaw.category
       ? JSON.parse(paramsRaw.category as string)
       : undefined,
+    type: paramsRaw.type ? (paramsRaw.type as string) : undefined,
   };
+  const isSoleCheck = params.type === "sole-check";
+
   const isEditing = !!params.category;
 
   const isSubcategory =
@@ -156,9 +160,11 @@ export default function AddNewCategoryPage() {
       Alert.alert("Error", "Please select a parent category");
       return;
     }
+
     const data: any = {
       name: categoryName,
       image: imageFile, // File or Blob
+      type: isSoleCheck ? "sole-check" : "general",
     };
     if (isSubcategory) {
       data.parentCategory = parentCategoryId;

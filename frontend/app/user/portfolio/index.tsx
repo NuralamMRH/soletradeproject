@@ -10,14 +10,11 @@ import {
   Pressable,
 } from "react-native";
 import { FontAwesome6, Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { baseUrl } from "@/api/MainApi";
 import Colors from "@/constants/Colors";
-import Constants from "expo-constants";
 import { useFocusEffect } from "@react-navigation/native";
-import { useAttributes } from "@/hooks/useAttributes";
-import { useAttributeOptions } from "@/hooks/useAttributeOptions";
-import { useProducts } from "@/hooks/useProducts";
+
 import AdminHeader from "@/components/AdminHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { usePortfolio } from "@/hooks/usePortfolio";

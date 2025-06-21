@@ -15,10 +15,10 @@ import Colors from "@/constants/Colors";
 import Constants from "expo-constants";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSubCategories } from "@/hooks/useSubCategories";
-import { useSubBrands } from "@/hooks/useSubBrands";
 
 type Params = {
   isSubcategory?: boolean;
+  type?: string;
 };
 
 export default function AllCategoriesManagePage() {
@@ -28,7 +28,8 @@ export default function AllCategoriesManagePage() {
     typeof paramsRaw.parentCategoryId === "string"
       ? paramsRaw.parentCategoryId
       : null;
-  console.log("paramsRaw", paramsRaw);
+  const type = typeof paramsRaw.type === "string" ? paramsRaw.type : null;
+  const isSoleCheck = type === "sole-check";
   const isSubcategory =
     typeof paramsRaw.isSubcategory === "string"
       ? paramsRaw.isSubcategory === "true"
@@ -55,7 +56,10 @@ export default function AllCategoriesManagePage() {
   const handleAddNewCategory = () => {
     router.push({
       pathname: "/admin/categories/add-new-category",
-      params: { isSubcategory: isSubcategory.toString() },
+      params: {
+        isSubcategory: isSubcategory.toString(),
+        type: isSoleCheck ? "sole-check" : "general",
+      },
     });
   };
 
@@ -65,6 +69,7 @@ export default function AllCategoriesManagePage() {
       params: {
         category: JSON.stringify(category),
         isSubcategory: isSubcategory.toString(),
+        type: isSoleCheck ? "sole-check" : "general",
       },
     });
   };
@@ -119,33 +124,49 @@ export default function AllCategoriesManagePage() {
             {isSubcategory ? "Manage Sub Category" : "Manage Category"}
           </Text>
           <View style={styles.categoriesGrid}>
-            {categories.map((category: any) => (
-              <TouchableOpacity
-                key={category._id}
-                style={styles.categoryCard}
-                onPress={() => handleEditCategory(category)}
-              >
-                <Image
-                  source={
-                    category.image_full_url
-                      ? {
-                          uri: category.image_full_url.startsWith("http")
-                            ? category.image_full_url
-                            : `${baseUrl}${category.image_full_url}`,
-                        }
-                      : require("@/assets/images/bg_8.png")
-                  }
-                  style={styles.categoryImage}
-                  resizeMode="contain"
-                />
-                <Text style={styles.categoryName}>{category.name}</Text>
-              </TouchableOpacity>
-            ))}
+            {categories
+              .filter((category: any) =>
+                isSoleCheck ? category.type === "sole-check" : true
+              )
+              .map((category: any) => (
+                <TouchableOpacity
+                  key={category._id}
+                  style={styles.categoryCard}
+                  onPress={() => handleEditCategory(category)}
+                >
+                  <Image
+                    source={
+                      category.image_full_url
+                        ? {
+                            uri: category.image_full_url.startsWith("http")
+                              ? category.image_full_url
+                              : `${baseUrl}${category.image_full_url}`,
+                          }
+                        : require("@/assets/images/bg_8.png")
+                    }
+                    style={styles.categoryImage}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.categoryName}>{category.name}</Text>
+                </TouchableOpacity>
+              ))}
             <TouchableOpacity
-              style={styles.categoryCard}
+              style={{
+                width: "48%",
+                padding: 16,
+                marginBottom: 16,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
               onPress={handleAddNewCategory}
             >
-              <View style={styles.categoryImage}>
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                }}
+              >
                 <Ionicons name="add" size={40} color="#333" />
               </View>
               <Text style={styles.addNewText}>Add New</Text>
@@ -201,7 +222,6 @@ const styles = StyleSheet.create({
   //Header section style close
   container: {
     flex: 1,
-    backgroundColor: "#F2F2F7",
   },
   subContainer: {
     paddingHorizontal: 16,
@@ -219,27 +239,18 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: "48%",
-    backgroundColor: "#fff",
     borderRadius: 18,
     padding: 16,
     marginBottom: 16,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   categoryImage: {
     width: 130,
     height: 130,
     marginBottom: 10,
     borderRadius: 10,
-    borderColor: "#8B0000",
-    borderWidth: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
   },
   categoryName: {
     fontSize: 16,

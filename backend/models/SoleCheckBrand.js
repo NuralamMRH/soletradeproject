@@ -13,6 +13,15 @@ const soleCheckBrandSchema = mongoose.Schema({
     type: String,
     default: "",
   },
+  categories: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: "Category",
+    default: [],
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 soleCheckBrandSchema.virtual("id").get(function () {
@@ -26,7 +35,12 @@ soleCheckBrandSchema.set("toJSON", {
 soleCheckBrandSchema.virtual("models", {
   ref: "SoleCheckModel",
   localField: "_id",
-  foreignField: "soleCheckBrand",
+  foreignField: "brandId",
+});
+soleCheckBrandSchema.virtual("labels", {
+  ref: "SoleCheckLabel",
+  localField: "_id",
+  foreignField: "brandId",
 });
 
 exports.SoleCheckBrand = mongoose.model("SoleCheckBrand", soleCheckBrandSchema);

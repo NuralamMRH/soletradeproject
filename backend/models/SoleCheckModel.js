@@ -13,9 +13,19 @@ const soleCheckModelSchema = mongoose.Schema({
     type: String,
     default: "",
   },
-  soleCheckBrand: {
+  brandId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "SoleCheckBrand",
+    default: null,
+  },
+  categoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "SoleCheckCategory",
+    default: null,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
   },
 });
 
@@ -25,6 +35,25 @@ soleCheckModelSchema.virtual("id").get(function () {
 
 soleCheckModelSchema.set("toJSON", {
   virtuals: true,
+});
+
+soleCheckModelSchema.virtual("brands", {
+  ref: "SoleCheckBrand",
+  localField: "brandId",
+  foreignField: "_id",
+});
+
+soleCheckModelSchema.virtual("categories", {
+  ref: "SoleCheckCategory",
+  localField: "categoryId",
+  foreignField: "_id",
+});
+
+soleCheckModelSchema.virtual("labels", {
+  ref: "SoleCheckLabel",
+  localField: "_id",
+  foreignField: "modelId",
+  justOne: false,
 });
 
 exports.SoleCheckModel = mongoose.model("SoleCheckModel", soleCheckModelSchema);

@@ -6,6 +6,7 @@ const {
   createSoleCheckBrand,
   updateSoleCheckBrand,
   deleteSoleCheckBrand,
+  deleteManySoleCheckBrands,
 } = require("../controllers/soleCheckBrandController");
 const upload = require("../config/multerConfig");
 const { isAuthenticatedUser } = require("../middlewares/auth");
@@ -31,5 +32,9 @@ router
   );
 
 router.route("/:id").delete(isAuthenticatedUser, deleteSoleCheckBrand);
+
+router
+  .route("/delete-many")
+  .delete(isAuthenticatedUser, deleteManySoleCheckBrands);
 
 module.exports = router;

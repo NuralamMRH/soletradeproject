@@ -77,7 +77,7 @@ const ManagePages: React.FC = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => handleNavigation("SoleCheck")}
+            onPress={() => router.push("/admin/sole-check/pages")}
           >
             <Ionicons name="checkmark-circle-outline" size={24} color="#333" />
             <Text style={styles.menuText}>Sole Check</Text>

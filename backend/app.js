@@ -83,15 +83,6 @@ app.use(`${api}/home-feed-sections`, homeFeedSectionRoutes);
 const tiersRoutes = require("./routes/tiersRoutes");
 app.use(`${api}/tiers`, tiersRoutes);
 
-const soleCheckBrandsRoutes = require("./routes/soleCheckBrands");
-app.use(`${api}/sole-check-brands`, soleCheckBrandsRoutes);
-
-const soleCheckModelsRoutes = require("./routes/soleCheckModels");
-app.use(`${api}/sole-check-models`, soleCheckModelsRoutes);
-
-const soleCheckItemsRoutes = require("./routes/soleCheckItems");
-app.use(`${api}/sole-check-items`, soleCheckItemsRoutes);
-
 const portfolioItemsRoutes = require("./routes/portfolioItems");
 app.use(`${api}/portfolio`, portfolioItemsRoutes);
 
@@ -134,9 +125,6 @@ app.use(`${api}/posters`, posterRoutes);
 const tierBenefitRoutes = require("./routes/tierBenefitRoutes");
 app.use(`${api}/tier-benefits`, tierBenefitRoutes);
 
-const soleCheckSettingsRoutes = require("./routes/soleCheckSettings");
-app.use(`${api}/sole-check`, soleCheckSettingsRoutes);
-
 const voucherRoutes = require("./routes/voucherRoutes");
 app.use(`${api}/vouchers`, voucherRoutes);
 
@@ -160,6 +148,29 @@ app.use(`${api}/recent-views`, recentViewedRoutes);
 
 const searchKeywordRoutes = require("./routes/searchKeywordRoutes");
 app.use(`${api}/search-keywords`, searchKeywordRoutes);
+
+//Sole Check Routes
+
+const soleCheckBrandsRoutes = require("./routes/soleCheckBrandRoutes");
+app.use(`${api}/sole-check-brands`, soleCheckBrandsRoutes);
+
+const soleCheckLabelsRoutes = require("./routes/soleCheckLabelRoutes");
+app.use(`${api}/sole-check-labels`, soleCheckLabelsRoutes);
+
+const soleCheckAuthServicesRoutes = require("./routes/soleCheckAuthServiceRoutes");
+app.use(`${api}/sole-check-auth-services`, soleCheckAuthServicesRoutes);
+
+const soleCheckSuggestionsRoutes = require("./routes/soleCheckSuggestionRoutes");
+app.use(`${api}/sole-check-suggestions`, soleCheckSuggestionsRoutes);
+
+const soleCheckModelsRoutes = require("./routes/soleCheckModelRoutes");
+app.use(`${api}/sole-check-models`, soleCheckModelsRoutes);
+
+const soleCheckItemsRoutes = require("./routes/soleCheckItemRoutes");
+app.use(`${api}/sole-check-items`, soleCheckItemsRoutes);
+
+const soleCheckTopUpRoutes = require("./routes/soleCheckTopUpRoutes");
+app.use(`${api}/sole-check-top-ups`, soleCheckTopUpRoutes);
 
 // Middleware to handle errors
 app.use(errorMiddleware);

@@ -5,8 +5,9 @@ const { filesUpdatePromises } = require("../utils/fileUploader");
 
 exports.getAllSoleCheckItems = catchAsyncErrors(async (req, res, next) => {
   const itemList = await SoleCheckItem.find()
-    .populate("soleCheckBrand")
-    .populate("soleCheckModel")
+    .populate("brand")
+    .populate("model")
+    .populate("category")
     .populate("user");
 
   if (!itemList) {
@@ -21,8 +22,8 @@ exports.getAllSoleCheckItems = catchAsyncErrors(async (req, res, next) => {
 
 exports.getSoleCheckItemById = catchAsyncErrors(async (req, res, next) => {
   const item = await SoleCheckItem.findById(req.params.id)
-    .populate("soleCheckBrand")
-    .populate("soleCheckModel")
+    .populate("brand")
+    .populate("model")
     .populate("user");
 
   if (!item) {
@@ -36,31 +37,24 @@ exports.getSoleCheckItemById = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.createSoleCheckItem = catchAsyncErrors(async (req, res, next) => {
-  const imageFields = [
-    "appearanceImage",
-    "insideLabelImage",
-    "insoleImage",
-    "insoleStitchImage",
-    "boxLabelImage",
-    "dateCodeImage",
-    "additionalImages",
-  ];
-
+  console.log("req.body", req.body);
+  const fileFieldsToUpload = ["images"];
   const uploadedFile = await filesUpdatePromises(
     req,
     res,
     next,
-    imageFields,
+    fileFieldsToUpload,
     "sole-check-item"
   );
 
-  const item = new SoleCheckItem({
-    user: req.user.id,
-    ...uploadedFile,
+  const sellingItem = new SoleCheckItem({
+    userId: req.user.id,
     ...req.body,
+
+    ...uploadedFile,
   });
 
-  const savedItem = await item.save();
+  const savedItem = await sellingItem.save();
 
   if (!savedItem) {
     return next(new ErrorHandler("Error creating sole check item", 400));
@@ -73,21 +67,13 @@ exports.createSoleCheckItem = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.updateSoleCheckItem = catchAsyncErrors(async (req, res, next) => {
-  const imageFields = [
-    "appearanceImage",
-    "insideLabelImage",
-    "insoleImage",
-    "insoleStitchImage",
-    "boxLabelImage",
-    "dateCodeImage",
-    "additionalImages",
-  ];
+  const fileFieldsToUpload = ["images"];
 
   const uploadedFile = await filesUpdatePromises(
     req,
     res,
     next,
-    imageFields,
+    fileFieldsToUpload,
     "sole-check-item"
   );
 
@@ -96,8 +82,7 @@ exports.updateSoleCheckItem = catchAsyncErrors(async (req, res, next) => {
     {
       ...uploadedFile,
       ...req.body,
-      user: req.user.id,
-      notes: req.body.notes,
+      userId: req.user.id,
     },
     { new: true }
   );
@@ -110,6 +95,32 @@ exports.updateSoleCheckItem = catchAsyncErrors(async (req, res, next) => {
     success: true,
     soleCheckItem: updatedItem,
   });
+});
+
+exports.updateSoleCheckItemStatus = catchAsyncErrors(async (req, res, next) => {
+  try {
+    const updatedItem = await SoleCheckItem.findByIdAndUpdate(
+      req.params.id,
+      {
+        status: req.body.status,
+        comment: req.body.comment,
+      },
+      { new: true }
+    );
+
+    if (!updatedItem) {
+      return next(
+        new ErrorHandler("Error updating sole check item status", 400)
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      soleCheckItem: updatedItem,
+    });
+  } catch (error) {
+    return next(new ErrorHandler("Error updating sole check item status", 400));
+  }
 });
 
 exports.deleteSoleCheckItem = catchAsyncErrors(async (req, res, next) => {
@@ -127,8 +138,8 @@ exports.deleteSoleCheckItem = catchAsyncErrors(async (req, res, next) => {
 
 exports.getSoleCheckItemsByUser = catchAsyncErrors(async (req, res, next) => {
   const items = await SoleCheckItem.find({ user: req.user.id })
-    .populate("soleCheckBrand")
-    .populate("soleCheckModel")
+    .populate("brand")
+    .populate("model")
     .populate("user");
 
   if (!items) {
@@ -142,9 +153,9 @@ exports.getSoleCheckItemsByUser = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.getSoleCheckItemsByBrand = catchAsyncErrors(async (req, res, next) => {
-  const items = await SoleCheckItem.find({ soleCheckBrand: req.params.brandId })
-    .populate("soleCheckBrand")
-    .populate("soleCheckModel")
+  const items = await SoleCheckItem.find({ brand: req.params.brandId })
+    .populate("brand")
+    .populate("model")
     .populate("user");
 
   if (!items) {

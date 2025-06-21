@@ -1,81 +1,50 @@
 const mongoose = require("mongoose");
 
 const soleCheckItemSchema = mongoose.Schema({
-  brandId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Brand",
-  },
-  subBrandId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "SubBrand",
-    required: false,
-  },
   categoryId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Category",
   },
-  appearanceImage: {
-    type: String,
-    default: "",
+  brandId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "SoleCheckBrand",
   },
-  appearanceImage_full_url: {
-    type: String,
-    default: "",
+  modelId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "SoleCheckModel",
   },
-  insideLabelImage: {
-    type: String,
-    default: "",
-  },
-  insideLabelImage_full_url: {
-    type: String,
-    default: "",
-  },
-  insoleImage: {
-    type: String,
-    default: "",
-  },
-  insoleImage_full_url: {
-    type: String,
-    default: "",
-  },
-  insoleStitchImage: {
-    type: String,
-    default: "",
-  },
-  insoleStitchImage_full_url: {
-    type: String,
-    default: "",
-  },
-  boxLabelImage: {
-    type: String,
-    default: "",
-  },
-  boxLabelImage_full_url: {
-    type: String,
-    default: "",
-  },
-  dateCodeImage: {
-    type: String,
-    default: "",
-  },
-  dateCodeImage_full_url: {
-    type: String,
-    default: "",
-  },
+  images: [],
   additionalImages: [],
+  isNoBox: {
+    type: Boolean,
+    default: false,
+  },
   remarks: {
     type: String,
     default: "",
   },
-  user: {
+  authServiceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "AuthService",
+  },
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
-  checkedStatus: {
+  status: {
     type: String,
-    default: "NOT PASS",
+    enum: ["Authentic", "Fake", "Inconclusive"],
+    default: "Inconclusive",
   },
-  dateCreated: {
+  comment: {
+    type: String,
+    default: "",
+  },
+  statusChangedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  createdAt: {
     type: Date,
     default: Date.now,
   },
@@ -89,16 +58,30 @@ soleCheckItemSchema.set("toJSON", {
   virtuals: true,
 });
 
+soleCheckItemSchema.virtual("authService", {
+  ref: "AuthService",
+  localField: "authServiceId",
+  foreignField: "_id",
+  justOne: true,
+});
+
+soleCheckItemSchema.virtual("user", {
+  ref: "User",
+  localField: "userId",
+  foreignField: "_id",
+  justOne: true,
+});
+
 soleCheckItemSchema.virtual("brand", {
-  ref: "Brand",
+  ref: "SoleCheckBrand",
   localField: "brandId",
   foreignField: "_id",
   justOne: true,
 });
 
-soleCheckItemSchema.virtual("subBrand", {
-  ref: "SubBrand",
-  localField: "subBrandId",
+soleCheckItemSchema.virtual("model", {
+  ref: "SoleCheckModel",
+  localField: "modelId",
   foreignField: "_id",
   justOne: true,
 });

@@ -4,46 +4,35 @@ const {
   getAllSoleCheckItems,
   getSoleCheckItemById,
   createSoleCheckItem,
-  updateSoleCheckItem,
   deleteSoleCheckItem,
   getSoleCheckItemsByUser,
   getSoleCheckItemsByBrand,
+  updateSoleCheckItem,
+  updateSoleCheckItemStatus,
 } = require("../controllers/soleCheckItemController");
 const upload = require("../config/multerConfig");
 const { isAuthenticatedUser } = require("../middlewares/auth");
 
 router.route("/").get(getAllSoleCheckItems);
 router.route("/:id").get(getSoleCheckItemById);
+// Create new selling item with file upload
 router
   .route("/")
   .post(
-    upload.fields([
-      { name: "appearanceImage", maxCount: 1 },
-      { name: "insideLabelImage" },
-      { name: "insoleImage" },
-      { name: "insoleStitchImage" },
-      { name: "boxLabelImage" },
-      { name: "dateCodeImage" },
-      { name: "additionalImages" },
-    ]),
+    upload.fields([{ name: "images" }]),
     isAuthenticatedUser,
     createSoleCheckItem
   );
+
+// Update selling item with file upload
 router
   .route("/:id")
   .put(
-    upload.fields([
-      { name: "appearanceImage", maxCount: 1 },
-      { name: "insideLabelImage" },
-      { name: "insoleImage" },
-      { name: "insoleStitchImage" },
-      { name: "boxLabelImage" },
-      { name: "dateCodeImage" },
-      { name: "additionalImages" },
-    ]),
+    upload.fields([{ name: "images" }]),
     isAuthenticatedUser,
     updateSoleCheckItem
   );
+router.route("/status/:id").put(isAuthenticatedUser, updateSoleCheckItemStatus);
 router.route("/:id").delete(isAuthenticatedUser, deleteSoleCheckItem);
 router.route("/user").get(isAuthenticatedUser, getSoleCheckItemsByUser);
 router.route("/brand/:brandId").get(getSoleCheckItemsByBrand);
